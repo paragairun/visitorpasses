@@ -19,6 +19,9 @@ const VisitorForm = () => {
     flat_number: "",
   });
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleSignOut = async () => { await signOut(); navigate("/visitor", { replace: true }); };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
