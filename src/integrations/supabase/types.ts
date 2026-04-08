@@ -14,16 +14,174 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      entry_logs: {
+        Row: {
+          entry_time: string
+          entry_type: string
+          exit_time: string | null
+          flat_number: string
+          id: string
+          logged_by: string | null
+          owner_name: string
+          vehicle_number: string
+          wing: string | null
+        }
+        Insert: {
+          entry_time?: string
+          entry_type?: string
+          exit_time?: string | null
+          flat_number: string
+          id?: string
+          logged_by?: string | null
+          owner_name: string
+          vehicle_number: string
+          wing?: string | null
+        }
+        Update: {
+          entry_time?: string
+          entry_type?: string
+          exit_time?: string | null
+          flat_number?: string
+          id?: string
+          logged_by?: string | null
+          owner_name?: string
+          vehicle_number?: string
+          wing?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          flat_number: string | null
+          id: string
+          updated_at: string
+          user_id: string
+          wing: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          flat_number?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+          wing?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          flat_number?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+          wing?: string | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vehicles: {
+        Row: {
+          created_at: string
+          flat_number: string
+          id: string
+          owner_name: string
+          qr_code: string
+          updated_at: string
+          vehicle_number: string
+          vehicle_type: string
+          wing: string
+        }
+        Insert: {
+          created_at?: string
+          flat_number: string
+          id?: string
+          owner_name: string
+          qr_code: string
+          updated_at?: string
+          vehicle_number: string
+          vehicle_type?: string
+          wing: string
+        }
+        Update: {
+          created_at?: string
+          flat_number?: string
+          id?: string
+          owner_name?: string
+          qr_code?: string
+          updated_at?: string
+          vehicle_number?: string
+          vehicle_type?: string
+          wing?: string
+        }
+        Relationships: []
+      }
+      visitor_requests: {
+        Row: {
+          created_at: string
+          flat_number: string
+          id: string
+          phone: string
+          purpose: string | null
+          status: string
+          vehicle_number: string
+          visitor_name: string
+        }
+        Insert: {
+          created_at?: string
+          flat_number: string
+          id?: string
+          phone: string
+          purpose?: string | null
+          status?: string
+          vehicle_number: string
+          visitor_name: string
+        }
+        Update: {
+          created_at?: string
+          flat_number?: string
+          id?: string
+          phone?: string
+          purpose?: string | null
+          status?: string
+          vehicle_number?: string
+          visitor_name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "guard" | "resident" | "admin" | "visitor"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +308,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["guard", "resident", "admin", "visitor"],
+    },
   },
 } as const
