@@ -9,9 +9,6 @@ import QrGenerator from "@/components/QrGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import StatusBadge from "@/components/StatusBadge";
-import QrGenerator from "@/components/QrGenerator";
-import { useToast } from "@/hooks/use-toast";
 
 interface GuestPass {
   id: string;
