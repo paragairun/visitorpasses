@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { ScanLine, Check, X, LogOut, Car, Bike } from "lucide-react";
+import { ScanLine, Check, X, LogOut, Car, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import StatusBadge from "@/components/StatusBadge";
 import QrScanner from "@/components/QrScanner";
@@ -14,6 +16,13 @@ const GuardDashboard = () => {
   const [liveVehicles, setLiveVehicles] = useState<EntryLog[]>(mockEntryLogs);
   const [scanResult, setScanResult] = useState<string | null>(null);
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/guard", { replace: true });
+  };
 
   const handleScan = (result: string) => {
     setScanning(false);
@@ -81,6 +90,10 @@ const GuardDashboard = () => {
           <h1 className="text-2xl font-bold text-foreground">Guard Dashboard</h1>
           <p className="text-muted-foreground text-sm">Triumph Tower CHSL</p>
         </div>
+        <div className="flex gap-2">
+        <Button variant="ghost" size="icon" onClick={handleSignOut} className="touch-target text-muted-foreground hover:text-destructive">
+          <Power className="h-5 w-5" />
+        </Button>
         <Button
           size="lg"
           onClick={() => setScanning(true)}
@@ -89,6 +102,7 @@ const GuardDashboard = () => {
           <ScanLine className="h-6 w-6" />
           Scan Sticker
         </Button>
+        </div>
       </div>
 
       {scanResult && (

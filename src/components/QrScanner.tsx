@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { Camera, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,31 +11,41 @@ interface QrScannerProps {
 const QrScanner = ({ onScan, onClose }: QrScannerProps) => {
   const [error, setError] = useState<string | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const stoppedRef = useRef(false);
+
+  const handleClose = useCallback(() => {
+    if (scannerRef.current && !stoppedRef.current) {
+      stoppedRef.current = true;
+      scannerRef.current.stop().catch(() => {}).finally(onClose);
+    } else {
+      onClose();
+    }
+  }, [onClose]);
 
   useEffect(() => {
-    const startScanner = async () => {
-      try {
-        const scanner = new Html5Qrcode("qr-reader");
-        scannerRef.current = scanner;
-        await scanner.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          (decodedText) => {
-            onScan(decodedText);
-            scanner.stop().catch(console.error);
-          },
-          () => {}
-        );
-      } catch (err) {
-        setError("Camera access denied. Please allow camera permissions.");
-      }
-    };
+    stoppedRef.current = false;
+    const scanner = new Html5Qrcode("qr-reader");
+    scannerRef.current = scanner;
 
-    startScanner();
+    scanner.start(
+      { facingMode: "environment" },
+      { fps: 10, qrbox: { width: 250, height: 250 } },
+      (decodedText) => {
+        if (!stoppedRef.current) {
+          stoppedRef.current = true;
+          scanner.stop().catch(() => {}).finally(() => onScan(decodedText));
+        }
+      },
+      () => {}
+    ).catch(() => {
+      setError("Camera access denied. Please allow camera permissions.");
+    });
 
     return () => {
-      scannerRef.current?.stop().catch(() => {});
+      if (!stoppedRef.current) {
+        stoppedRef.current = true;
+        scanner.stop().catch(() => {});
+      }
     };
   }, [onScan]);
 
@@ -47,24 +57,13 @@ const QrScanner = ({ onScan, onClose }: QrScannerProps) => {
             <Camera className="h-6 w-6 text-primary" />
             <h2 className="text-xl font-bold text-foreground">Scan QR Code</h2>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose} className="touch-target">
+          <Button variant="ghost" size="icon" onClick={handleClose} className="touch-target">
             <X className="h-6 w-6" />
           </Button>
         </div>
-        
-        <div
-          id="qr-reader"
-          ref={containerRef}
-          className="w-full rounded-lg overflow-hidden border-2 border-primary/50"
-        />
-        
-        {error && (
-          <p className="mt-4 text-center text-destructive font-medium">{error}</p>
-        )}
-        
-        <p className="mt-4 text-center text-muted-foreground text-sm">
-          Point camera at a vehicle QR sticker
-        </p>
+        <div id="qr-reader" className="w-full rounded-lg overflow-hidden border-2 border-primary/50" />
+        {error && <p className="mt-4 text-center text-destructive font-medium">{error}</p>}
+        <p className="mt-4 text-center text-muted-foreground text-sm">Point camera at a vehicle QR sticker</p>
       </div>
     </div>
   );

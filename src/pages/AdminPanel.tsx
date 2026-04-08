@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Shield } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Shield, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,12 +9,17 @@ import QrGenerator from "@/components/QrGenerator";
 import { mockVehicles, mockEntryLogs } from "@/lib/mock-data";
 import type { Vehicle } from "@/lib/mock-data";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const AdminPanel = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+  const handleSignOut = async () => { await signOut(); navigate("/admin", { replace: true }); };
 
   const addVehicle = () => {
     if (!newVehicle.flat_number || !newVehicle.vehicle_number || !newVehicle.owner_name) {
@@ -42,12 +47,17 @@ const AdminPanel = () => {
 
   return (
     <div className="min-h-screen p-4 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Shield className="h-7 w-7 text-primary" />
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-          <p className="text-muted-foreground text-sm">Committee Management • Triumph Tower CHSL</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Shield className="h-7 w-7 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
+            <p className="text-muted-foreground text-sm">Committee Management • Triumph Tower CHSL</p>
+          </div>
         </div>
+        <Button variant="ghost" size="icon" onClick={handleSignOut} className="touch-target text-muted-foreground hover:text-destructive">
+          <Power className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Stats */}

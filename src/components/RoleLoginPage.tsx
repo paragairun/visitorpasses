@@ -1,0 +1,96 @@
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { LucideIcon } from "lucide-react";
+
+interface RoleLoginPageProps {
+  roleName: string;
+  roleKey: "guard" | "resident" | "admin" | "visitor";
+  icon: LucideIcon;
+  accentClass: string;
+  dashboardPath: string;
+  description: string;
+}
+
+const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPath, description }: RoleLoginPageProps) => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, user, role } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  // If already logged in with correct role, redirect
+  if (user && role === roleKey) {
+    navigate(dashboardPath, { replace: true });
+    return null;
+  }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) {
+      toast({ title: "Enter email and password", variant: "destructive" });
+      return;
+    }
+    setIsLoading(true);
+    const { error } = await signIn(email, password);
+    setIsLoading(false);
+    if (error) {
+      toast({ title: "Login Failed", description: error, variant: "destructive" });
+    } else {
+      navigate(dashboardPath, { replace: true });
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader className="text-center space-y-3">
+          <div className={`mx-auto h-16 w-16 rounded-2xl flex items-center justify-center ${accentClass}`}>
+            <Icon className="h-8 w-8" />
+          </div>
+          <CardTitle className="text-xl">{roleName}</CardTitle>
+          <p className="text-muted-foreground text-sm">{description}</p>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="touch-target"
+                autoComplete="email"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="touch-target"
+                autoComplete="current-password"
+              />
+            </div>
+            <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold" disabled={isLoading}>
+              {isLoading ? "Signing in..." : "Sign In"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default RoleLoginPage;
