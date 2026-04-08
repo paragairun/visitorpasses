@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { ClipboardList, Share2, QrCode } from "lucide-react";
+import { ClipboardList, Share2, QrCode, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import StatusBadge from "@/components/StatusBadge";
+import QrGenerator from "@/components/QrGenerator";
+import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import StatusBadge from "@/components/StatusBadge";
 import QrGenerator from "@/components/QrGenerator";
 import { useToast } from "@/hooks/use-toast";
@@ -26,6 +31,13 @@ const ResidentPortal = () => {
   const [guestPasses, setGuestPasses] = useState<GuestPass[]>([]);
   const [showQr, setShowQr] = useState<string | null>(null);
   const { toast } = useToast();
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/resident", { replace: true });
+  };
 
   const generateGuestPass = () => {
     if (!guestName.trim()) {
@@ -53,9 +65,14 @@ const ResidentPortal = () => {
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Resident Portal</h1>
-        <p className="text-muted-foreground text-sm">A-101 • Rajesh Sharma</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Resident Portal</h1>
+          <p className="text-muted-foreground text-sm">A-101 • Rajesh Sharma</p>
+        </div>
+        <Button variant="ghost" size="icon" onClick={handleSignOut} className="touch-target text-muted-foreground hover:text-destructive">
+          <Power className="h-5 w-5" />
+        </Button>
       </div>
 
       {/* Generate Guest Pass */}
