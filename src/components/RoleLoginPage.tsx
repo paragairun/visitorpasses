@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,28 +22,26 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { signIn, user, role } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
-  // If already logged in with correct role, redirect
   if (user && role === roleKey) {
-    navigate(dashboardPath, { replace: true });
-    return null;
+    return <Navigate to={dashboardPath} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!email || !password) {
       toast({ title: "Enter email and password", variant: "destructive" });
       return;
     }
+
     setIsLoading(true);
     const { error } = await signIn(email, password);
     setIsLoading(false);
+
     if (error) {
       toast({ title: "Login Failed", description: error, variant: "destructive" });
-    } else {
-      navigate(dashboardPath, { replace: true });
     }
   };
 
