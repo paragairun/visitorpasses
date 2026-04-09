@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -27,7 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
-  const skipAuthChange = useRef(false);
+  const latestRoleRequestFor = useRef<string | null>(null);
 
   const fetchRole = async (userId: string) => {
     const { data } = await supabase
@@ -35,50 +35,53 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       .select("role")
       .eq("user_id", userId)
       .maybeSingle();
+
     return (data?.role as AppRole) ?? null;
   };
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, sess) => {
-      if (skipAuthChange.current) {
-        skipAuthChange.current = false;
-        return;
-      }
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        const r = await fetchRole(sess.user.id);
-        setRole(r);
-      } else {
-        setRole(null);
-      }
+  const syncAuthState = (nextSession: Session | null) => {
+    setSession(nextSession);
+    setUser(nextSession?.user ?? null);
+
+    const nextUserId = nextSession?.user?.id ?? null;
+    latestRoleRequestFor.current = nextUserId;
+
+    if (!nextUserId) {
+      setRole(null);
       setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    void fetchRole(nextUserId).then((nextRole) => {
+      if (latestRoleRequestFor.current === nextUserId) {
+        setRole(nextRole);
+        setLoading(false);
+      }
+    });
+  };
+
+  useEffect(() => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      syncAuthState(nextSession);
     });
 
-    supabase.auth.getSession().then(async ({ data: { session: sess } }) => {
-      setSession(sess);
-      setUser(sess?.user ?? null);
-      if (sess?.user) {
-        const r = await fetchRole(sess.user.id);
-        setRole(r);
-      }
-      setLoading(false);
+    void supabase.auth.getSession().then(({ data: { session: currentSession } }) => {
+      syncAuthState(currentSession);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    skipAuthChange.current = true;
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (!error && data.user) {
-      const r = await fetchRole(data.user.id);
-      setRole(r);
-      setUser(data.user);
-      setSession(data.session);
-    } else {
-      skipAuthChange.current = false;
+
+    if (!error) {
+      syncAuthState(data.session);
     }
+
     return { error: error?.message ?? null };
   };
 
@@ -88,12 +91,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       password,
       options: { data: { display_name: displayName } },
     });
+
     return { error: error?.message ?? null };
   };
 
   const signOut = async () => {
+    latestRoleRequestFor.current = null;
     await supabase.auth.signOut();
+    setSession(null);
+    setUser(null);
     setRole(null);
+    setLoading(false);
   };
 
   return (
