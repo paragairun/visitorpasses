@@ -1,0 +1,174 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
+import { UserCheck, UserX, Clock, Loader2 } from "lucide-react";
+
+interface RegistrationRequest {
+  id: string;
+  email: string;
+  display_name: string;
+  requested_role: string;
+  flat_number: string | null;
+  wing: string | null;
+  status: string;
+  created_at: string;
+}
+
+const RegistrationRequests = () => {
+  const [requests, setRequests] = useState<RegistrationRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processingId, setProcessingId] = useState<string | null>(null);
+  const { toast } = useToast();
+
+  const fetchRequests = async () => {
+    const { data, error } = await supabase
+      .from("registration_requests")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (!error && data) {
+      setRequests(data as RegistrationRequest[]);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const handleAction = async (requestId: string, action: "approve" | "reject") => {
+    setProcessingId(requestId);
+
+    const { data, error } = await supabase.functions.invoke("approve-registration", {
+      body: { request_id: requestId, action },
+    });
+
+    setProcessingId(null);
+
+    if (error) {
+      toast({ title: "Action failed", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    if (data?.error) {
+      toast({ title: "Action failed", description: data.error, variant: "destructive" });
+      return;
+    }
+
+    if (action === "approve" && data?.temp_password) {
+      toast({
+        title: "User Approved",
+        description: `Temp password for ${data.email}: ${data.temp_password}`,
+        duration: 15000,
+      });
+    } else {
+      toast({ title: action === "approve" ? "Approved" : "Rejected" });
+    }
+
+    fetchRequests();
+  };
+
+  const pendingRequests = requests.filter((r) => r.status === "pending");
+  const processedRequests = requests.filter((r) => r.status !== "pending");
+
+  const roleBadgeColor = (role: string) => {
+    switch (role) {
+      case "admin": return "bg-yellow-500/20 text-yellow-400 border-yellow-500/30";
+      case "guard": return "bg-blue-500/20 text-blue-400 border-blue-500/30";
+      case "resident": return "bg-green-500/20 text-green-400 border-green-500/30";
+      case "visitor": return "bg-purple-500/20 text-purple-400 border-purple-500/30";
+      default: return "";
+    }
+  };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="p-8 flex justify-center">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <Clock className="h-5 w-5 text-primary" />
+          Registration Requests ({pendingRequests.length} pending)
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {pendingRequests.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-4">No pending requests</p>
+        )}
+
+        {pendingRequests.map((req) => (
+          <div key={req.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+            <div className="space-y-1">
+              <p className="font-semibold text-foreground">{req.display_name}</p>
+              <p className="text-sm text-muted-foreground">{req.email}</p>
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className={roleBadgeColor(req.requested_role)}>
+                  {req.requested_role}
+                </Badge>
+                {req.flat_number && (
+                  <span className="text-xs text-muted-foreground">
+                    {req.wing}-{req.flat_number}
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-green-500 border-green-500/30 hover:bg-green-500/10"
+                onClick={() => handleAction(req.id, "approve")}
+                disabled={processingId === req.id}
+              >
+                {processingId === req.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                onClick={() => handleAction(req.id, "reject")}
+                disabled={processingId === req.id}
+              >
+                <UserX className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        {processedRequests.length > 0 && (
+          <details className="pt-2">
+            <summary className="text-sm text-muted-foreground cursor-pointer hover:text-foreground">
+              Processed requests ({processedRequests.length})
+            </summary>
+            <div className="space-y-2 mt-2">
+              {processedRequests.map((req) => (
+                <div key={req.id} className="flex items-center justify-between p-2 rounded-lg bg-secondary/30 border border-border/50">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{req.display_name}</p>
+                    <p className="text-xs text-muted-foreground">{req.email}</p>
+                  </div>
+                  <Badge variant={req.status === "approved" ? "default" : "destructive"}>
+                    {req.status}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          </details>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
+export default RegistrationRequests;
