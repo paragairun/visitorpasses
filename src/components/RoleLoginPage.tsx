@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -84,6 +84,10 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
             <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
             </Button>
+            <p className="text-center text-sm text-muted-foreground">
+              Don't have access?{" "}
+              <Link to="/register" className="text-primary hover:underline">Register here</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

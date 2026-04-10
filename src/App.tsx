@@ -13,6 +13,7 @@ import ResidentLogin from "./pages/ResidentLogin";
 import ResidentPortal from "./pages/ResidentPortal";
 import AdminLogin from "./pages/AdminLogin";
 import AdminPanel from "./pages/AdminPanel";
+import Register from "./pages/Register";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Routes>
             {/* Each role has its own login URL - no shared landing page */}
             <Route path="/" element={<Navigate to="/guard" replace />} />
+            <Route path="/register" element={<Register />} />
             
             {/* Guard */}
             <Route path="/guard" element={<GuardLogin />} />

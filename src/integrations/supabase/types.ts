@@ -80,6 +80,45 @@ export type Database = {
         }
         Relationships: []
       }
+      registration_requests: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string
+          flat_number: string | null
+          id: string
+          requested_role: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          wing: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email: string
+          flat_number?: string | null
+          id?: string
+          requested_role: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          wing?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string
+          flat_number?: string | null
+          id?: string
+          requested_role?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          wing?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
