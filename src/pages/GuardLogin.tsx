@@ -7,7 +7,7 @@ const GuardLogin = () => (
     roleKey="guard"
     icon={ScanLine}
     accentClass="bg-primary/20 text-primary"
-    dashboardPath="/guard"
+    dashboardPath="/guard/dashboard"
     description="Triumph Tower CHSL — Guard Portal"
   />
 );
