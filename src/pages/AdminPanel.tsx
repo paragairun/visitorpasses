@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Plus, QrCode, Car, BarChart3, Shield, Power } from "lucide-react";
+import RegistrationRequests from "@/components/RegistrationRequests";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -132,6 +133,9 @@ const AdminPanel = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Registration Requests */}
+      <RegistrationRequests />
 
       {/* Vehicle Registry */}
       <Card>
