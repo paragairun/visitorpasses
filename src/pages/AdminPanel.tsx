@@ -135,6 +135,9 @@ const AdminPanel = () => {
         </CardContent>
       </Card>
 
+      {/* Bulk Upload */}
+      <CsvUpload onComplete={() => {/* TODO: refetch from DB */}} />
+
       {/* Registration Requests */}
       <RegistrationRequests />
 
