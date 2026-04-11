@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { Car, Send, CheckCircle, Power } from "lucide-react";
+import { Car, Send, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
 
 const VisitorForm = () => {
   const [submitted, setSubmitted] = useState(false);
@@ -19,9 +17,6 @@ const VisitorForm = () => {
     flat_number: "",
   });
   const { toast } = useToast();
-  const { signOut } = useAuth();
-  const navigate = useNavigate();
-  const handleSignOut = async () => { await signOut(); navigate("/visitor", { replace: true }); };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -54,11 +49,6 @@ const VisitorForm = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="absolute top-4 right-4">
-        <Button variant="ghost" size="icon" onClick={handleSignOut} className="touch-target text-muted-foreground hover:text-destructive">
-          <Power className="h-5 w-5" />
-        </Button>
-      </div>
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center mb-2">
