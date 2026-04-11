@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import GuardLogin from "./pages/GuardLogin";
 import GuardDashboard from "./pages/GuardDashboard";
+import VisitorLogin from "./pages/VisitorLogin";
 import VisitorForm from "./pages/VisitorForm";
 import ResidentLogin from "./pages/ResidentLogin";
 import ResidentPortal from "./pages/ResidentPortal";
@@ -37,9 +38,13 @@ const App = () => (
               </ProtectedRoute>
             } />
 
-            {/* Visitor — no login required */}
-            <Route path="/visitor" element={<Navigate to="/visitor/form" replace />} />
-            <Route path="/visitor/form" element={<VisitorForm />} />
+            {/* Visitor */}
+            <Route path="/visitor" element={<VisitorLogin />} />
+            <Route path="/visitor/form" element={
+              <ProtectedRoute requiredRole="visitor" loginPath="/visitor">
+                <VisitorForm />
+              </ProtectedRoute>
+            } />
 
             {/* Resident */}
             <Route path="/resident" element={<ResidentLogin />} />
