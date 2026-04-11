@@ -24,8 +24,24 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const { signIn, user, role } = useAuth();
   const { toast } = useToast();
 
+  // If already logged in with the correct role, go to dashboard
   if (user && role === roleKey) {
     return <Navigate to={dashboardPath} replace />;
+  }
+
+  // If logged in but wrong role, show access denied
+  if (user && role && role !== roleKey) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 text-center">
+        <div className="space-y-4">
+          <p className="text-2xl font-bold text-destructive">Access Denied</p>
+          <p className="text-muted-foreground">
+            Your account has the <strong>{role}</strong> role. This page is for <strong>{roleKey}</strong> users only.
+          </p>
+          <Button variant="outline" onClick={() => { void signOut(); }}>Sign Out</Button>
+        </div>
+      </div>
+    );
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
