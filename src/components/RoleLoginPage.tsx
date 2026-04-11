@@ -21,7 +21,7 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn, user, role } = useAuth();
+  const { signIn, signOut, user, role } = useAuth();
   const { toast } = useToast();
 
   // If already logged in with the correct role, go to dashboard
