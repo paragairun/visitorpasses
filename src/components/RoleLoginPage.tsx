@@ -86,7 +86,7 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
             </Button>
             <p className="text-center text-sm text-muted-foreground">
               Don't have access?{" "}
-              <Link to="/register" className="text-primary hover:underline">Register here</Link>
+              <Link to={`/register?role=${roleKey}`} className="text-primary hover:underline">Register here</Link>
             </p>
           </form>
         </CardContent>
