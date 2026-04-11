@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import GuardLogin from "./pages/GuardLogin";
 import GuardDashboard from "./pages/GuardDashboard";
-import VisitorLogin from "./pages/VisitorLogin";
 import VisitorForm from "./pages/VisitorForm";
 import ResidentLogin from "./pages/ResidentLogin";
 import ResidentPortal from "./pages/ResidentPortal";
@@ -26,7 +25,6 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <Routes>
-            {/* Each role has its own login URL - no shared landing page */}
             <Route path="/" element={<Navigate to="/guard" replace />} />
             <Route path="/register" element={<Register />} />
             
@@ -38,13 +36,8 @@ const App = () => (
               </ProtectedRoute>
             } />
 
-            {/* Visitor */}
-            <Route path="/visitor" element={<VisitorLogin />} />
-            <Route path="/visitor/form" element={
-              <ProtectedRoute requiredRole="visitor" loginPath="/visitor">
-                <VisitorForm />
-              </ProtectedRoute>
-            } />
+            {/* Visitor - public form, no login required */}
+            <Route path="/visitor/form" element={<VisitorForm />} />
 
             {/* Resident */}
             <Route path="/resident" element={<ResidentLogin />} />

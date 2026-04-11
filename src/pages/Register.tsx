@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,20 +8,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, CheckCircle } from "lucide-react";
-import { Link } from "react-router-dom";
 
-const ROLES = [
-  { value: "guard", label: "Security Guard" },
-  { value: "resident", label: "Resident" },
-  { value: "visitor", label: "Visitor" },
-  { value: "admin", label: "Committee Admin" },
-];
+const ROLE_LABELS: Record<string, string> = {
+  guard: "Security Guard",
+  resident: "Resident",
+  admin: "Committee Admin",
+};
 
 const Register = () => {
+  const [searchParams] = useSearchParams();
+  const roleFromUrl = searchParams.get("role") || "";
+  const validRole = ["guard", "resident", "admin"].includes(roleFromUrl) ? roleFromUrl : "";
+
   const [form, setForm] = useState({
     email: "",
     display_name: "",
-    requested_role: "",
     flat_number: "",
     wing: "",
   });
@@ -31,7 +33,7 @@ const Register = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.email || !form.display_name || !form.requested_role) {
+    if (!form.email || !form.display_name || !validRole) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
@@ -40,7 +42,7 @@ const Register = () => {
     const { error } = await supabase.from("registration_requests").insert({
       email: form.email.trim(),
       display_name: form.display_name.trim(),
-      requested_role: form.requested_role,
+      requested_role: validRole,
       flat_number: form.flat_number.trim() || null,
       wing: form.wing || null,
     });
@@ -54,7 +56,26 @@ const Register = () => {
     setSubmitted(true);
   };
 
-  const showFlatFields = form.requested_role === "resident";
+  const showFlatFields = validRole === "resident";
+  const loginPath = validRole ? `/${validRole}` : "/";
+
+  if (!validRole) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm text-center">
+          <CardContent className="pt-8 pb-6 space-y-4">
+            <p className="text-xl font-bold text-foreground">Invalid Registration Link</p>
+            <p className="text-muted-foreground text-sm">
+              Please use the register link from your role's login page.
+            </p>
+            <Button variant="outline" asChild className="mt-4">
+              <Link to="/">Back to Login</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (submitted) {
     return (
@@ -68,7 +89,7 @@ const Register = () => {
               You will receive access once approved.
             </p>
             <Button variant="outline" asChild className="mt-4">
-              <Link to="/">Back to Login</Link>
+              <Link to={loginPath}>Back to Login</Link>
             </Button>
           </CardContent>
         </Card>
@@ -83,7 +104,7 @@ const Register = () => {
           <div className="mx-auto h-16 w-16 rounded-2xl flex items-center justify-center bg-primary/20 text-primary">
             <UserPlus className="h-8 w-8" />
           </div>
-          <CardTitle className="text-xl">Register for Access</CardTitle>
+          <CardTitle className="text-xl">Register as {ROLE_LABELS[validRole]}</CardTitle>
           <p className="text-muted-foreground text-sm">
             Triumph Tower CHSL — Submit a registration request
           </p>
@@ -108,17 +129,6 @@ const Register = () => {
                 onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                 className="touch-target"
               />
-            </div>
-            <div className="space-y-2">
-              <Label>Role *</Label>
-              <Select value={form.requested_role} onValueChange={(v) => setForm((p) => ({ ...p, requested_role: v }))}>
-                <SelectTrigger className="touch-target"><SelectValue placeholder="Select a role" /></SelectTrigger>
-                <SelectContent>
-                  {ROLES.map((r) => (
-                    <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
             </div>
 
             {showFlatFields && (
@@ -152,7 +162,7 @@ const Register = () => {
 
             <p className="text-center text-sm text-muted-foreground">
               Already have access?{" "}
-              <Link to="/" className="text-primary hover:underline">Sign in</Link>
+              <Link to={loginPath} className="text-primary hover:underline">Sign in</Link>
             </p>
           </form>
         </CardContent>
