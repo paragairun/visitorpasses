@@ -138,7 +138,7 @@ const Register = () => {
                   <Select value={form.wing} onValueChange={(v) => setForm((p) => ({ ...p, wing: v }))}>
                     <SelectTrigger className="touch-target"><SelectValue placeholder="Wing" /></SelectTrigger>
                     <SelectContent>
-                      {["A", "B", "C", "D"].map((w) => (
+                      {["A", "B", "C", "D", "E", "F", "G", "H"].map((w) => (
                         <SelectItem key={w} value={w}>Wing {w}</SelectItem>
                       ))}
                     </SelectContent>
