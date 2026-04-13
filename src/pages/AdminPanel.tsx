@@ -174,7 +174,7 @@ const AdminPanel = () => {
               <Select value={newVehicle.wing} onValueChange={(v) => setNewVehicle((p) => ({ ...p, wing: v }))}>
                 <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {["A", "B", "C", "D"].map((w) => <SelectItem key={w} value={w}>Wing {w}</SelectItem>)}
+                  {["A", "B", "C", "D", "E", "F", "G", "H"].map((w) => <SelectItem key={w} value={w}>Wing {w}</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
