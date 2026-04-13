@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,21 +23,32 @@ const RegistrationRequests = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
+
     const { data, error } = await supabase
       .from("registration_requests")
       .select("*")
       .order("created_at", { ascending: false });
 
-    if (!error && data) {
+    if (error) {
+      toast({ title: "Could not load registration requests", description: error.message, variant: "destructive" });
+    } else if (data) {
       setRequests(data as RegistrationRequest[]);
     }
-    setLoading(false);
-  };
+
+    if (showLoader) setLoading(false);
+  }, [toast]);
 
   useEffect(() => {
-    fetchRequests();
-  }, []);
+    void fetchRequests(true);
+
+    const interval = window.setInterval(() => {
+      void fetchRequests(false);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [fetchRequests]);
 
   const handleAction = async (requestId: string, action: "approve" | "reject") => {
     setProcessingId(requestId);
@@ -68,7 +79,7 @@ const RegistrationRequests = () => {
       toast({ title: action === "approve" ? "Approved" : "Rejected" });
     }
 
-    fetchRequests();
+    void fetchRequests(false);
   };
 
   const pendingRequests = requests.filter((r) => r.status === "pending");

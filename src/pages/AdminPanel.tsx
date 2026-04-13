@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, QrCode, Car, BarChart3, Shield, Power } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
@@ -8,44 +8,116 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import QrGenerator from "@/components/QrGenerator";
-import { mockVehicles, mockEntryLogs } from "@/lib/mock-data";
-import type { Vehicle } from "@/lib/mock-data";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import type { Tables } from "@/integrations/supabase/types";
+
+type Vehicle = Tables<"vehicles">;
 
 const AdminPanel = () => {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
+  const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0 });
+  const [loading, setLoading] = useState(true);
+  const [savingVehicle, setSavingVehicle] = useState(false);
   const { toast } = useToast();
   const { signOut } = useAuth();
   const navigate = useNavigate();
   const handleSignOut = async () => { await signOut(); navigate("/admin", { replace: true }); };
 
-  const addVehicle = () => {
+  const fetchAdminData = useCallback(async (showLoader = false) => {
+    if (showLoader) setLoading(true);
+
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const [vehiclesResult, insideResult, todayResult] = await Promise.all([
+      supabase.from("vehicles").select("*").order("created_at", { ascending: false }),
+      supabase.from("entry_logs").select("id", { count: "exact", head: true }).is("exit_time", null),
+      supabase.from("entry_logs").select("id", { count: "exact", head: true }).gte("entry_time", startOfDay.toISOString()),
+    ]);
+
+    if (vehiclesResult.error) {
+      toast({ title: "Could not load vehicles", description: vehiclesResult.error.message, variant: "destructive" });
+    } else {
+      const nextVehicles = (vehiclesResult.data ?? []) as Vehicle[];
+      setVehicles(nextVehicles);
+      setStats((prev) => ({ ...prev, total_vehicles: nextVehicles.length }));
+    }
+
+    if (insideResult.error) {
+      toast({ title: "Could not load active entries", description: insideResult.error.message, variant: "destructive" });
+    } else {
+      setStats((prev) => ({ ...prev, currently_inside: insideResult.count ?? 0 }));
+    }
+
+    if (todayResult.error) {
+      toast({ title: "Could not load today's entries", description: todayResult.error.message, variant: "destructive" });
+    } else {
+      setStats((prev) => ({ ...prev, today_entries: todayResult.count ?? 0 }));
+    }
+
+    if (showLoader) setLoading(false);
+  }, [toast]);
+
+  useEffect(() => {
+    void fetchAdminData(true);
+
+    const interval = window.setInterval(() => {
+      void fetchAdminData(false);
+    }, 5000);
+
+    return () => window.clearInterval(interval);
+  }, [fetchAdminData]);
+
+  const addVehicle = async () => {
     if (!newVehicle.flat_number || !newVehicle.vehicle_number || !newVehicle.owner_name) {
       toast({ title: "Fill all required fields", variant: "destructive" });
       return;
     }
+
+    setSavingVehicle(true);
+
     const qr = `RES-${newVehicle.wing}${newVehicle.flat_number}-${Date.now().toString(36).toUpperCase()}`;
-    const vehicle: Vehicle = {
-      id: Date.now().toString(),
-      ...newVehicle,
-      vehicle_type: newVehicle.vehicle_type as Vehicle["vehicle_type"],
-      qr_code: qr,
-    };
-    setVehicles((prev) => [vehicle, ...prev]);
+
+    const { data, error } = await supabase
+      .from("vehicles")
+      .insert({
+        flat_number: newVehicle.flat_number.trim(),
+        wing: newVehicle.wing,
+        vehicle_number: newVehicle.vehicle_number.trim().toUpperCase(),
+        vehicle_type: newVehicle.vehicle_type,
+        owner_name: newVehicle.owner_name.trim(),
+        qr_code: qr,
+      })
+      .select("*")
+      .single();
+
+    setSavingVehicle(false);
+
+    if (error) {
+      toast({ title: "Vehicle registration failed", description: error.message, variant: "destructive" });
+      return;
+    }
+
     setShowQrFor(qr);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
+    setVehicles((prev) => [data as Vehicle, ...prev]);
+    setStats((prev) => ({ ...prev, total_vehicles: prev.total_vehicles + 1 }));
+    await fetchAdminData(false);
     toast({ title: "Vehicle Registered", description: `QR: ${qr}` });
   };
 
-  const stats = {
-    total_vehicles: vehicles.length,
-    currently_inside: mockEntryLogs.filter((l) => !l.exit_time).length,
-    today_entries: mockEntryLogs.length,
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 max-w-5xl mx-auto space-y-6">
@@ -122,9 +194,9 @@ const AdminPanel = () => {
               </Select>
             </div>
           </div>
-          <Button onClick={addVehicle} className="touch-target gap-2">
+          <Button onClick={() => void addVehicle()} className="touch-target gap-2" disabled={savingVehicle}>
             <QrCode className="h-4 w-4" />
-            Register & Generate QR
+            {savingVehicle ? "Saving..." : "Register & Generate QR"}
           </Button>
 
           {showQrFor && (
@@ -136,7 +208,7 @@ const AdminPanel = () => {
       </Card>
 
       {/* Bulk Upload */}
-      <CsvUpload onComplete={() => {/* TODO: refetch from DB */}} />
+      <CsvUpload onComplete={() => { void fetchAdminData(false); }} />
 
       {/* Registration Requests */}
       <RegistrationRequests />
@@ -148,18 +220,22 @@ const AdminPanel = () => {
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
-            {vehicles.map((v) => (
-              <div key={v.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                <div>
-                  <p className="font-bold text-foreground">{v.vehicle_number}</p>
-                  <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
+            {vehicles.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No vehicles registered yet</p>
+            ) : (
+              vehicles.map((v) => (
+                <div key={v.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                  <div>
+                    <p className="font-bold text-foreground">{v.vehicle_number}</p>
+                    <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setShowQrFor(showQrFor === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
+                    <QrCode className="h-4 w-4" />
+                    QR
+                  </Button>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => setShowQrFor(showQrFor === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
-                  <QrCode className="h-4 w-4" />
-                  QR
-                </Button>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
