@@ -6,9 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const VisitorForm = () => {
   const [submitted, setSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
     name: "",
     phone: "",
@@ -18,12 +20,37 @@ const VisitorForm = () => {
   });
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!form.name || !form.phone || !form.vehicle_number || !form.flat_number) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
+
+    setIsSubmitting(true);
+
+    const { data, error } = await supabase.functions.invoke("submit-visitor-request", {
+      body: {
+        visitor_name: form.name.trim(),
+        phone: form.phone.trim(),
+        vehicle_number: form.vehicle_number.trim().toUpperCase(),
+        purpose: form.purpose || null,
+        flat_number: form.flat_number.trim().toUpperCase(),
+      },
+    });
+
+    setIsSubmitting(false);
+
+    if (error || data?.error) {
+      toast({
+        title: "Request failed",
+        description: error?.message ?? data?.error ?? "Could not submit visitor request.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setSubmitted(true);
     toast({ title: "Request Submitted", description: "The guard will review your entry." });
   };
@@ -90,9 +117,9 @@ const VisitorForm = () => {
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold gap-2">
+            <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold gap-2" disabled={isSubmitting}>
               <Send className="h-5 w-5" />
-              Submit Entry Request
+              {isSubmitting ? "Submitting..." : "Submit Entry Request"}
             </Button>
           </form>
         </CardContent>

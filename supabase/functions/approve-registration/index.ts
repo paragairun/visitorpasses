@@ -1,9 +1,15 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "npm:zod@3.25.76";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
+
+const BodySchema = z.object({
+  request_id: z.string().uuid(),
+  action: z.enum(["approve", "reject"]),
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,14 +52,16 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { request_id, action } = await req.json();
+    const parsedBody = BodySchema.safeParse(await req.json());
 
-    if (!request_id || !["approve", "reject"].includes(action)) {
+    if (!parsedBody.success) {
       return new Response(JSON.stringify({ error: "Invalid request" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    const { request_id, action } = parsedBody.data;
 
     // Get the registration request
     const { data: regRequest, error: fetchErr } = await adminClient
@@ -104,21 +112,42 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Assign role
-    await adminClient.from("user_roles").insert({
+    const { error: roleError } = await adminClient.from("user_roles").insert({
       user_id: newUser.user.id,
       role: regRequest.requested_role,
     });
 
-    // Update profile if resident
-    if (regRequest.requested_role === "resident" && (regRequest.flat_number || regRequest.wing)) {
-      await adminClient
-        .from("profiles")
-        .update({
-          flat_number: regRequest.flat_number,
-          wing: regRequest.wing,
-        })
-        .eq("user_id", newUser.user.id);
+    if (roleError) {
+      return new Response(JSON.stringify({ error: roleError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: existingProfile } = await adminClient
+      .from("profiles")
+      .select("id")
+      .eq("user_id", newUser.user.id)
+      .maybeSingle();
+
+    const profilePayload = {
+      user_id: newUser.user.id,
+      display_name: regRequest.display_name,
+      flat_number: regRequest.requested_role === "resident" ? regRequest.flat_number : null,
+      wing: regRequest.requested_role === "resident" ? regRequest.wing : null,
+    };
+
+    const profileQuery = existingProfile
+      ? adminClient.from("profiles").update(profilePayload).eq("user_id", newUser.user.id)
+      : adminClient.from("profiles").insert(profilePayload);
+
+    const { error: profileError } = await profileQuery;
+
+    if (profileError) {
+      return new Response(JSON.stringify({ error: profileError.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Mark request as approved
