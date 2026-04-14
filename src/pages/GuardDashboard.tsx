@@ -9,6 +9,7 @@ import QrScanner from "@/components/QrScanner";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import { decodeGuestPass } from "@/lib/guest-pass";
 
 type VisitorRequest = Tables<"visitor_requests">;
 type EntryLog = Tables<"entry_logs">;
@@ -71,8 +72,80 @@ const GuardDashboard = () => {
     navigate("/guard", { replace: true });
   };
 
+  const handleGuestPassScan = async (rawQr: string) => {
+    const guestPass = decodeGuestPass(rawQr);
+    if (!guestPass) return false;
+
+    const { data: request, error: requestError } = await supabase
+      .from("visitor_requests")
+      .select("*")
+      .eq("id", guestPass.request_id)
+      .maybeSingle();
+
+    if (requestError || !request) {
+      setScanResult("❌ Guest QR not found.");
+      toast({ title: "Unknown guest pass", description: requestError?.message ?? "This pass was not found.", variant: "destructive" });
+      return true;
+    }
+
+    const expectedFlat = `${guestPass.wing}-${guestPass.flat_number}`;
+    const isMatchingPass =
+      request.status !== "rejected" &&
+      request.visitor_name === guestPass.visitor_name &&
+      request.phone === guestPass.phone &&
+      request.vehicle_number === guestPass.vehicle_number &&
+      request.flat_number === expectedFlat;
+
+    if (!isMatchingPass) {
+      setScanResult("❌ Guest QR details do not match the saved pass.");
+      toast({ title: "Invalid guest pass", description: "The scanned QR does not match the saved guest entry.", variant: "destructive" });
+      return true;
+    }
+
+    if (request.status === "entered") {
+      setScanResult("⚠️ This guest QR has already been used.");
+      toast({ title: "Pass already used", description: `${request.visitor_name} has already been marked inside.`, variant: "destructive" });
+      return true;
+    }
+
+    const { error: entryError } = await supabase.from("entry_logs").insert({
+      vehicle_number: request.vehicle_number,
+      flat_number: guestPass.flat_number,
+      wing: guestPass.wing,
+      entry_type: "visitor",
+      owner_name: `${request.visitor_name} (Guest of ${guestPass.owner_name})`,
+      logged_by: user?.id ?? null,
+    });
+
+    if (entryError) {
+      toast({ title: "Could not log guest entry", description: entryError.message, variant: "destructive" });
+      return true;
+    }
+
+    const { error: updateError } = await supabase
+      .from("visitor_requests")
+      .update({ status: "entered" })
+      .eq("id", request.id);
+
+    if (updateError) {
+      toast({ title: "Guest entered, but pass status was not updated", description: updateError.message, variant: "destructive" });
+    }
+
+    setScanResult(`✅ ${request.visitor_name} — Guest of ${guestPass.owner_name} — ${guestPass.wing}-${guestPass.flat_number}`);
+    await loadDashboardData(false);
+    toast({ title: "Guest Entry Logged", description: `${request.visitor_name} approved for ${guestPass.wing}-${guestPass.flat_number}` });
+    return true;
+  };
+
   const handleScan = async (result: string) => {
     setScanning(false);
+
+    const handledGuestPass = await handleGuestPassScan(result);
+    if (handledGuestPass) {
+      setTimeout(() => setScanResult(null), 5000);
+      return;
+    }
+
     const vehicle = vehicles.find((v) => v.qr_code === result);
 
     if (vehicle) {
