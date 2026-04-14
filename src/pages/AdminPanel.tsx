@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Shield, Power } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Shield, Power, Trash2 } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import QrGenerator from "@/components/QrGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -23,6 +24,8 @@ const AdminPanel = () => {
   const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0 });
   const [loading, setLoading] = useState(true);
   const [savingVehicle, setSavingVehicle] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -109,6 +112,45 @@ const AdminPanel = () => {
     setStats((prev) => ({ ...prev, total_vehicles: prev.total_vehicles + 1 }));
     await fetchAdminData(false);
     toast({ title: "Vehicle Registered", description: `QR: ${qr}` });
+  };
+
+  const allSelected = vehicles.length > 0 && selectedIds.size === vehicles.length;
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(vehicles.map((v) => v.id)));
+    }
+  };
+
+  const deleteSelected = async () => {
+    if (selectedIds.size === 0) return;
+    setDeleting(true);
+
+    const { error } = await supabase
+      .from("vehicles")
+      .delete()
+      .in("id", Array.from(selectedIds));
+
+    setDeleting(false);
+
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+
+    toast({ title: `Deleted ${selectedIds.size} vehicle(s)` });
+    setSelectedIds(new Set());
+    await fetchAdminData(false);
   };
 
   if (loading) {
@@ -216,7 +258,34 @@ const AdminPanel = () => {
       {/* Vehicle Registry */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-lg">Vehicle Registry ({vehicles.length})</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg">Vehicle Registry ({vehicles.length})</CardTitle>
+            {vehicles.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={toggleSelectAll}
+                  className="touch-target gap-1 text-xs"
+                >
+                  <Checkbox checked={allSelected} className="pointer-events-none" />
+                  {allSelected ? "Deselect All" : "Select All"}
+                </Button>
+                {selectedIds.size > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => void deleteSelected()}
+                    disabled={deleting}
+                    className="touch-target gap-1 text-xs"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    {deleting ? "Deleting..." : `Delete (${selectedIds.size})`}
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="space-y-2">
@@ -224,8 +293,13 @@ const AdminPanel = () => {
               <p className="text-sm text-muted-foreground text-center py-4">No vehicles registered yet</p>
             ) : (
               vehicles.map((v) => (
-                <div key={v.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                  <div>
+                <div key={v.id} className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                  <Checkbox
+                    checked={selectedIds.has(v.id)}
+                    onCheckedChange={() => toggleSelect(v.id)}
+                    className="shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
                     <p className="font-bold text-foreground">{v.vehicle_number}</p>
                     <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
                   </div>
