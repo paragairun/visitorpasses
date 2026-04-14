@@ -1,20 +1,33 @@
-import { useState } from "react";
-import { ClipboardList, Share2, QrCode, Power } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ClipboardList, QrCode, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
 import QrGenerator from "@/components/QrGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface GuestPass {
   id: string;
-  guest_name: string;
-  code: string;
+  visitor_name: string;
+  phone: string;
+  vehicle_number: string;
+  purpose: string | null;
+  status: string;
   created_at: string;
+  qr_payload: string;
+}
+
+interface ResidentSummary {
+  owner_name: string;
+  wing: string;
+  flat_number: string;
+  flat_label: string;
 }
 
 const mockVisitLogs = [
@@ -23,49 +36,105 @@ const mockVisitLogs = [
   { id: "3", visitor_name: "Ravi Taxi", vehicle_number: "MH02TT9999", purpose: "Cab/Taxi", time: "Yesterday 9:00 AM", status: "exited" as const },
 ];
 
+const emptyForm = {
+  visitor_name: "",
+  phone: "",
+  vehicle_number: "",
+  purpose: "",
+};
+
 const ResidentPortal = () => {
-  const [guestName, setGuestName] = useState("");
+  const [form, setForm] = useState(emptyForm);
   const [guestPasses, setGuestPasses] = useState<GuestPass[]>([]);
-  const [showQr, setShowQr] = useState<string | null>(null);
+  const [resident, setResident] = useState<ResidentSummary | null>(null);
+  const [showQr, setShowQr] = useState<GuestPass | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { signOut, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadGuestPasses = async () => {
+      setLoading(true);
+      const { data, error } = await supabase.functions.invoke("resident-guest-passes", {
+        body: { action: "list" },
+      });
+
+      setLoading(false);
+
+      if (error || data?.error) {
+        toast({
+          title: "Could not load guest passes",
+          description: error?.message ?? data?.error ?? "Please try again.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setResident(data.resident as ResidentSummary);
+      setGuestPasses((data.passes ?? []) as GuestPass[]);
+    };
+
+    if (user) {
+      void loadGuestPasses();
+    }
+  }, [toast, user]);
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/resident", { replace: true });
   };
 
-  const generateGuestPass = () => {
-    if (!guestName.trim()) {
-      toast({ title: "Enter guest name", variant: "destructive" });
+  const generateGuestPass = async () => {
+    if (!form.visitor_name.trim() || !form.phone.trim() || !form.vehicle_number.trim()) {
+      toast({ title: "Fill all required guest details", variant: "destructive" });
       return;
     }
-    const code = `GUEST-${Date.now().toString(36).toUpperCase()}`;
-    const pass: GuestPass = { id: Date.now().toString(), guest_name: guestName, code, created_at: new Date().toISOString() };
-    setGuestPasses((prev) => [pass, ...prev]);
-    setGuestName("");
-    setShowQr(code);
-    toast({ title: "Guest Pass Created!", description: code });
+
+    setSubmitting(true);
+    const { data, error } = await supabase.functions.invoke("resident-guest-passes", {
+      body: {
+        action: "create",
+        visitor_name: form.visitor_name.trim(),
+        phone: form.phone.trim(),
+        vehicle_number: form.vehicle_number.trim().toUpperCase(),
+        purpose: form.purpose || null,
+      },
+    });
+    setSubmitting(false);
+
+    if (error || data?.error) {
+      toast({
+        title: "Could not create guest pass",
+        description: error?.message ?? data?.error ?? "Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const createdPass = data.pass as GuestPass;
+    setResident(data.resident as ResidentSummary);
+    setGuestPasses((prev) => [createdPass, ...prev.filter((pass) => pass.id !== createdPass.id)].slice(0, 5));
+    setForm(emptyForm);
+    setShowQr(createdPass);
+    toast({ title: "Guest pass created", description: `${createdPass.visitor_name} can now use this QR at the gate.` });
   };
 
-  const sharePass = (pass: GuestPass) => {
-    const url = `${window.location.origin}/visitor?guest_pass=${pass.code}`;
-    const text = `Hi ${pass.guest_name}, here's your guest pass for Triumph Tower: ${url}`;
-    if (navigator.share) {
-      navigator.share({ title: "Triumph Tower Guest Pass", text, url });
-    } else {
-      navigator.clipboard.writeText(text);
-      toast({ title: "Link copied to clipboard!" });
-    }
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen p-4 max-w-4xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Resident Portal</h1>
-          <p className="text-muted-foreground text-sm">A-101 • Rajesh Sharma</p>
+          <p className="text-muted-foreground text-sm">{resident ? `${resident.flat_label} • ${resident.owner_name}` : "Resident profile unavailable"}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={handleSignOut} className="touch-target text-muted-foreground hover:text-destructive">
           <Power className="h-5 w-5" />
@@ -81,35 +150,69 @@ const ResidentPortal = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex gap-3">
-            <div className="flex-1 space-y-2">
-              <Label htmlFor="guest-name">Guest Name</Label>
-              <Input id="guest-name" placeholder="Enter guest's name" value={guestName} onChange={(e) => setGuestName(e.target.value)} className="touch-target" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="guest-name">Guest Name *</Label>
+              <Input id="guest-name" placeholder="Enter guest's name" value={form.visitor_name} onChange={(e) => setForm((prev) => ({ ...prev, visitor_name: e.target.value }))} className="touch-target" />
             </div>
-            <Button onClick={generateGuestPass} className="self-end touch-target gap-2">
-              <QrCode className="h-4 w-4" />
-              Generate
-            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="guest-phone">Phone Number *</Label>
+              <Input id="guest-phone" placeholder="Enter phone number" value={form.phone} onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))} className="touch-target" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="guest-vehicle">Vehicle Number *</Label>
+              <Input id="guest-vehicle" placeholder="e.g. MH02AB1234" value={form.vehicle_number} onChange={(e) => setForm((prev) => ({ ...prev, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="guest-purpose">Purpose of Visit</Label>
+              <Select value={form.purpose || undefined} onValueChange={(value) => setForm((prev) => ({ ...prev, purpose: value }))}>
+                <SelectTrigger id="guest-purpose" className="touch-target">
+                  <SelectValue placeholder="Select purpose" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Guest Visit">Guest Visit</SelectItem>
+                  <SelectItem value="Delivery">Delivery</SelectItem>
+                  <SelectItem value="Cab/Taxi">Cab / Taxi</SelectItem>
+                  <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
-          {showQr && (
+          {resident && (
+            <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm text-muted-foreground">
+              Entry will be created for <span className="font-medium text-foreground">{resident.owner_name}</span> • <span className="font-medium text-foreground">{resident.flat_label}</span>
+            </div>
+          )}
+
+          <Button onClick={() => void generateGuestPass()} className="touch-target gap-2" disabled={submitting || !resident}>
+              <QrCode className="h-4 w-4" />
+              {submitting ? "Generating..." : "Generate QR Pass"}
+            </Button>
+
+          {showQr && resident && (
             <div className="flex justify-center">
-              <QrGenerator value={showQr} label={`Guest Pass: ${showQr}`} />
+              <QrGenerator value={showQr.qr_payload} label={`${showQr.visitor_name} • ${resident.flat_label}`} size={240} />
             </div>
           )}
 
           {guestPasses.length > 0 && (
             <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">Recent Passes</p>
+              <p className="text-sm font-medium text-muted-foreground">Latest 5 Guest QR Passes</p>
               {guestPasses.map((pass) => (
                 <div key={pass.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
                   <div>
-                    <p className="font-medium text-foreground">{pass.guest_name}</p>
-                    <p className="text-xs text-muted-foreground font-mono">{pass.code}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-foreground">{pass.visitor_name}</p>
+                      <StatusBadge status={pass.status === "entered" ? "inside" : "approved"} />
+                    </div>
+                    <p className="text-xs text-muted-foreground">{pass.vehicle_number} • {pass.phone}</p>
+                    <p className="text-xs text-muted-foreground">{pass.purpose || "Guest Visit"} • {new Date(pass.created_at).toLocaleString()}</p>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => sharePass(pass)} className="touch-target gap-1">
-                    <Share2 className="h-4 w-4" />
-                    Share
+                  <Button variant="outline" size="sm" onClick={() => setShowQr(pass)} className="touch-target gap-1">
+                    <QrCode className="h-4 w-4" />
+                    Open QR
                   </Button>
                 </div>
               ))}
