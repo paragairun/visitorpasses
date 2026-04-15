@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScanLine, Check, X, LogOut, Car, Power } from "lucide-react";
+import { ScanLine, Check, X, LogOut, Car, Power, Search } from "lucide-react";
+import VehicleSearch from "@/components/VehicleSearch";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
