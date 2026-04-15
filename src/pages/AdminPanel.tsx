@@ -3,6 +3,7 @@ import { Plus, QrCode, Car, BarChart3, Shield, Power, Trash2 } from "lucide-reac
 import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
 import BulkResidentUpload from "@/components/BulkResidentUpload";
+import AccessLogsViewer from "@/components/AccessLogsViewer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -260,6 +261,9 @@ const AdminPanel = () => {
 
       {/* Registration Requests */}
       <RegistrationRequests />
+
+      {/* Access Logs */}
+      <AccessLogsViewer />
 
       {/* Vehicle Registry */}
       <Card>
