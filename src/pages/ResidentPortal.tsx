@@ -195,7 +195,7 @@ const ResidentPortal = () => {
 
           {showQr && resident && (
             <div className="flex justify-center">
-              <QrGenerator value={showQr.qr_payload} label={`${showQr.visitor_name} • ${resident.flat_label}`} size={240} />
+              <QrGenerator value={showQr.qr_payload} label={`${showQr.visitor_name} • ${resident.flat_label}`} size={400} />
             </div>
           )}
 

@@ -245,7 +245,7 @@ const AdminPanel = () => {
 
           {showQrFor && (
             <div className="flex justify-center pt-4">
-              <QrGenerator value={showQrFor} label={`Vehicle QR: ${showQrFor}`} size={250} />
+              <QrGenerator value={showQrFor} label={`Vehicle QR: ${showQrFor}`} size={400} />
             </div>
           )}
         </CardContent>
@@ -313,7 +313,7 @@ const AdminPanel = () => {
                   </div>
                   {showQrFor === v.qr_code && (
                     <div className="flex justify-center py-2">
-                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.owner_name}`} size={200} />
+                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.owner_name}`} size={400} />
                     </div>
                   )}
                 </div>
