@@ -31,11 +31,14 @@ interface ResidentSummary {
   flat_label: string;
 }
 
-const mockVisitLogs = [
-  { id: "1", visitor_name: "Vikram Singh", vehicle_number: "MH04XY7890", purpose: "Delivery", time: "Today 10:30 AM", status: "approved" as const },
-  { id: "2", visitor_name: "Meera Joshi", vehicle_number: "MH01ZZ1234", purpose: "Guest Visit", time: "Yesterday 3:15 PM", status: "approved" as const },
-  { id: "3", visitor_name: "Ravi Taxi", vehicle_number: "MH02TT9999", purpose: "Cab/Taxi", time: "Yesterday 9:00 AM", status: "exited" as const },
-];
+interface VisitLog {
+  id: string;
+  vehicle_number: string;
+  owner_name: string;
+  entry_type: string;
+  entry_time: string;
+  exit_time: string | null;
+}
 
 const emptyForm = {
   visitor_name: "",
