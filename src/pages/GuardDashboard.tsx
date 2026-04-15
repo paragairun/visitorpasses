@@ -289,6 +289,9 @@ const GuardDashboard = () => {
         </Card>
       )}
 
+      {/* Vehicle Search */}
+      <VehicleSearch />
+
       {/* Pending Visitor Approvals */}
       <Card>
         <CardHeader className="pb-3">
