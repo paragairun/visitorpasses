@@ -21,6 +21,7 @@ const RegistrationRequests = () => {
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [approvingAll, setApprovingAll] = useState(false);
   const { toast } = useToast();
 
   const fetchRequests = useCallback(async (showLoader = false) => {
@@ -77,6 +78,42 @@ const RegistrationRequests = () => {
       });
     } else {
       toast({ title: action === "approve" ? "Approved" : "Rejected" });
+    }
+
+    void fetchRequests(false);
+  };
+
+  const handleApproveAll = async () => {
+    const pending = requests.filter((r) => r.status === "pending");
+    if (pending.length === 0) return;
+
+    setApprovingAll(true);
+    let successCount = 0;
+    const passwords: string[] = [];
+
+    for (const req of pending) {
+      const { data, error } = await supabase.functions.invoke("approve-registration", {
+        body: { request_id: req.id, action: "approve" },
+      });
+
+      if (!error && !data?.error) {
+        successCount++;
+        if (data?.temp_password) {
+          passwords.push(`${data.email}: ${data.temp_password}`);
+        }
+      }
+    }
+
+    setApprovingAll(false);
+
+    if (passwords.length > 0) {
+      toast({
+        title: `Approved ${successCount} user(s)`,
+        description: passwords.join(" | "),
+        duration: 30000,
+      });
+    } else {
+      toast({ title: `Approved ${successCount} user(s)` });
     }
 
     void fetchRequests(false);
