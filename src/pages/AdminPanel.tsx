@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Plus, QrCode, Car, BarChart3, Shield, Power, Trash2 } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
+import BulkResidentUpload from "@/components/BulkResidentUpload";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
