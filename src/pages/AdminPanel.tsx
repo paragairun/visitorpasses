@@ -293,20 +293,27 @@ const AdminPanel = () => {
               <p className="text-sm text-muted-foreground text-center py-4">No vehicles registered yet</p>
             ) : (
               vehicles.map((v) => (
-                <div key={v.id} className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                  <Checkbox
-                    checked={selectedIds.has(v.id)}
-                    onCheckedChange={() => toggleSelect(v.id)}
-                    className="shrink-0"
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-foreground">{v.vehicle_number}</p>
-                    <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
+                <div key={v.id} className="space-y-2">
+                  <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                    <Checkbox
+                      checked={selectedIds.has(v.id)}
+                      onCheckedChange={() => toggleSelect(v.id)}
+                      className="shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground">{v.vehicle_number}</p>
+                      <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
+                    </div>
+                    <Button variant="outline" size="sm" onClick={() => setShowQrFor(showQrFor === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
+                      <QrCode className="h-4 w-4" />
+                      QR
+                    </Button>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => setShowQrFor(showQrFor === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
-                    <QrCode className="h-4 w-4" />
-                    QR
-                  </Button>
+                  {showQrFor === v.qr_code && (
+                    <div className="flex justify-center py-2">
+                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.owner_name}`} size={200} />
+                    </div>
+                  )}
                 </div>
               ))
             )}
