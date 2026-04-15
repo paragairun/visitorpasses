@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 
 interface GuestPass {
   id: string;
@@ -44,6 +45,7 @@ const emptyForm = {
 };
 
 const ResidentPortal = () => {
+  useInactivityLogout("/resident");
   const [form, setForm] = useState(emptyForm);
   const [guestPasses, setGuestPasses] = useState<GuestPass[]>([]);
   const [resident, setResident] = useState<ResidentSummary | null>(null);
