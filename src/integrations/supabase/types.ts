@@ -14,6 +14,44 @@ export type Database = {
   }
   public: {
     Tables: {
+      access_logs: {
+        Row: {
+          action_type: string
+          created_at: string
+          id: string
+          logged_by: string | null
+          status: string
+          timestamp: string
+          vehicle_id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          id?: string
+          logged_by?: string | null
+          status?: string
+          timestamp?: string
+          vehicle_id: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          id?: string
+          logged_by?: string | null
+          status?: string
+          timestamp?: string
+          vehicle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "access_logs_vehicle_id_fkey"
+            columns: ["vehicle_id"]
+            isOneToOne: false
+            referencedRelation: "vehicles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entry_logs: {
         Row: {
           entry_time: string
