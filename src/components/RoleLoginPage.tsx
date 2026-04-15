@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { LucideIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { LucideIcon, Loader2 } from "lucide-react";
 
 interface RoleLoginPageProps {
   roleName: string;
@@ -21,6 +22,9 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [sendingReset, setSendingReset] = useState(false);
   const { signIn, user, role } = useAuth();
   const { toast } = useToast();
 
@@ -45,6 +49,26 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
     }
   };
 
+  const handleForgotPassword = async () => {
+    if (!forgotEmail) {
+      toast({ title: "Enter your email address", variant: "destructive" });
+      return;
+    }
+    setSendingReset(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setSendingReset(false);
+
+    if (error) {
+      toast({ title: "Failed to send reset email", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Reset link sent", description: "Check your email for the password reset link." });
+      setShowForgot(false);
+      setForgotEmail("");
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-sm">
@@ -56,39 +80,77 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
           <p className="text-muted-foreground text-sm">{description}</p>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="touch-target"
-                autoComplete="email"
-              />
+          {showForgot ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">Enter your email and we'll send you a link to reset your password.</p>
+              <div className="space-y-2">
+                <Label htmlFor="forgot-email">Email</Label>
+                <Input
+                  id="forgot-email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={forgotEmail}
+                  onChange={(e) => setForgotEmail(e.target.value)}
+                  className="touch-target"
+                  autoComplete="email"
+                />
+              </div>
+              <Button
+                onClick={() => void handleForgotPassword()}
+                size="lg"
+                className="w-full touch-target"
+                disabled={sendingReset}
+              >
+                {sendingReset ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Sending...</> : "Send Reset Link"}
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={() => setShowForgot(false)}>
+                Back to Login
+              </Button>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="touch-target"
-                autoComplete="current-password"
-              />
-            </div>
-            <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold" disabled={isLoading}>
-              {isLoading ? "Signing in..." : "Sign In"}
-            </Button>
-            <p className="text-center text-sm text-muted-foreground">
-              Don't have access?{" "}
-              <Link to={`/register?role=${roleKey}`} className="text-primary hover:underline">Register here</Link>
-            </p>
-          </form>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="touch-target"
+                  autoComplete="email"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <button
+                    type="button"
+                    onClick={() => { setShowForgot(true); setForgotEmail(email); }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="touch-target"
+                  autoComplete="current-password"
+                />
+              </div>
+              <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign In"}
+              </Button>
+              <p className="text-center text-sm text-muted-foreground">
+                Don't have access?{" "}
+                <Link to={`/register?role=${roleKey}`} className="text-primary hover:underline">Register here</Link>
+              </p>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>

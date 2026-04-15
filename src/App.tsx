@@ -13,6 +13,7 @@ import ResidentPortal from "./pages/ResidentPortal";
 import AdminLogin from "./pages/AdminLogin";
 import AdminPanel from "./pages/AdminPanel";
 import Register from "./pages/Register";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -27,6 +28,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/guard" replace />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Guard */}
             <Route path="/guard" element={<GuardLogin />} />
