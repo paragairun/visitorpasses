@@ -237,17 +237,23 @@ const ResidentPortal = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {mockVisitLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-foreground">{log.visitor_name}</p>
-                  <StatusBadge status={log.status} />
+          {visitLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No visit history</p>
+          ) : (
+            visitLogs.map((log) => (
+              <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{log.owner_name}</p>
+                    <StatusBadge status={log.exit_time ? "exited" : "inside"} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {log.vehicle_number} • {log.entry_type} • {new Date(log.entry_time).toLocaleString()}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">{log.vehicle_number} • {log.purpose} • {log.time}</p>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
     </div>
