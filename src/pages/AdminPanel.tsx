@@ -262,6 +262,9 @@ const AdminPanel = () => {
       {/* Registration Requests */}
       <RegistrationRequests />
 
+      {/* Access Logs */}
+      <AccessLogsViewer />
+
       {/* Vehicle Registry */}
       <Card>
         <CardHeader className="pb-3">
