@@ -9,7 +9,7 @@ interface QrGeneratorProps {
   size?: number;
 }
 
-const QrGenerator = ({ value, label, size = 200 }: QrGeneratorProps) => {
+const QrGenerator = ({ value, label, size = 400 }: QrGeneratorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
