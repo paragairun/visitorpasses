@@ -21,6 +21,7 @@ const RegistrationRequests = () => {
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [approvingAll, setApprovingAll] = useState(false);
   const { toast } = useToast();
 
   const fetchRequests = useCallback(async (showLoader = false) => {
@@ -82,6 +83,42 @@ const RegistrationRequests = () => {
     void fetchRequests(false);
   };
 
+  const handleApproveAll = async () => {
+    const pending = requests.filter((r) => r.status === "pending");
+    if (pending.length === 0) return;
+
+    setApprovingAll(true);
+    let successCount = 0;
+    const passwords: string[] = [];
+
+    for (const req of pending) {
+      const { data, error } = await supabase.functions.invoke("approve-registration", {
+        body: { request_id: req.id, action: "approve" },
+      });
+
+      if (!error && !data?.error) {
+        successCount++;
+        if (data?.temp_password) {
+          passwords.push(`${data.email}: ${data.temp_password}`);
+        }
+      }
+    }
+
+    setApprovingAll(false);
+
+    if (passwords.length > 0) {
+      toast({
+        title: `Approved ${successCount} user(s)`,
+        description: passwords.join(" | "),
+        duration: 30000,
+      });
+    } else {
+      toast({ title: `Approved ${successCount} user(s)` });
+    }
+
+    void fetchRequests(false);
+  };
+
   const pendingRequests = requests.filter((r) => r.status === "pending");
   const processedRequests = requests.filter((r) => r.status !== "pending");
 
@@ -108,10 +145,23 @@ const RegistrationRequests = () => {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Clock className="h-5 w-5 text-primary" />
-          Registration Requests ({pendingRequests.length} pending)
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Clock className="h-5 w-5 text-primary" />
+            Registration Requests ({pendingRequests.length} pending)
+          </CardTitle>
+          {pendingRequests.length > 1 && (
+            <Button
+              size="sm"
+              onClick={() => void handleApproveAll()}
+              disabled={approvingAll || processingId !== null}
+              className="gap-1"
+            >
+              {approvingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+              {approvingAll ? "Approving..." : `Approve All (${pendingRequests.length})`}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {pendingRequests.length === 0 && (
