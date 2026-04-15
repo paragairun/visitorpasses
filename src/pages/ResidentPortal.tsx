@@ -31,11 +31,14 @@ interface ResidentSummary {
   flat_label: string;
 }
 
-const mockVisitLogs = [
-  { id: "1", visitor_name: "Vikram Singh", vehicle_number: "MH04XY7890", purpose: "Delivery", time: "Today 10:30 AM", status: "approved" as const },
-  { id: "2", visitor_name: "Meera Joshi", vehicle_number: "MH01ZZ1234", purpose: "Guest Visit", time: "Yesterday 3:15 PM", status: "approved" as const },
-  { id: "3", visitor_name: "Ravi Taxi", vehicle_number: "MH02TT9999", purpose: "Cab/Taxi", time: "Yesterday 9:00 AM", status: "exited" as const },
-];
+interface VisitLog {
+  id: string;
+  vehicle_number: string;
+  owner_name: string;
+  entry_type: string;
+  entry_time: string;
+  exit_time: string | null;
+}
 
 const emptyForm = {
   visitor_name: "",
@@ -48,6 +51,7 @@ const ResidentPortal = () => {
   useInactivityLogout("/resident");
   const [form, setForm] = useState(emptyForm);
   const [guestPasses, setGuestPasses] = useState<GuestPass[]>([]);
+  const [visitLogs, setVisitLogs] = useState<VisitLog[]>([]);
   const [resident, setResident] = useState<ResidentSummary | null>(null);
   const [showQr, setShowQr] = useState<GuestPass | null>(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +80,7 @@ const ResidentPortal = () => {
 
       setResident(data.resident as ResidentSummary);
       setGuestPasses((data.passes ?? []) as GuestPass[]);
+      setVisitLogs((data.visit_logs ?? []) as VisitLog[]);
     };
 
     if (user) {
@@ -232,17 +237,23 @@ const ResidentPortal = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
-          {mockVisitLogs.map((log) => (
-            <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-foreground">{log.visitor_name}</p>
-                  <StatusBadge status={log.status} />
+          {visitLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No visit history</p>
+          ) : (
+            visitLogs.map((log) => (
+              <div key={log.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{log.owner_name}</p>
+                    <StatusBadge status={log.exit_time ? "exited" : "inside"} />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    {log.vehicle_number} • {log.entry_type} • {new Date(log.entry_time).toLocaleString()}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground">{log.vehicle_number} • {log.purpose} • {log.time}</p>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
     </div>

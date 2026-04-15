@@ -128,16 +128,25 @@ Deno.serve(async (req) => {
     const flatLabel = buildFlatLabel(resident.wing, resident.flat_number);
 
     if (parsedBody.data.action === "list") {
-      const { data: passes, error } = await adminClient
-        .from("visitor_requests")
-        .select("id, visitor_name, phone, vehicle_number, purpose, status, created_at")
-        .eq("flat_number", flatLabel)
-        .in("status", ["guest_pass", "entered"])
-        .order("created_at", { ascending: false })
-        .limit(5);
+      const [passesResult, logsResult] = await Promise.all([
+        adminClient
+          .from("visitor_requests")
+          .select("id, visitor_name, phone, vehicle_number, purpose, status, created_at")
+          .eq("flat_number", flatLabel)
+          .in("status", ["guest_pass", "entered"])
+          .order("created_at", { ascending: false })
+          .limit(5),
+        adminClient
+          .from("entry_logs")
+          .select("id, vehicle_number, owner_name, entry_type, entry_time, exit_time")
+          .eq("flat_number", resident.flat_number)
+          .eq("wing", resident.wing)
+          .order("entry_time", { ascending: false })
+          .limit(10),
+      ]);
 
-      if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+      if (passesResult.error) {
+        return new Response(JSON.stringify({ error: passesResult.error.message }), {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -146,10 +155,11 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           resident: { ...resident, flat_label: flatLabel },
-          passes: (passes ?? []).map((pass) => ({
+          passes: (passesResult.data ?? []).map((pass) => ({
             ...pass,
             qr_payload: JSON.stringify(createGuestPassPayload(pass, resident)),
           })),
+          visit_logs: logsResult.data ?? [],
         }),
         {
           status: 200,
