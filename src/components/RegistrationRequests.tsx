@@ -145,10 +145,23 @@ const RegistrationRequests = () => {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2 text-lg">
-          <Clock className="h-5 w-5 text-primary" />
-          Registration Requests ({pendingRequests.length} pending)
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Clock className="h-5 w-5 text-primary" />
+            Registration Requests ({pendingRequests.length} pending)
+          </CardTitle>
+          {pendingRequests.length > 1 && (
+            <Button
+              size="sm"
+              onClick={() => void handleApproveAll()}
+              disabled={approvingAll || processingId !== null}
+              className="gap-1"
+            >
+              {approvingAll ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserCheck className="h-4 w-4" />}
+              {approvingAll ? "Approving..." : `Approve All (${pendingRequests.length})`}
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent className="space-y-3">
         {pendingRequests.length === 0 && (
