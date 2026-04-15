@@ -80,6 +80,7 @@ const ResidentPortal = () => {
 
       setResident(data.resident as ResidentSummary);
       setGuestPasses((data.passes ?? []) as GuestPass[]);
+      setVisitLogs((data.visit_logs ?? []) as VisitLog[]);
     };
 
     if (user) {
