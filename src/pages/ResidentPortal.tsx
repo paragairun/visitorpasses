@@ -45,6 +45,7 @@ const emptyForm = {
 };
 
 const ResidentPortal = () => {
+  useInactivityLogout("/resident");
   const [form, setForm] = useState(emptyForm);
   const [guestPasses, setGuestPasses] = useState<GuestPass[]>([]);
   const [resident, setResident] = useState<ResidentSummary | null>(null);
