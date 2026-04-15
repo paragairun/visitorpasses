@@ -255,6 +255,9 @@ const AdminPanel = () => {
       {/* Bulk Upload */}
       <CsvUpload onComplete={() => { void fetchAdminData(false); }} />
 
+      {/* Bulk Resident Registration */}
+      <BulkResidentUpload />
+
       {/* Registration Requests */}
       <RegistrationRequests />
 
