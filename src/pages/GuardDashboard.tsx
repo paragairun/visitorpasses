@@ -103,9 +103,25 @@ const GuardDashboard = () => {
       return true;
     }
 
-    if (request.status === "entered") {
-      setScanResult("⚠️ This guest QR has already been used.");
-      toast({ title: "Pass already used", description: `${request.visitor_name} has already been marked inside.`, variant: "destructive" });
+    if (request.status === "entered" || request.status === "used") {
+      setScanResult("⚠️ This guest QR has already been used and is no longer valid.");
+      toast({ title: "Pass already used", description: `${request.visitor_name}'s pass is single-use and has already been scanned.`, variant: "destructive" });
+      return true;
+    }
+
+    // Atomically claim the pass: only succeeds if status is still "guest_pass"
+    const { data: claimed, error: claimError } = await supabase
+      .from("visitor_requests")
+      .update({ status: "entered" })
+      .eq("id", request.id)
+      .eq("status", "guest_pass")
+      .select("id")
+      .maybeSingle();
+
+    if (claimError || !claimed) {
+      setScanResult("⚠️ This guest QR has already been used and is no longer valid.");
+      toast({ title: "Pass already used", description: "Single-use pass — already scanned by another guard.", variant: "destructive" });
+      await loadDashboardData(false);
       return true;
     }
 
@@ -121,15 +137,6 @@ const GuardDashboard = () => {
     if (entryError) {
       toast({ title: "Could not log guest entry", description: entryError.message, variant: "destructive" });
       return true;
-    }
-
-    const { error: updateError } = await supabase
-      .from("visitor_requests")
-      .update({ status: "entered" })
-      .eq("id", request.id);
-
-    if (updateError) {
-      toast({ title: "Guest entered, but pass status was not updated", description: updateError.message, variant: "destructive" });
     }
 
     setScanResult(`✅ ${request.visitor_name} — Guest of ${guestPass.owner_name} — ${guestPass.wing}-${guestPass.flat_number}`);
