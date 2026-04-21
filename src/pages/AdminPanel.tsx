@@ -4,6 +4,7 @@ import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
 import BulkResidentUpload from "@/components/BulkResidentUpload";
 import AccessLogsViewer from "@/components/AccessLogsViewer";
+import UserRegistry from "@/components/UserRegistry";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -290,6 +291,9 @@ const AdminPanel = () => {
 
       {/* Access Logs */}
       <AccessLogsViewer />
+
+      {/* User Registry */}
+      <UserRegistry />
 
       {/* Vehicle Registry */}
       <Card>
