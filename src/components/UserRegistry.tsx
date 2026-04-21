@@ -65,6 +65,16 @@ const UserRegistry = () => {
 
   useEffect(() => { void fetchUsers(); }, [fetchUsers]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("user-registry-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_roles" }, () => { void fetchUsers(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, () => { void fetchUsers(); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "vehicles" }, () => { void fetchUsers(); })
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [fetchUsers]);
+
   const toggle = (id: string) => {
     setSelected((prev) => {
       const next = new Set(prev);
