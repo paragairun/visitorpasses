@@ -232,9 +232,20 @@ const RegistrationRequests = () => {
                     <p className="text-sm font-medium text-foreground">{req.display_name}</p>
                     <p className="text-xs text-muted-foreground">{req.email}</p>
                   </div>
-                  <Badge variant={req.status === "approved" ? "default" : "destructive"}>
-                    {req.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={req.status === "approved" ? "default" : "destructive"}>
+                      {req.status}
+                    </Badge>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => void handleDelete(req.id)}
+                      disabled={deletingId === req.id}
+                    >
+                      {deletingId === req.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
