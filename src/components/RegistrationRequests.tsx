@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { UserCheck, UserX, Clock, Loader2 } from "lucide-react";
+import { UserCheck, UserX, Clock, Loader2, Trash2 } from "lucide-react";
 
 interface RegistrationRequest {
   id: string;
@@ -22,6 +22,7 @@ const RegistrationRequests = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [approvingAll, setApprovingAll] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchRequests = useCallback(async (showLoader = false) => {
@@ -80,6 +81,18 @@ const RegistrationRequests = () => {
       toast({ title: action === "approve" ? "Approved" : "Rejected" });
     }
 
+    void fetchRequests(false);
+  };
+
+  const handleDelete = async (requestId: string) => {
+    setDeletingId(requestId);
+    const { error } = await supabase.from("registration_requests").delete().eq("id", requestId);
+    setDeletingId(null);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Request deleted" });
     void fetchRequests(false);
   };
 
@@ -219,9 +232,20 @@ const RegistrationRequests = () => {
                     <p className="text-sm font-medium text-foreground">{req.display_name}</p>
                     <p className="text-xs text-muted-foreground">{req.email}</p>
                   </div>
-                  <Badge variant={req.status === "approved" ? "default" : "destructive"}>
-                    {req.status}
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <Badge variant={req.status === "approved" ? "default" : "destructive"}>
+                      {req.status}
+                    </Badge>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                      onClick={() => void handleDelete(req.id)}
+                      disabled={deletingId === req.id}
+                    >
+                      {deletingId === req.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>

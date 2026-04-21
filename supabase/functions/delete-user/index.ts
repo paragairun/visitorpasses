@@ -39,6 +39,20 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Cannot delete yourself" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Look up email so we can clean up matching registration requests
+    const { data: targetUser } = await adminClient.auth.admin.getUserById(user_id);
+    const targetEmail = targetUser?.user?.email ?? null;
+
+    // Preserve historical logs but null out the foreign reference to avoid dangling UUIDs
+    await adminClient.from("access_logs").update({ logged_by: null }).eq("logged_by", user_id);
+    await adminClient.from("entry_logs").update({ logged_by: null }).eq("logged_by", user_id);
+    await adminClient.from("registration_requests").update({ reviewed_by: null }).eq("reviewed_by", user_id);
+
+    // Remove the registration request that originated this account (if any)
+    if (targetEmail) {
+      await adminClient.from("registration_requests").delete().eq("email", targetEmail);
+    }
+
     await adminClient.from("user_roles").delete().eq("user_id", user_id);
     await adminClient.from("profiles").delete().eq("user_id", user_id);
     const { error: delErr } = await adminClient.auth.admin.deleteUser(user_id);
