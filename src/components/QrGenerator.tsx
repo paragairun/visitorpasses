@@ -17,7 +17,7 @@ const QrGenerator = ({ value, label, size = 400 }: QrGeneratorProps) => {
       QRCode.toCanvas(canvasRef.current, value, {
         width: size,
         margin: 2,
-        color: { dark: "#1a1a2e", light: "#ffffff" },
+        color: { dark: "#1a1a2e", light: "#00000000" },
       });
     }
   }, [value, size]);
