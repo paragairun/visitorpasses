@@ -45,7 +45,15 @@ const UserRegistry = () => {
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke("list-users");
+    const { data: sess } = await supabase.auth.getSession();
+    if (!sess.session) {
+      toast({ title: "Session expired", description: "Please sign in again.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+    const { data, error } = await supabase.functions.invoke("list-users", {
+      headers: { Authorization: `Bearer ${sess.session.access_token}` },
+    });
     if (error || !data?.users) {
       toast({ title: "Could not load users", description: error?.message, variant: "destructive" });
       setLoading(false);
