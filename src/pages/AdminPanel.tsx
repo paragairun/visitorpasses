@@ -88,6 +88,25 @@ const AdminPanel = () => {
 
     setSavingVehicle(true);
 
+    const normalized = newVehicle.vehicle_number.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+    // Pre-check for duplicates (case/space/symbol insensitive)
+    const { data: existing } = await supabase
+      .from("vehicles")
+      .select("vehicle_number, owner_name, wing, flat_number");
+    const dup = (existing ?? []).find(
+      (v) => v.vehicle_number.toUpperCase().replace(/[^A-Z0-9]/g, "") === normalized,
+    );
+    if (dup) {
+      setSavingVehicle(false);
+      toast({
+        title: "Duplicate vehicle",
+        description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${dup.wing}-${dup.flat_number}).`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     const qr = `RES-${newVehicle.wing}${newVehicle.flat_number}-${Date.now().toString(36).toUpperCase()}`;
 
     const { data, error } = await supabase
@@ -106,7 +125,14 @@ const AdminPanel = () => {
     setSavingVehicle(false);
 
     if (error) {
-      toast({ title: "Vehicle registration failed", description: error.message, variant: "destructive" });
+      const isDup = error.code === "23505" || /duplicate|unique/i.test(error.message);
+      toast({
+        title: isDup ? "Duplicate vehicle" : "Vehicle registration failed",
+        description: isDup
+          ? `${newVehicle.vehicle_number.toUpperCase()} is already registered.`
+          : error.message,
+        variant: "destructive",
+      });
       return;
     }
 
