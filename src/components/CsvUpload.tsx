@@ -77,6 +77,34 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
     if (!rows.length) return;
     setUploading(true);
 
+    const normalize = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+    // Detect duplicates within the CSV itself
+    const seen = new Map<string, number>();
+    const inFileDups: string[] = [];
+    rows.forEach((r) => {
+      const k = normalize(r.vehicle_number);
+      seen.set(k, (seen.get(k) ?? 0) + 1);
+    });
+    seen.forEach((count, k) => {
+      if (count > 1) inFileDups.push(k);
+    });
+
+    // Detect duplicates against the database
+    const { data: existing } = await supabase.from("vehicles").select("vehicle_number");
+    const existingSet = new Set((existing ?? []).map((v) => normalize(v.vehicle_number)));
+    const dbDups = rows.filter((r) => existingSet.has(normalize(r.vehicle_number))).map((r) => r.vehicle_number);
+
+    if (inFileDups.length || dbDups.length) {
+      setUploading(false);
+      const msgs: string[] = [];
+      if (inFileDups.length) msgs.push(`Duplicate within file: ${inFileDups.join(", ")}`);
+      if (dbDups.length) msgs.push(`Already registered: ${dbDups.join(", ")}`);
+      toast({ title: "Duplicate vehicles detected", description: msgs.join(" | "), variant: "destructive" });
+      setErrors(msgs);
+      return;
+    }
+
     const vehiclesWithQr = rows.map((r) => ({
       ...r,
       qr_code: `RES-${r.wing}${r.flat_number}-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`,
@@ -86,7 +114,12 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
     setUploading(false);
 
     if (error) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+      const isDup = (error as { code?: string }).code === "23505" || /duplicate|unique/i.test(error.message);
+      toast({
+        title: isDup ? "Duplicate vehicle in upload" : "Upload failed",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
 
