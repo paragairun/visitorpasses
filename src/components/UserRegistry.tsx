@@ -22,6 +22,7 @@ type UserRow = {
   user_id: string;
   role: string;
   display_name: string | null;
+  email: string | null;
   wing: string | null;
   flat_number: string | null;
   vehicles: { vehicle_number: string; vehicle_type: string }[];
@@ -44,35 +45,13 @@ const UserRegistry = () => {
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
-    const [rolesRes, profilesRes, vehiclesRes] = await Promise.all([
-      supabase.from("user_roles").select("user_id, role"),
-      supabase.from("profiles").select("user_id, display_name, wing, flat_number"),
-      supabase.from("vehicles").select("vehicle_number, vehicle_type, wing, flat_number"),
-    ]);
-
-    if (rolesRes.error || profilesRes.error || vehiclesRes.error) {
-      toast({ title: "Could not load users", variant: "destructive" });
+    const { data, error } = await supabase.functions.invoke("list-users");
+    if (error || !data?.users) {
+      toast({ title: "Could not load users", description: error?.message, variant: "destructive" });
       setLoading(false);
       return;
     }
-
-    const profileMap = new Map((profilesRes.data ?? []).map((p) => [p.user_id, p]));
-    const rows: UserRow[] = (rolesRes.data ?? []).map((r) => {
-      const p = profileMap.get(r.user_id);
-      const vehicles = (vehiclesRes.data ?? [])
-        .filter((v) => p && v.wing === p.wing && v.flat_number === p.flat_number)
-        .map((v) => ({ vehicle_number: v.vehicle_number, vehicle_type: v.vehicle_type }));
-      return {
-        user_id: r.user_id,
-        role: r.role,
-        display_name: p?.display_name ?? null,
-        wing: p?.wing ?? null,
-        flat_number: p?.flat_number ?? null,
-        vehicles,
-      };
-    });
-
-    setUsers(rows);
+    setUsers(data.users as UserRow[]);
     setLoading(false);
   }, [toast]);
 
@@ -153,12 +132,15 @@ const UserRegistry = () => {
                 />
                 <div className="flex-1 min-w-0 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold text-foreground">{u.display_name ?? "Unnamed"}</p>
+                    <p className="font-bold text-foreground">{u.display_name ?? u.email ?? "Unnamed"}</p>
                     <Badge className={roleColor(u.role)}>{u.role}</Badge>
                     {u.wing && u.flat_number && (
                       <span className="text-xs text-muted-foreground">{u.wing}-{u.flat_number}</span>
                     )}
                   </div>
+                  {u.display_name && u.email && (
+                    <p className="text-xs text-muted-foreground">{u.email}</p>
+                  )}
                   {u.vehicles.length > 0 ? (
                     <p className="text-sm text-muted-foreground">
                       Vehicles: {u.vehicles.map((v) => `${v.vehicle_number} (${v.vehicle_type})`).join(", ")}
