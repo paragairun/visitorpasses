@@ -98,22 +98,69 @@ Deno.serve(async (req) => {
     // Approve: create user with a temp password, assign role
     const tempPassword = `Triumph${Date.now().toString(36)}!`;
 
-    const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
-      email: regRequest.email,
-      password: tempPassword,
-      email_confirm: true,
-      user_metadata: { display_name: regRequest.display_name },
-    });
-
-    if (createErr) {
-      return new Response(JSON.stringify({ error: createErr.message }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Check if a user with this email already exists (registered under a different role)
+    let existingUserId: string | null = null;
+    {
+      const { data: list, error: listErr } = await adminClient.auth.admin.listUsers({
+        page: 1,
+        perPage: 200,
       });
+      if (listErr) {
+        return new Response(JSON.stringify({ error: listErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const match = list.users.find(
+        (u) => (u.email ?? "").toLowerCase() === regRequest.email.toLowerCase()
+      );
+      if (match) existingUserId = match.id;
+    }
+
+    let userId: string;
+    let issuedTempPassword: string | null = null;
+
+    if (existingUserId) {
+      userId = existingUserId;
+      // Safety check: ensure they don't already have this role (trigger should prevent this, but double-check)
+      const { data: alreadyHasRole } = await adminClient.rpc("has_role", {
+        _user_id: userId,
+        _role: regRequest.requested_role,
+      });
+      if (alreadyHasRole) {
+        await adminClient
+          .from("registration_requests")
+          .update({
+            status: "rejected",
+            reviewed_by: caller.id,
+            reviewed_at: new Date().toISOString(),
+          })
+          .eq("id", request_id);
+        return new Response(
+          JSON.stringify({ error: "User is already registered with this role" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    } else {
+      const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
+        email: regRequest.email,
+        password: tempPassword,
+        email_confirm: true,
+        user_metadata: { display_name: regRequest.display_name },
+      });
+
+      if (createErr) {
+        return new Response(JSON.stringify({ error: createErr.message }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      userId = newUser.user.id;
+      issuedTempPassword = tempPassword;
     }
 
     const { error: roleError } = await adminClient.from("user_roles").insert({
-      user_id: newUser.user.id,
+      user_id: userId,
       role: regRequest.requested_role,
     });
 
@@ -127,18 +174,18 @@ Deno.serve(async (req) => {
     const { data: existingProfile } = await adminClient
       .from("profiles")
       .select("id")
-      .eq("user_id", newUser.user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     const profilePayload = {
-      user_id: newUser.user.id,
+      user_id: userId,
       display_name: regRequest.display_name,
       flat_number: regRequest.requested_role === "resident" ? regRequest.flat_number : null,
       wing: regRequest.requested_role === "resident" ? regRequest.wing : null,
     };
 
     const profileQuery = existingProfile
-      ? adminClient.from("profiles").update(profilePayload).eq("user_id", newUser.user.id)
+      ? adminClient.from("profiles").update(profilePayload).eq("user_id", userId)
       : adminClient.from("profiles").insert(profilePayload);
 
     const { error: profileError } = await profileQuery;
@@ -160,7 +207,8 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         action: "approved",
-        temp_password: tempPassword,
+        temp_password: issuedTempPassword,
+        existing_user: !!existingUserId,
         email: regRequest.email,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
