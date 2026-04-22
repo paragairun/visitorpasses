@@ -239,6 +239,9 @@ const RegistrationRequests = () => {
                     <p className="text-xs text-muted-foreground">{req.email}</p>
                   </div>
                   <div className="flex items-center gap-2">
+                    <Badge variant="outline" className={roleBadgeColor(req.requested_role)}>
+                      {req.requested_role}
+                    </Badge>
                     <Badge variant={req.status === "approved" ? "default" : "destructive"}>
                       {req.status}
                     </Badge>
