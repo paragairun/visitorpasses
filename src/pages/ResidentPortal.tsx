@@ -100,6 +100,30 @@ const ResidentPortal = () => {
     }
   }, [toast, user]);
 
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (!resident) return;
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("id, vehicle_number, vehicle_type, owner_name, wing, flat_number, qr_code")
+        .eq("wing", resident.wing)
+        .eq("flat_number", resident.flat_number)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast({
+          title: "Could not load your vehicles",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      setVehicles((data ?? []) as ResidentVehicle[]);
+    };
+
+    void loadVehicles();
+  }, [resident, toast]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/resident", { replace: true });
