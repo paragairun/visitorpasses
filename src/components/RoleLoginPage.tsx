@@ -25,10 +25,10 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
-  const { signIn, user, role } = useAuth();
+  const { signIn, user, roles } = useAuth();
   const { toast } = useToast();
 
-  if (user && role === roleKey) {
+  if (user && roles.includes(roleKey)) {
     return <Navigate to={dashboardPath} replace />;
   }
 
