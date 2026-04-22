@@ -77,6 +77,12 @@ const RegistrationRequests = () => {
         description: `Temp password for ${data.email}: ${data.temp_password}`,
         duration: 15000,
       });
+    } else if (action === "approve" && data?.existing_user) {
+      toast({
+        title: "Role Added",
+        description: `${data.email} already has an account. New role added — they can sign in with their existing password.`,
+        duration: 12000,
+      });
     } else {
       toast({ title: action === "approve" ? "Approved" : "Rejected" });
     }
