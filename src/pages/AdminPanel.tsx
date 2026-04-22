@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Shield, Power, Trash2 } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Shield, Power, Trash2, ChevronDown, ChevronUp, Link as LinkIcon } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
 import BulkResidentUpload from "@/components/BulkResidentUpload";
@@ -31,6 +31,7 @@ const AdminPanel = () => {
   const [savingVehicle, setSavingVehicle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [vehiclesExpanded, setVehiclesExpanded] = useState(false);
   const { toast } = useToast();
   const { signOut } = useAuth();
   const navigate = useNavigate();
@@ -295,6 +296,28 @@ const AdminPanel = () => {
       {/* User Registry */}
       <UserRegistry />
 
+      {/* Visitor Form QR */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <LinkIcon className="h-5 w-5 text-primary" />
+            Visitor Form Access QR
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground mb-3 text-center">
+            Visitors can scan this QR to open the entry form.
+          </p>
+          <div className="flex justify-center">
+            <QrGenerator
+              value={`${window.location.origin}/visitor/form`}
+              label="Visitor Form"
+              size={400}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Vehicle Registry */}
       <Card>
         <CardHeader className="pb-3">
@@ -332,7 +355,7 @@ const AdminPanel = () => {
             {vehicles.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">No vehicles registered yet</p>
             ) : (
-              vehicles.map((v) => (
+              (vehiclesExpanded ? vehicles : vehicles.slice(0, 5)).map((v) => (
                 <div key={v.id} className="space-y-2">
                   <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
                     <Checkbox
@@ -356,6 +379,20 @@ const AdminPanel = () => {
                   )}
                 </div>
               ))
+            )}
+            {vehicles.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setVehiclesExpanded((v) => !v)}
+                className="w-full touch-target gap-1 text-xs"
+              >
+                {vehiclesExpanded ? (
+                  <><ChevronUp className="h-4 w-4" /> Show less</>
+                ) : (
+                  <><ChevronDown className="h-4 w-4" /> Show {vehicles.length - 5} more</>
+                )}
+              </Button>
             )}
           </div>
         </CardContent>
