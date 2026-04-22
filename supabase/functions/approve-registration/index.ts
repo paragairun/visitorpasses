@@ -95,12 +95,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Approve: create user with a temp password, or reuse existing auth user
+    // Approve: create user with a temp password, assign role
     const tempPassword = `Triumph${Date.now().toString(36)}!`;
-    let userId: string | null = null;
-    let passwordForResponse: string | null = tempPassword;
 
-    const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+    const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
       email: regRequest.email,
       password: tempPassword,
       email_confirm: true,
@@ -108,66 +106,16 @@ Deno.serve(async (req) => {
     });
 
     if (createErr) {
-      const msg = createErr.message?.toLowerCase() ?? "";
-      const alreadyExists =
-        msg.includes("already been registered") ||
-        msg.includes("already registered") ||
-        msg.includes("already exists");
-
-      if (!alreadyExists) {
-        return new Response(JSON.stringify({ error: createErr.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Find existing user by email
-      const { data: list, error: listErr } = await adminClient.auth.admin.listUsers({
-        page: 1,
-        perPage: 200,
+      return new Response(JSON.stringify({ error: createErr.message }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
-      if (listErr) {
-        return new Response(JSON.stringify({ error: listErr.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const existing = list.users.find(
-        (u) => (u.email ?? "").toLowerCase() === regRequest.email.toLowerCase()
-      );
-      if (!existing) {
-        return new Response(
-          JSON.stringify({ error: "Email exists but user could not be located" }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      userId = existing.id;
-      // Reset their password to a fresh temp password so admin can share it
-      const { error: updErr } = await adminClient.auth.admin.updateUserById(userId, {
-        password: tempPassword,
-        email_confirm: true,
-      });
-      if (updErr) {
-        passwordForResponse = null;
-      }
-    } else {
-      userId = created.user.id;
     }
 
-    // Upsert role (skip if already assigned)
-    const { data: existingRole } = await adminClient
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", userId!)
-      .eq("role", regRequest.requested_role)
-      .maybeSingle();
-
-    const roleError = existingRole
-      ? null
-      : (await adminClient.from("user_roles").insert({
-          user_id: userId!,
-          role: regRequest.requested_role,
-        })).error;
+    const { error: roleError } = await adminClient.from("user_roles").insert({
+      user_id: newUser.user.id,
+      role: regRequest.requested_role,
+    });
 
     if (roleError) {
       return new Response(JSON.stringify({ error: roleError.message }), {
@@ -179,18 +127,18 @@ Deno.serve(async (req) => {
     const { data: existingProfile } = await adminClient
       .from("profiles")
       .select("id")
-      .eq("user_id", userId!)
+      .eq("user_id", newUser.user.id)
       .maybeSingle();
 
     const profilePayload = {
-      user_id: userId!,
+      user_id: newUser.user.id,
       display_name: regRequest.display_name,
       flat_number: regRequest.requested_role === "resident" ? regRequest.flat_number : null,
       wing: regRequest.requested_role === "resident" ? regRequest.wing : null,
     };
 
     const profileQuery = existingProfile
-      ? adminClient.from("profiles").update(profilePayload).eq("user_id", userId!)
+      ? adminClient.from("profiles").update(profilePayload).eq("user_id", newUser.user.id)
       : adminClient.from("profiles").insert(profilePayload);
 
     const { error: profileError } = await profileQuery;
@@ -212,7 +160,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         action: "approved",
-        temp_password: passwordForResponse,
+        temp_password: tempPassword,
         email: regRequest.email,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
