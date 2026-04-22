@@ -11,7 +11,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredRole, loginPath }: ProtectedRouteProps) => {
-  const { user, role, loading } = useAuth();
+  const { user, roles, loading } = useAuth();
 
   if (loading) {
     return (
@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children, requiredRole, loginPath }: ProtectedRoutePro
     return <Navigate to={loginPath} replace />;
   }
 
-  if (role !== requiredRole) {
+  if (!roles.includes(requiredRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 text-center">
         <div className="space-y-4">
