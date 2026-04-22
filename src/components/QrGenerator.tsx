@@ -52,6 +52,11 @@ const QrGenerator = ({ value, label, size = 360 }: QrGeneratorProps) => {
     ctx.font = `700 ${44 * scale}px Georgia, "Times New Roman", serif`;
     ctx.fillText("TRIUMPH TOWER", W / 2, 70 * scale);
 
+    // Sub header
+    ctx.fillStyle = INK;
+    ctx.font = `600 ${16 * scale}px Georgia, serif`;
+    ctx.fillText("MALAD WEST  |  MUMBAI", W / 2, 108 * scale);
+
     // Decorative gold rule
     ctx.strokeStyle = GOLD;
     ctx.lineWidth = 1.2 * scale;
