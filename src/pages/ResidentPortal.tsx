@@ -264,6 +264,58 @@ const ResidentPortal = () => {
         </CardContent>
       </Card>
 
+      {/* My Vehicles */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Car className="h-5 w-5 text-primary" />
+            My Vehicles ({vehicles.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {vehicles.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No vehicles registered to your flat yet
+              </p>
+            ) : (
+              vehicles.map((v) => (
+                <div key={v.id} className="space-y-2">
+                  <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground">{v.vehicle_number}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setShowVehicleQr(showVehicleQr === v.qr_code ? null : v.qr_code)
+                      }
+                      className="touch-target gap-1"
+                    >
+                      <QrCode className="h-4 w-4" />
+                      QR
+                    </Button>
+                  </div>
+                  {showVehicleQr === v.qr_code && (
+                    <div className="flex justify-center py-2">
+                      <QrGenerator
+                        value={v.qr_code}
+                        label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`}
+                        size={400}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Visit Logs */}
       <Card>
         <CardHeader className="pb-3">
