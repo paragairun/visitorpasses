@@ -171,9 +171,9 @@ const GuardDashboard = () => {
         return;
       }
 
-      setScanResult(`✅ ${vehicle.owner_name} — ${vehicle.wing}-${vehicle.flat_number} — ${vehicle.vehicle_number}`);
+      setScanResult(`✅ ${vehicle.wing}-${vehicle.flat_number} — ${vehicle.vehicle_number}`);
       await loadDashboardData(false);
-      toast({ title: "Entry Logged", description: `${vehicle.owner_name} — ${vehicle.vehicle_number}` });
+      toast({ title: "Entry Logged", description: `${vehicle.wing}-${vehicle.flat_number} — ${vehicle.vehicle_number}` });
     } else {
       setScanResult("❌ Unknown QR code. Vehicle not registered.");
       toast({ title: "Unknown Vehicle", description: "QR code not found in registry.", variant: "destructive" });
