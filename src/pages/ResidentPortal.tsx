@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, QrCode, Power } from "lucide-react";
+import { Car, ClipboardList, QrCode, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,16 @@ interface VisitLog {
   exit_time: string | null;
 }
 
+interface ResidentVehicle {
+  id: string;
+  vehicle_number: string;
+  vehicle_type: string;
+  owner_name: string;
+  wing: string;
+  flat_number: string;
+  qr_code: string;
+}
+
 const emptyForm = {
   visitor_name: "",
   phone: "",
@@ -54,6 +64,8 @@ const ResidentPortal = () => {
   const [visitLogs, setVisitLogs] = useState<VisitLog[]>([]);
   const [resident, setResident] = useState<ResidentSummary | null>(null);
   const [showQr, setShowQr] = useState<GuestPass | null>(null);
+  const [vehicles, setVehicles] = useState<ResidentVehicle[]>([]);
+  const [showVehicleQr, setShowVehicleQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
