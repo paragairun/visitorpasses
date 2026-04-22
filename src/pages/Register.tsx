@@ -49,7 +49,13 @@ const Register = () => {
     setIsLoading(false);
 
     if (error) {
-      toast({ title: "Submission failed", description: error.message, variant: "destructive" });
+      const msg = error.message?.toLowerCase() ?? "";
+      const isDuplicate = msg.includes("already registered") || msg.includes("pending registration");
+      toast({
+        title: isDuplicate ? "Already registered" : "Submission failed",
+        description: error.message,
+        variant: "destructive",
+      });
       return;
     }
 
