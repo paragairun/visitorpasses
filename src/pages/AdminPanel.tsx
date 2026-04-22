@@ -374,7 +374,7 @@ const AdminPanel = () => {
                   </div>
                   {showQrFor === v.qr_code && (
                     <div className="flex justify-center py-2">
-                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.owner_name}`} size={400} />
+                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`} size={400} />
                     </div>
                   )}
                 </div>
