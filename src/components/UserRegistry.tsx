@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Trash2, Users } from "lucide-react";
+import { ChevronDown, ChevronUp, Trash2, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -42,6 +42,7 @@ const UserRegistry = () => {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
@@ -141,7 +142,7 @@ const UserRegistry = () => {
           <p className="text-sm text-muted-foreground text-center py-4">No users registered</p>
         ) : (
           <div className="space-y-2">
-            {users.map((u) => (
+            {(expanded ? users : users.slice(0, 5)).map((u) => (
               <div key={u.user_id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
                 <Checkbox
                   checked={selected.has(u.user_id)}
@@ -169,6 +170,20 @@ const UserRegistry = () => {
                 </div>
               </div>
             ))}
+            {users.length > 5 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setExpanded((v) => !v)}
+                className="w-full touch-target gap-1 text-xs"
+              >
+                {expanded ? (
+                  <><ChevronUp className="h-4 w-4" /> Show less</>
+                ) : (
+                  <><ChevronDown className="h-4 w-4" /> Show {users.length - 5} more</>
+                )}
+              </Button>
+            )}
           </div>
         )}
       </CardContent>
