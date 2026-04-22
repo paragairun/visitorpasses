@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardList, QrCode, Power } from "lucide-react";
+import { Car, ClipboardList, QrCode, Power } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,16 @@ interface VisitLog {
   exit_time: string | null;
 }
 
+interface ResidentVehicle {
+  id: string;
+  vehicle_number: string;
+  vehicle_type: string;
+  owner_name: string;
+  wing: string;
+  flat_number: string;
+  qr_code: string;
+}
+
 const emptyForm = {
   visitor_name: "",
   phone: "",
@@ -54,6 +64,8 @@ const ResidentPortal = () => {
   const [visitLogs, setVisitLogs] = useState<VisitLog[]>([]);
   const [resident, setResident] = useState<ResidentSummary | null>(null);
   const [showQr, setShowQr] = useState<GuestPass | null>(null);
+  const [vehicles, setVehicles] = useState<ResidentVehicle[]>([]);
+  const [showVehicleQr, setShowVehicleQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
@@ -87,6 +99,30 @@ const ResidentPortal = () => {
       void loadGuestPasses();
     }
   }, [toast, user]);
+
+  useEffect(() => {
+    const loadVehicles = async () => {
+      if (!resident) return;
+      const { data, error } = await supabase
+        .from("vehicles")
+        .select("id, vehicle_number, vehicle_type, owner_name, wing, flat_number, qr_code")
+        .eq("wing", resident.wing)
+        .eq("flat_number", resident.flat_number)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        toast({
+          title: "Could not load your vehicles",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      setVehicles((data ?? []) as ResidentVehicle[]);
+    };
+
+    void loadVehicles();
+  }, [resident, toast]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -225,6 +261,58 @@ const ResidentPortal = () => {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* My Vehicles */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Car className="h-5 w-5 text-primary" />
+            My Vehicles ({vehicles.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-2">
+            {vehicles.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No vehicles registered to your flat yet
+              </p>
+            ) : (
+              vehicles.map((v) => (
+                <div key={v.id} className="space-y-2">
+                  <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground">{v.vehicle_number}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}
+                      </p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        setShowVehicleQr(showVehicleQr === v.qr_code ? null : v.qr_code)
+                      }
+                      className="touch-target gap-1"
+                    >
+                      <QrCode className="h-4 w-4" />
+                      QR
+                    </Button>
+                  </div>
+                  {showVehicleQr === v.qr_code && (
+                    <div className="flex justify-center py-2">
+                      <QrGenerator
+                        value={v.qr_code}
+                        label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`}
+                        size={400}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
         </CardContent>
       </Card>
 
