@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
+import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 
 type Vehicle = Tables<"vehicles">;
 
@@ -109,7 +110,7 @@ const AdminPanel = () => {
       return;
     }
 
-    const qr = `RES-${newVehicle.wing}${newVehicle.flat_number}-${Date.now().toString(36).toUpperCase()}`;
+    const qr = createOpaqueVehicleQrCode();
 
     const { data, error } = await supabase
       .from("vehicles")
