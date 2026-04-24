@@ -7,13 +7,19 @@ interface QrGeneratorProps {
   value: string;
   label: string;
   size?: number;
+  wing?: string;
 }
 
 const GOLD = "#C9A227";
 const BG = "#0F121C";
 
-const QrGenerator = ({ value, label, size = 400 }: QrGeneratorProps) => {
+const MANDLIK_WINGS = new Set(["A", "B", "C", "D", "E", "F"]);
+const headerForWing = (wing?: string) =>
+  wing && MANDLIK_WINGS.has(wing.trim().toUpperCase()) ? "MANDLIK NAGAR" : "TRIUMPH TOWER";
+
+const QrGenerator = ({ value, label, size = 400, wing }: QrGeneratorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const headerText = headerForWing(wing);
 
   useEffect(() => {
     const render = async () => {
@@ -61,7 +67,7 @@ const QrGenerator = ({ value, label, size = 400 }: QrGeneratorProps) => {
       ctx.font = `700 56px "Philosopher", serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.fillText("TRIUMPH TOWER", W / 2, 80);
+      ctx.fillText(headerText, W / 2, 80);
 
       // Divider
       ctx.strokeStyle = GOLD;
@@ -97,14 +103,15 @@ const QrGenerator = ({ value, label, size = 400 }: QrGeneratorProps) => {
     } else {
       void render();
     }
-  }, [value, size]);
+  }, [value, size, headerText]);
 
   const handleDownload = () => {
     if (!canvasRef.current) return;
     const url = canvasRef.current.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    a.download = `triumph-tower-qr-${label.replace(/\s+/g, "-").toLowerCase()}.png`;
+    const slug = headerText.toLowerCase().replace(/\s+/g, "-");
+    a.download = `${slug}-qr-${label.replace(/\s+/g, "-").toLowerCase()}.png`;
     a.click();
   };
 

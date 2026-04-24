@@ -306,6 +306,7 @@ const ResidentPortal = () => {
                         value={v.qr_code}
                         label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`}
                         size={400}
+                        wing={v.wing}
                       />
                     </div>
                   )}
