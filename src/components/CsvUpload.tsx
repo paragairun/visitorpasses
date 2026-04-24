@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 
 interface ParsedRow {
   owner_name: string;
@@ -107,7 +108,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
 
     const vehiclesWithQr = rows.map((r) => ({
       ...r,
-      qr_code: `RES-${r.wing}${r.flat_number}-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`,
+      qr_code: createOpaqueVehicleQrCode(),
     }));
 
     const { error } = await supabase.from("vehicles").insert(vehiclesWithQr);
