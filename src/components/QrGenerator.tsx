@@ -110,14 +110,18 @@ const QrGenerator = ({ value, label, size = 400, wing }: QrGeneratorProps) => {
     const url = canvasRef.current.toDataURL("image/png");
     const a = document.createElement("a");
     a.href = url;
-    const slug = headerText.toLowerCase().replace(/\s+/g, "-");
+    // Short prefix derived from the header initials (e.g. "MANDLIK NAGAR" -> "mn")
+    const slug = headerText
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toLowerCase())
+      .join("");
     // Use an opaque random identifier in the filename — never include
     // resident-identifying details (wing, flat, owner) for privacy.
     const rand =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID().split("-")[0]
         : Math.random().toString(36).slice(2, 10);
-    a.download = `${slug}-qr-${rand}.png`;
+    a.download = `${slug}-${rand}.png`;
     a.click();
   };
 
