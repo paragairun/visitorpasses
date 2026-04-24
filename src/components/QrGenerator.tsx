@@ -111,7 +111,13 @@ const QrGenerator = ({ value, label, size = 400, wing }: QrGeneratorProps) => {
     const a = document.createElement("a");
     a.href = url;
     const slug = headerText.toLowerCase().replace(/\s+/g, "-");
-    a.download = `${slug}-qr-${label.replace(/\s+/g, "-").toLowerCase()}.png`;
+    // Use an opaque random identifier in the filename — never include
+    // resident-identifying details (wing, flat, owner) for privacy.
+    const rand =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID().split("-")[0]
+        : Math.random().toString(36).slice(2, 10);
+    a.download = `${slug}-qr-${rand}.png`;
     a.click();
   };
 
