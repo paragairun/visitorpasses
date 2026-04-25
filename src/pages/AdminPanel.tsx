@@ -144,7 +144,6 @@ const AdminPanel = () => {
     setShowQrWing(newVehicle.wing);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
     setVehicles((prev) => [data as Vehicle, ...prev]);
-    setStats((prev) => ({ ...prev, total_vehicles: prev.total_vehicles + 1 }));
     await fetchAdminData(false);
     toast({ title: "Vehicle Registered", description: `QR: ${qr}` });
   };
@@ -370,7 +369,15 @@ const AdminPanel = () => {
                       <p className="font-bold text-foreground">{v.vehicle_number}</p>
                       <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowQrFor(showQrFor === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      if (showQrFor === v.qr_code) {
+                        setShowQrFor(null);
+                        setShowQrWing(undefined);
+                      } else {
+                        setShowQrFor(v.qr_code);
+                        setShowQrWing(v.wing);
+                      }
+                    }} className="touch-target gap-1">
                       <QrCode className="h-4 w-4" />
                       QR
                     </Button>
