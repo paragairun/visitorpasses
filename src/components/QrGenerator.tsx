@@ -1,13 +1,18 @@
 import { useEffect, useRef } from "react";
 import QRCode from "qrcode";
-import { Download } from "lucide-react";
+import { Download, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 
 interface QrGeneratorProps {
   value: string;
   label: string;
   size?: number;
   wing?: string;
+  /** Optional caption/text used when sharing via Web Share / WhatsApp / Telegram. */
+  shareText?: string;
+  /** Show the Share button (defaults to true). */
+  showShare?: boolean;
 }
 
 const GOLD = "#C9A227";
@@ -17,9 +22,10 @@ const MANDLIK_WINGS = new Set(["A", "B", "C", "D", "E", "F"]);
 const headerForWing = (wing?: string) =>
   wing && MANDLIK_WINGS.has(wing.trim().toUpperCase()) ? "MANDLIK NAGAR" : "TRIUMPH TOWER";
 
-const QrGenerator = ({ value, label, size = 400, wing }: QrGeneratorProps) => {
+const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = true }: QrGeneratorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const headerText = headerForWing(wing);
+  const { toast } = useToast();
 
   useEffect(() => {
     const render = async () => {
@@ -125,14 +131,90 @@ const QrGenerator = ({ value, label, size = 400, wing }: QrGeneratorProps) => {
     a.click();
   };
 
+  const buildFilename = () => {
+    const slug = headerText
+      .split(/\s+/)
+      .map((w) => w.charAt(0).toLowerCase())
+      .join("");
+    const rand =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID().split("-")[0]
+        : Math.random().toString(36).slice(2, 10);
+    return `${slug}-${rand}.png`;
+  };
+
+  const canvasToBlob = () =>
+    new Promise<Blob | null>((resolve) => {
+      if (!canvasRef.current) return resolve(null);
+      canvasRef.current.toBlob((b) => resolve(b), "image/png");
+    });
+
+  const handleShare = async () => {
+    if (!canvasRef.current) return;
+    const message = shareText ?? `${label}\n\nShow this QR at the gate for entry.`;
+    const filename = buildFilename();
+    const blob = await canvasToBlob();
+
+    // Prefer native share with file (works on mobile WhatsApp, Telegram, etc.)
+    try {
+      if (blob && typeof navigator !== "undefined" && "canShare" in navigator) {
+        const file = new File([blob], filename, { type: "image/png" });
+        const nav = navigator as Navigator & {
+          canShare?: (data: ShareData) => boolean;
+          share?: (data: ShareData) => Promise<void>;
+        };
+        if (nav.canShare?.({ files: [file] }) && nav.share) {
+          await nav.share({ files: [file], title: label, text: message });
+          return;
+        }
+      }
+
+      // Fallback: copy image to clipboard + open WhatsApp web with the message
+      if (blob && typeof navigator !== "undefined" && "clipboard" in navigator && "ClipboardItem" in window) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({ "image/png": blob }),
+          ]);
+          toast({
+            title: "QR copied to clipboard",
+            description: "Paste it into WhatsApp, Telegram or any chat app.",
+          });
+        } catch {
+          // ignore clipboard failure
+        }
+      }
+
+      // Final fallback: open WhatsApp share dialog with text only
+      const waUrl = `https://wa.me/?text=${encodeURIComponent(message)}`;
+      window.open(waUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      const aborted = (err as DOMException)?.name === "AbortError";
+      if (!aborted) {
+        toast({
+          title: "Could not share",
+          description: (err as Error)?.message ?? "Try downloading and sharing manually.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col items-center gap-3 p-4 rounded-lg bg-card border border-border">
       <canvas ref={canvasRef} className="rounded max-w-full h-auto" />
       <p className="text-sm font-medium text-card-foreground">{label}</p>
-      <Button variant="outline" size="sm" onClick={handleDownload} className="touch-target gap-2">
-        <Download className="h-4 w-4" />
-        Download PNG
-      </Button>
+      <div className="flex flex-wrap items-center justify-center gap-2">
+        <Button variant="outline" size="sm" onClick={handleDownload} className="touch-target gap-2">
+          <Download className="h-4 w-4" />
+          Download PNG
+        </Button>
+        {showShare && (
+          <Button variant="default" size="sm" onClick={() => void handleShare()} className="touch-target gap-2">
+            <Share2 className="h-4 w-4" />
+            Share
+          </Button>
+        )}
+      </div>
     </div>
   );
 };
