@@ -27,6 +27,8 @@ const AdminPanel = () => {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
   const [showQrWing, setShowQrWing] = useState<string | undefined>(undefined);
+  const [justRegisteredQr, setJustRegisteredQr] = useState<string | null>(null);
+  const [justRegisteredWing, setJustRegisteredWing] = useState<string | undefined>(undefined);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
   const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0 });
   const [loading, setLoading] = useState(true);
@@ -140,11 +142,11 @@ const AdminPanel = () => {
       return;
     }
 
-    setShowQrFor(qr);
-    setShowQrWing(newVehicle.wing);
+    setJustRegisteredQr(qr);
+    setJustRegisteredWing(newVehicle.wing);
+    setShowQrFor(null);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
     setVehicles((prev) => [data as Vehicle, ...prev]);
-    setStats((prev) => ({ ...prev, total_vehicles: prev.total_vehicles + 1 }));
     await fetchAdminData(false);
     toast({ title: "Vehicle Registered", description: `QR: ${qr}` });
   };
@@ -276,9 +278,9 @@ const AdminPanel = () => {
             {savingVehicle ? "Saving..." : "Register & Generate QR"}
           </Button>
 
-          {showQrFor && (
+          {justRegisteredQr && (
             <div className="flex justify-center pt-4">
-              <QrGenerator value={showQrFor} label={`Vehicle QR: ${showQrFor}`} size={400} wing={showQrWing} />
+              <QrGenerator value={justRegisteredQr} label={`Vehicle QR: ${justRegisteredQr}`} size={400} wing={justRegisteredWing} />
             </div>
           )}
         </CardContent>
@@ -370,7 +372,15 @@ const AdminPanel = () => {
                       <p className="font-bold text-foreground">{v.vehicle_number}</p>
                       <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => setShowQrFor(showQrFor === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
+                    <Button variant="outline" size="sm" onClick={() => {
+                      if (showQrFor === v.qr_code) {
+                        setShowQrFor(null);
+                        setShowQrWing(undefined);
+                      } else {
+                        setShowQrFor(v.qr_code);
+                        setShowQrWing(v.wing);
+                      }
+                    }} className="touch-target gap-1">
                       <QrCode className="h-4 w-4" />
                       QR
                     </Button>
