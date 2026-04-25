@@ -26,6 +26,7 @@ const AdminPanel = () => {
   useInactivityLogout("/admin");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
+  const [showQrWing, setShowQrWing] = useState<string | undefined>(undefined);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
   const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0 });
   const [loading, setLoading] = useState(true);
@@ -140,6 +141,7 @@ const AdminPanel = () => {
     }
 
     setShowQrFor(qr);
+    setShowQrWing(newVehicle.wing);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
     setVehicles((prev) => [data as Vehicle, ...prev]);
     setStats((prev) => ({ ...prev, total_vehicles: prev.total_vehicles + 1 }));
@@ -276,7 +278,7 @@ const AdminPanel = () => {
 
           {showQrFor && (
             <div className="flex justify-center pt-4">
-              <QrGenerator value={showQrFor} label={`Vehicle QR: ${showQrFor}`} size={400} />
+              <QrGenerator value={showQrFor} label={`Vehicle QR: ${showQrFor}`} size={400} wing={showQrWing} />
             </div>
           )}
         </CardContent>
