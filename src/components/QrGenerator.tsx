@@ -86,17 +86,26 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
       // QR
       ctx.drawImage(qrCanvas, padX, headerH);
 
-      // Footer line 1: dashes spanning QR width with EXCLUSIVE centered
+      // Footer line 1: continuous solid lines spanning QR width with EXCLUSIVE centered
       ctx.font = `600 20px "Montserrat", sans-serif`;
       ctx.textBaseline = "middle";
-      const label1 = "  EXCLUSIVE  ";
+      const label1 = "EXCLUSIVE";
+      const labelGap = 16; // px gap between text and lines on each side
       const labelW = ctx.measureText(label1).width;
-      const dashW = ctx.measureText("—").width;
-      const sidePx = Math.max(0, (qw - labelW) / 2);
-      const n = Math.max(1, Math.floor(sidePx / dashW));
-      const dashes = "—".repeat(n);
       const fy1 = headerH + qh + 28;
-      ctx.fillText(`${dashes}${label1}${dashes}`, W / 2, fy1);
+      ctx.fillText(label1, W / 2, fy1);
+      const lineLeftStart = padX;
+      const lineLeftEnd = W / 2 - labelW / 2 - labelGap;
+      const lineRightStart = W / 2 + labelW / 2 + labelGap;
+      const lineRightEnd = W - padX;
+      ctx.strokeStyle = GOLD;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(lineLeftStart, fy1);
+      ctx.lineTo(lineLeftEnd, fy1);
+      ctx.moveTo(lineRightStart, fy1);
+      ctx.lineTo(lineRightEnd, fy1);
+      ctx.stroke();
 
       // Footer line 2
       ctx.fillText("VEHICLE ACCESS", W / 2, fy1 + 32);
