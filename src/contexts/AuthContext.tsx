@@ -40,15 +40,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return (data ?? []).map((r) => r.role as AppRole);
   };
 
+  const currentUserIdRef = useRef<string | null>(null);
+
   const syncAuthState = (nextSession: Session | null) => {
+    const nextUserId = nextSession?.user?.id ?? null;
+    const sameUser = currentUserIdRef.current === nextUserId;
+
     setSession(nextSession);
     setUser(nextSession?.user ?? null);
 
-    const nextUserId = nextSession?.user?.id ?? null;
+    // If the user hasn't changed (e.g. token refresh on tab focus),
+    // don't reset role/loading state — that would cause dashboards to
+    // flash their loading UI and re-fetch data unnecessarily.
+    if (sameUser) {
+      return;
+    }
+
+    currentUserIdRef.current = nextUserId;
     latestRoleRequestFor.current = nextUserId;
 
     if (!nextUserId) {
       setRole(null);
+      setRoles([]);
       setLoading(false);
       return;
     }
@@ -99,6 +112,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     latestRoleRequestFor.current = null;
+    currentUserIdRef.current = null;
     await supabase.auth.signOut();
     setSession(null);
     setUser(null);
