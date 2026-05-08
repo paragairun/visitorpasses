@@ -29,6 +29,7 @@ const AdminPanel = () => {
   const [showQrWing, setShowQrWing] = useState<string | undefined>(undefined);
   const [justRegisteredQr, setJustRegisteredQr] = useState<string | null>(null);
   const [justRegisteredWing, setJustRegisteredWing] = useState<string | undefined>(undefined);
+  const [justRegisteredName, setJustRegisteredName] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
   const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0 });
   const [loading, setLoading] = useState(true);
@@ -144,6 +145,7 @@ const AdminPanel = () => {
 
     setJustRegisteredQr(qr);
     setJustRegisteredWing(newVehicle.wing);
+    setJustRegisteredName(`${newVehicle.wing}-${newVehicle.flat_number.trim()}-${newVehicle.vehicle_number.trim().toUpperCase()}`);
     setShowQrFor(null);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
     setVehicles((prev) => [data as Vehicle, ...prev]);
