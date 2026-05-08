@@ -140,20 +140,25 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
     return `${slug}-${rand}.png`;
   };
 
-  const handleDownload = () => {
-    if (!canvasRef.current) return;
-    const url = canvasRef.current.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = buildFilename();
-    a.click();
-  };
-
   const canvasToBlob = () =>
     new Promise<Blob | null>((resolve) => {
       if (!canvasRef.current) return resolve(null);
       canvasRef.current.toBlob((b) => resolve(b), "image/png");
     });
+
+  const handleDownload = async () => {
+    const blob = await canvasToBlob();
+    if (!blob) return;
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = buildFilename();
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  };
 
   const handleShare = async () => {
     if (!canvasRef.current) return;
@@ -210,7 +215,7 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
       <canvas ref={canvasRef} className="rounded max-w-full h-auto" />
       <p className="text-sm font-medium text-card-foreground">{label}</p>
       <div className="flex flex-wrap items-center justify-center gap-2">
-        <Button variant="outline" size="sm" onClick={handleDownload} className="touch-target gap-2">
+        <Button variant="outline" size="sm" onClick={() => void handleDownload()} className="touch-target gap-2">
           <Download className="h-4 w-4" />
           Download PNG
         </Button>
