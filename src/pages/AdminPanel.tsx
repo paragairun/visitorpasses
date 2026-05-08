@@ -280,7 +280,13 @@ const AdminPanel = () => {
 
           {justRegisteredQr && (
             <div className="flex justify-center pt-4">
-              <QrGenerator value={justRegisteredQr} label={`Vehicle QR: ${justRegisteredQr}`} size={400} wing={justRegisteredWing} />
+              <QrGenerator
+                value={justRegisteredQr}
+                label={`Vehicle QR: ${justRegisteredQr}`}
+                size={400}
+                wing={justRegisteredWing}
+                fileBaseName={justRegisteredName ?? undefined}
+              />
             </div>
           )}
         </CardContent>
@@ -387,7 +393,13 @@ const AdminPanel = () => {
                   </div>
                   {showQrFor === v.qr_code && (
                     <div className="flex justify-center py-2">
-                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`} size={400} wing={v.wing} />
+                      <QrGenerator
+                        value={v.qr_code}
+                        label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`}
+                        size={400}
+                        wing={v.wing}
+                        fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_number}`}
+                      />
                     </div>
                   )}
                 </div>
