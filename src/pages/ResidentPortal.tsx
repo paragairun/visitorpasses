@@ -241,6 +241,7 @@ const ResidentPortal = () => {
                 label={`${showQr.visitor_name} • ${resident.flat_label}`}
                 size={400}
                 shareText={`Hi ${showQr.visitor_name}, here is your gate entry QR for ${resident.flat_label}. Show this to the security guard at the gate.`}
+                fileBaseName={`${resident.flat_label}-${showQr.vehicle_number || showQr.visitor_name}`}
               />
             </div>
           )}
@@ -312,6 +313,7 @@ const ResidentPortal = () => {
                         label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`}
                         size={400}
                         wing={v.wing}
+                        fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_number}`}
                       />
                     </div>
                   )}
