@@ -13,6 +13,8 @@ interface QrGeneratorProps {
   shareText?: string;
   /** Show the Share button (defaults to true). */
   showShare?: boolean;
+  /** Optional base name for downloaded/shared file (without extension). Sanitized automatically. */
+  fileBaseName?: string;
 }
 
 const GOLD = "#C9A227";
@@ -22,7 +24,7 @@ const MANDLIK_WINGS = new Set(["A", "B", "C", "D", "E", "F"]);
 const headerForWing = (wing?: string) =>
   wing && MANDLIK_WINGS.has(wing.trim().toUpperCase()) ? "MANDLIK NAGAR" : "TRIUMPH TOWER";
 
-const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = true }: QrGeneratorProps) => {
+const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = true, fileBaseName }: QrGeneratorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const headerText = headerForWing(wing);
   const { toast } = useToast();
@@ -120,36 +122,31 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
     }
   }, [value, size, headerText]);
 
-  const handleDownload = () => {
-    if (!canvasRef.current) return;
-    const url = canvasRef.current.toDataURL("image/png");
-    const a = document.createElement("a");
-    a.href = url;
-    // Short prefix derived from the header initials (e.g. "MANDLIK NAGAR" -> "mn")
-    const slug = headerText
-      .split(/\s+/)
-      .map((w) => w.charAt(0).toLowerCase())
-      .join("");
-    // Use an opaque random identifier in the filename — never include
-    // resident-identifying details (wing, flat, owner) for privacy.
-    const rand =
-      typeof crypto !== "undefined" && "randomUUID" in crypto
-        ? crypto.randomUUID().split("-")[0]
-        : Math.random().toString(36).slice(2, 10);
-    a.download = `${slug}-${rand}.png`;
-    a.click();
-  };
-
   const buildFilename = () => {
     const slug = headerText
       .split(/\s+/)
       .map((w) => w.charAt(0).toLowerCase())
       .join("");
+    const sanitize = (s: string) =>
+      s.trim().replace(/[^A-Za-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (fileBaseName) {
+      const clean = sanitize(fileBaseName);
+      if (clean) return `${slug}-${clean}.png`;
+    }
     const rand =
       typeof crypto !== "undefined" && "randomUUID" in crypto
         ? crypto.randomUUID().split("-")[0]
         : Math.random().toString(36).slice(2, 10);
     return `${slug}-${rand}.png`;
+  };
+
+  const handleDownload = () => {
+    if (!canvasRef.current) return;
+    const url = canvasRef.current.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = buildFilename();
+    a.click();
   };
 
   const canvasToBlob = () =>
