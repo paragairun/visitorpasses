@@ -5,6 +5,7 @@ import CsvUpload from "@/components/CsvUpload";
 import BulkResidentUpload from "@/components/BulkResidentUpload";
 import AccessLogsViewer from "@/components/AccessLogsViewer";
 import UserRegistry from "@/components/UserRegistry";
+import VehicleChangeRequestsAdmin from "@/components/VehicleChangeRequestsAdmin";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -302,6 +303,9 @@ const AdminPanel = () => {
 
       {/* Registration Requests */}
       <RegistrationRequests />
+
+      {/* Vehicle Change Requests */}
+      <VehicleChangeRequestsAdmin onChanged={() => { void fetchAdminData(false); }} />
 
       {/* Access Logs */}
       <AccessLogsViewer />
