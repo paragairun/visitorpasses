@@ -1,10 +1,20 @@
-import { useEffect, useState } from "react";
-import { Car, ClipboardList, QrCode, Power } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Car, ClipboardList, QrCode, Power, Plus, Trash2, ClipboardCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import StatusBadge from "@/components/StatusBadge";
 import QrGenerator from "@/components/QrGenerator";
 import { useToast } from "@/hooks/use-toast";
@@ -50,11 +60,30 @@ interface ResidentVehicle {
   qr_code: string;
 }
 
+interface ChangeRequestRow {
+  id: string;
+  request_type: string;
+  vehicle_number: string;
+  vehicle_type: string;
+  owner_name: string;
+  wing: string;
+  flat_number: string;
+  status: string;
+  notes: string | null;
+  created_at: string;
+}
+
 const emptyForm = {
   visitor_name: "",
   phone: "",
   vehicle_number: "",
   purpose: "",
+};
+
+const emptyVehicleRequest = {
+  vehicle_number: "",
+  vehicle_type: "car",
+  owner_name: "",
 };
 
 const ResidentPortal = () => {
@@ -68,6 +97,11 @@ const ResidentPortal = () => {
   const [showVehicleQr, setShowVehicleQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [vehicleReqForm, setVehicleReqForm] = useState(emptyVehicleRequest);
+  const [submittingVehicleReq, setSubmittingVehicleReq] = useState(false);
+  const [changeRequests, setChangeRequests] = useState<ChangeRequestRow[]>([]);
+  const [removeTarget, setRemoveTarget] = useState<ResidentVehicle | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
   const { toast } = useToast();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
@@ -100,29 +134,36 @@ const ResidentPortal = () => {
     }
   }, [toast, user]);
 
-  useEffect(() => {
-    const loadVehicles = async () => {
-      if (!resident) return;
-      const { data, error } = await supabase
-        .from("vehicles")
-        .select("id, vehicle_number, vehicle_type, owner_name, wing, flat_number, qr_code")
-        .eq("wing", resident.wing)
-        .eq("flat_number", resident.flat_number)
-        .order("created_at", { ascending: false });
+  const loadVehicles = useCallback(async () => {
+    if (!resident) return;
+    const { data, error } = await supabase
+      .from("vehicles")
+      .select("id, vehicle_number, vehicle_type, owner_name, wing, flat_number, qr_code")
+      .eq("wing", resident.wing)
+      .eq("flat_number", resident.flat_number)
+      .order("created_at", { ascending: false });
 
-      if (error) {
-        toast({
-          title: "Could not load your vehicles",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-      setVehicles((data ?? []) as ResidentVehicle[]);
-    };
-
-    void loadVehicles();
+    if (error) {
+      toast({ title: "Could not load your vehicles", description: error.message, variant: "destructive" });
+      return;
+    }
+    setVehicles((data ?? []) as ResidentVehicle[]);
   }, [resident, toast]);
+
+  const loadChangeRequests = useCallback(async () => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from("vehicle_change_requests")
+      .select("id, request_type, vehicle_number, vehicle_type, owner_name, wing, flat_number, status, notes, created_at")
+      .eq("requested_by", user.id)
+      .order("created_at", { ascending: false })
+      .limit(10);
+    if (error) return;
+    setChangeRequests((data ?? []) as ChangeRequestRow[]);
+  }, [user]);
+
+  useEffect(() => { void loadVehicles(); }, [loadVehicles]);
+  useEffect(() => { void loadChangeRequests(); }, [loadChangeRequests]);
 
   const handleSignOut = async () => {
     await signOut();
@@ -162,6 +203,55 @@ const ResidentPortal = () => {
     setForm(emptyForm);
     setShowQr(createdPass);
     toast({ title: "Guest pass created", description: `${createdPass.visitor_name} can now use this QR at the gate.` });
+  };
+
+  const submitAddVehicleRequest = async () => {
+    if (!resident || !user) return;
+    if (!vehicleReqForm.vehicle_number.trim() || !vehicleReqForm.owner_name.trim()) {
+      toast({ title: "Fill vehicle number and owner name", variant: "destructive" });
+      return;
+    }
+    setSubmittingVehicleReq(true);
+    const { error } = await supabase.from("vehicle_change_requests").insert({
+      request_type: "add",
+      requested_by: user.id,
+      wing: resident.wing,
+      flat_number: resident.flat_number,
+      owner_name: vehicleReqForm.owner_name.trim(),
+      vehicle_number: vehicleReqForm.vehicle_number.trim().toUpperCase(),
+      vehicle_type: vehicleReqForm.vehicle_type,
+    });
+    setSubmittingVehicleReq(false);
+    if (error) {
+      toast({ title: "Could not submit request", description: error.message, variant: "destructive" });
+      return;
+    }
+    setVehicleReqForm(emptyVehicleRequest);
+    toast({ title: "Request sent", description: "Admin will review your new vehicle request." });
+    await loadChangeRequests();
+  };
+
+  const submitRemoveRequest = async () => {
+    if (!resident || !user || !removeTarget) return;
+    setRemovingId(removeTarget.id);
+    const { error } = await supabase.from("vehicle_change_requests").insert({
+      request_type: "remove",
+      requested_by: user.id,
+      wing: removeTarget.wing,
+      flat_number: removeTarget.flat_number,
+      owner_name: removeTarget.owner_name,
+      vehicle_number: removeTarget.vehicle_number,
+      vehicle_type: removeTarget.vehicle_type,
+      target_vehicle_id: removeTarget.id,
+    });
+    setRemovingId(null);
+    setRemoveTarget(null);
+    if (error) {
+      toast({ title: "Could not submit request", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Removal requested", description: "Admin will review your request." });
+    await loadChangeRequests();
   };
 
   if (loading) {
@@ -278,7 +368,7 @@ const ResidentPortal = () => {
             My Vehicles ({vehicles.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <div className="space-y-2">
             {vehicles.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-4">
@@ -294,17 +384,29 @@ const ResidentPortal = () => {
                         {v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}
                       </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() =>
-                        setShowVehicleQr(showVehicleQr === v.qr_code ? null : v.qr_code)
-                      }
-                      className="touch-target gap-1"
-                    >
-                      <QrCode className="h-4 w-4" />
-                      QR
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setShowVehicleQr(showVehicleQr === v.qr_code ? null : v.qr_code)
+                        }
+                        className="touch-target gap-1"
+                      >
+                        <QrCode className="h-4 w-4" />
+                        QR
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setRemoveTarget(v)}
+                        disabled={removingId === v.id}
+                        className="touch-target gap-1 text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                        Remove
+                      </Button>
+                    </div>
                   </div>
                   {showVehicleQr === v.qr_code && (
                     <div className="flex justify-center py-2">
@@ -321,8 +423,92 @@ const ResidentPortal = () => {
               ))
             )}
           </div>
+
+          {/* Request new vehicle */}
+          <div className="rounded-lg border border-dashed border-border p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <Plus className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">Request New Vehicle</p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Submit a request to register a new vehicle. Admin approval is required.
+            </p>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="req-owner">Owner Name *</Label>
+                <Input
+                  id="req-owner"
+                  placeholder="Full name"
+                  value={vehicleReqForm.owner_name}
+                  onChange={(e) => setVehicleReqForm((p) => ({ ...p, owner_name: e.target.value }))}
+                  className="touch-target"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="req-vnum">Vehicle Number *</Label>
+                <Input
+                  id="req-vnum"
+                  placeholder="MH02AB1234"
+                  value={vehicleReqForm.vehicle_number}
+                  onChange={(e) => setVehicleReqForm((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))}
+                  className="touch-target"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="req-vtype">Type</Label>
+                <Select
+                  value={vehicleReqForm.vehicle_type}
+                  onValueChange={(v) => setVehicleReqForm((p) => ({ ...p, vehicle_type: v }))}
+                >
+                  <SelectTrigger id="req-vtype" className="touch-target"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="car">Car</SelectItem>
+                    <SelectItem value="bike">Bike</SelectItem>
+                    <SelectItem value="scooty">Scooty</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <Button
+              onClick={() => void submitAddVehicleRequest()}
+              disabled={submittingVehicleReq || !resident}
+              className="touch-target gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              {submittingVehicleReq ? "Submitting..." : "Send Request to Admin"}
+            </Button>
+          </div>
         </CardContent>
       </Card>
+
+      {/* My Change Requests */}
+      {changeRequests.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <ClipboardCheck className="h-5 w-5 text-primary" />
+              My Vehicle Requests
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {changeRequests.map((r) => (
+              <div key={r.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs uppercase font-bold text-muted-foreground">{r.request_type}</span>
+                    <p className="font-medium text-foreground">{r.vehicle_number}</p>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {r.owner_name} • {r.wing}-{r.flat_number} • {new Date(r.created_at).toLocaleString()}
+                  </p>
+                  {r.notes && <p className="text-xs text-muted-foreground italic">Admin note: {r.notes}</p>}
+                </div>
+                <StatusBadge status={r.status as "pending" | "approved" | "rejected"} />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Visit Logs */}
       <Card>
@@ -352,6 +538,29 @@ const ResidentPortal = () => {
           )}
         </CardContent>
       </Card>
+
+      <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Request vehicle removal?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeTarget && (
+                <>
+                  This will send a removal request to the admin for{" "}
+                  <span className="font-semibold">{removeTarget.vehicle_number}</span> ({removeTarget.owner_name}).
+                  The vehicle stays active until the admin approves.
+                </>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void submitRemoveRequest()}>
+              Send Request
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
