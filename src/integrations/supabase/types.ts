@@ -175,6 +175,60 @@ export type Database = {
         }
         Relationships: []
       }
+      vehicle_change_requests: {
+        Row: {
+          created_at: string
+          flat_number: string
+          id: string
+          notes: string | null
+          owner_name: string
+          request_type: string
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          target_vehicle_id: string | null
+          updated_at: string
+          vehicle_number: string
+          vehicle_type: string
+          wing: string
+        }
+        Insert: {
+          created_at?: string
+          flat_number: string
+          id?: string
+          notes?: string | null
+          owner_name: string
+          request_type: string
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_vehicle_id?: string | null
+          updated_at?: string
+          vehicle_number: string
+          vehicle_type?: string
+          wing: string
+        }
+        Update: {
+          created_at?: string
+          flat_number?: string
+          id?: string
+          notes?: string | null
+          owner_name?: string
+          request_type?: string
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          target_vehicle_id?: string | null
+          updated_at?: string
+          vehicle_number?: string
+          vehicle_type?: string
+          wing?: string
+        }
+        Relationships: []
+      }
       vehicles: {
         Row: {
           created_at: string
