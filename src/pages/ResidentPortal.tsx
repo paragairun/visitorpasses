@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Car, ClipboardList, QrCode, Power, Plus, Trash2, ClipboardCheck } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Car, ClipboardList, QrCode, Power, Plus, Trash2, ClipboardCheck, User, Home, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,19 @@ interface ResidentSummary {
   wing: string;
   flat_number: string;
   flat_label: string;
+}
+
+interface ResidentFlat {
+  id: string;
+  wing: string;
+  flat_number: string;
+  is_primary: boolean;
+  flat_label: string;
+}
+
+interface ProfileSummary {
+  display_name: string;
+  phone: string | null;
 }
 
 interface VisitLog {
@@ -83,7 +96,6 @@ const emptyForm = {
 const emptyVehicleRequest = {
   vehicle_number: "",
   vehicle_type: "car",
-  owner_name: "",
 };
 
 const ResidentPortal = () => {
@@ -102,9 +114,20 @@ const ResidentPortal = () => {
   const [changeRequests, setChangeRequests] = useState<ChangeRequestRow[]>([]);
   const [removeTarget, setRemoveTarget] = useState<ResidentVehicle | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [flats, setFlats] = useState<ResidentFlat[]>([]);
+  const [activeFlatId, setActiveFlatId] = useState<string>("");
+  const [profileForm, setProfileForm] = useState<ProfileSummary>({ display_name: "", phone: "" });
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [newFlat, setNewFlat] = useState({ wing: "", flat_number: "" });
+  const [addingFlat, setAddingFlat] = useState(false);
   const { toast } = useToast();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+
+  const activeFlat = useMemo(
+    () => flats.find((f) => f.id === activeFlatId) ?? flats[0],
+    [flats, activeFlatId],
+  );
 
   useEffect(() => {
     const loadGuestPasses = async () => {
@@ -127,6 +150,15 @@ const ResidentPortal = () => {
       setResident(data.resident as ResidentSummary);
       setGuestPasses((data.passes ?? []) as GuestPass[]);
       setVisitLogs((data.visit_logs ?? []) as VisitLog[]);
+      const fl = (data.flats ?? []) as ResidentFlat[];
+      setFlats(fl);
+      setActiveFlatId((prev) => prev || fl.find((f) => f.is_primary)?.id || fl[0]?.id || "");
+      if (data.profile) {
+        setProfileForm({
+          display_name: data.profile.display_name ?? "",
+          phone: data.profile.phone ?? "",
+        });
+      }
     };
 
     if (user) {
@@ -135,12 +167,12 @@ const ResidentPortal = () => {
   }, [toast, user]);
 
   const loadVehicles = useCallback(async () => {
-    if (!resident) return;
+    if (!activeFlat) return;
     const { data, error } = await supabase
       .from("vehicles")
       .select("id, vehicle_number, vehicle_type, owner_name, wing, flat_number, qr_code")
-      .eq("wing", resident.wing)
-      .eq("flat_number", resident.flat_number)
+      .eq("wing", activeFlat.wing)
+      .eq("flat_number", activeFlat.flat_number)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -148,7 +180,7 @@ const ResidentPortal = () => {
       return;
     }
     setVehicles((data ?? []) as ResidentVehicle[]);
-  }, [resident, toast]);
+  }, [activeFlat, toast]);
 
   const loadChangeRequests = useCallback(async () => {
     if (!user) return;
@@ -164,6 +196,83 @@ const ResidentPortal = () => {
 
   useEffect(() => { void loadVehicles(); }, [loadVehicles]);
   useEffect(() => { void loadChangeRequests(); }, [loadChangeRequests]);
+
+  const refreshFlats = useCallback(async () => {
+    if (!user) return;
+    const { data } = await supabase
+      .from("resident_flats")
+      .select("id, wing, flat_number, is_primary, created_at")
+      .eq("user_id", user.id)
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: true });
+    const fl = (data ?? []).map((f) => ({
+      id: f.id as string,
+      wing: (f.wing as string).toUpperCase(),
+      flat_number: (f.flat_number as string).toUpperCase(),
+      is_primary: !!f.is_primary,
+      flat_label: `${(f.wing as string).toUpperCase()}-${(f.flat_number as string).toUpperCase()}`,
+    }));
+    setFlats(fl);
+    setActiveFlatId((prev) => fl.find((x) => x.id === prev)?.id || fl.find((x) => x.is_primary)?.id || fl[0]?.id || "");
+  }, [user]);
+
+  const saveProfile = async () => {
+    if (!user) return;
+    if (!profileForm.display_name.trim()) {
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
+    }
+    setSavingProfile(true);
+    const { error } = await supabase
+      .from("profiles")
+      .update({
+        display_name: profileForm.display_name.trim(),
+        phone: profileForm.phone?.trim() || null,
+      })
+      .eq("user_id", user.id);
+    setSavingProfile(false);
+    if (error) {
+      toast({ title: "Could not save profile", description: error.message, variant: "destructive" });
+      return;
+    }
+    setResident((prev) => prev ? { ...prev, owner_name: profileForm.display_name.trim() } : prev);
+    toast({ title: "Profile updated" });
+  };
+
+  const addFlat = async () => {
+    if (!user) return;
+    const wing = newFlat.wing.trim().toUpperCase();
+    const flat_number = newFlat.flat_number.trim().toUpperCase();
+    if (!wing || !flat_number) {
+      toast({ title: "Wing and flat number required", variant: "destructive" });
+      return;
+    }
+    setAddingFlat(true);
+    const { error } = await supabase.from("resident_flats").insert({
+      user_id: user.id,
+      wing,
+      flat_number,
+      is_primary: flats.length === 0,
+    });
+    setAddingFlat(false);
+    if (error) {
+      toast({ title: "Could not add flat", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewFlat({ wing: "", flat_number: "" });
+    toast({ title: "Flat added" });
+    await refreshFlats();
+  };
+
+  const removeFlat = async (id: string) => {
+    const { error } = await supabase.from("resident_flats").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Could not remove flat", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Flat removed" });
+    await refreshFlats();
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -184,6 +293,7 @@ const ResidentPortal = () => {
         phone: form.phone.trim(),
         vehicle_number: form.vehicle_number.trim().toUpperCase(),
         purpose: form.purpose || null,
+        flat_id: activeFlat?.id || undefined,
       },
     });
     setSubmitting(false);
@@ -206,18 +316,23 @@ const ResidentPortal = () => {
   };
 
   const submitAddVehicleRequest = async () => {
-    if (!resident || !user) return;
-    if (!vehicleReqForm.vehicle_number.trim() || !vehicleReqForm.owner_name.trim()) {
-      toast({ title: "Fill vehicle number and owner name", variant: "destructive" });
+    if (!activeFlat || !user) return;
+    const ownerName = (profileForm.display_name || resident?.owner_name || "").trim();
+    if (!vehicleReqForm.vehicle_number.trim()) {
+      toast({ title: "Vehicle number is required", variant: "destructive" });
+      return;
+    }
+    if (!ownerName) {
+      toast({ title: "Set your profile name first", variant: "destructive" });
       return;
     }
     setSubmittingVehicleReq(true);
     const { error } = await supabase.from("vehicle_change_requests").insert({
       request_type: "add",
       requested_by: user.id,
-      wing: resident.wing,
-      flat_number: resident.flat_number,
-      owner_name: vehicleReqForm.owner_name.trim(),
+      wing: activeFlat.wing,
+      flat_number: activeFlat.flat_number,
+      owner_name: ownerName,
       vehicle_number: vehicleReqForm.vehicle_number.trim().toUpperCase(),
       vehicle_type: vehicleReqForm.vehicle_type,
     });
@@ -267,12 +382,131 @@ const ResidentPortal = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Resident Portal</h1>
-          <p className="text-muted-foreground text-sm">{resident ? `${resident.flat_label} • ${resident.owner_name}` : "Resident profile unavailable"}</p>
+          <p className="text-muted-foreground text-sm">
+            {profileForm.display_name || resident?.owner_name || "Resident"}
+            {activeFlat ? ` • ${activeFlat.flat_label}` : ""}
+            {flats.length > 1 ? ` • ${flats.length} flats` : ""}
+          </p>
         </div>
         <Button variant="ghost" size="icon" onClick={handleSignOut} className="touch-target text-muted-foreground hover:text-destructive">
           <Power className="h-5 w-5" />
         </Button>
       </div>
+
+      {/* My Profile */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <User className="h-5 w-5 text-primary" />
+            My Profile
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="profile-name">Full Name *</Label>
+              <Input
+                id="profile-name"
+                placeholder="Your name"
+                value={profileForm.display_name}
+                onChange={(e) => setProfileForm((p) => ({ ...p, display_name: e.target.value }))}
+                className="touch-target"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="profile-phone">Mobile Number</Label>
+              <Input
+                id="profile-phone"
+                placeholder="e.g. 9876543210"
+                value={profileForm.phone ?? ""}
+                onChange={(e) => setProfileForm((p) => ({ ...p, phone: e.target.value }))}
+                className="touch-target"
+              />
+            </div>
+          </div>
+          <Button onClick={() => void saveProfile()} disabled={savingProfile} className="touch-target gap-2">
+            <Save className="h-4 w-4" />
+            {savingProfile ? "Saving..." : "Save Profile"}
+          </Button>
+
+          <div className="pt-2 border-t border-border space-y-3">
+            <div className="flex items-center gap-2">
+              <Home className="h-4 w-4 text-primary" />
+              <p className="text-sm font-medium text-foreground">My Flats ({flats.length})</p>
+            </div>
+            <div className="space-y-2">
+              {flats.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No flats registered yet.</p>
+              ) : (
+                flats.map((f) => (
+                  <div key={f.id} className="flex items-center justify-between p-2 rounded-md bg-secondary/50 border border-border">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-foreground">{f.flat_label}</p>
+                      {f.is_primary && <span className="text-xs text-muted-foreground">(primary)</span>}
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void removeFlat(f.id)}
+                      disabled={!f.id}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="new-wing">Wing</Label>
+                <Input
+                  id="new-wing"
+                  placeholder="A"
+                  value={newFlat.wing}
+                  onChange={(e) => setNewFlat((p) => ({ ...p, wing: e.target.value.toUpperCase() }))}
+                  className="touch-target"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="new-flat">Flat Number</Label>
+                <Input
+                  id="new-flat"
+                  placeholder="1201"
+                  value={newFlat.flat_number}
+                  onChange={(e) => setNewFlat((p) => ({ ...p, flat_number: e.target.value.toUpperCase() }))}
+                  className="touch-target"
+                />
+              </div>
+              <div className="flex items-end">
+                <Button onClick={() => void addFlat()} disabled={addingFlat} className="touch-target gap-2 w-full">
+                  <Plus className="h-4 w-4" />
+                  {addingFlat ? "Adding..." : "Add Flat"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {flats.length > 1 && (
+            <div className="pt-2 border-t border-border space-y-2">
+              <Label>Active Flat</Label>
+              <Select value={activeFlatId} onValueChange={setActiveFlatId}>
+                <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {flats.map((f) => (
+                    <SelectItem key={f.id} value={f.id}>
+                      {f.flat_label}{f.is_primary ? " (primary)" : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Guest passes, vehicles, and new vehicle requests apply to the active flat.
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Generate Guest Pass */}
       <Card>
