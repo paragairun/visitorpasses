@@ -16,6 +16,7 @@ const RequestSchema = z.discriminatedUnion("action", [
     phone: z.string().trim().min(6).max(20),
     vehicle_number: z.string().trim().min(3).max(30),
     purpose: z.string().trim().max(100).nullable().optional(),
+    flat_id: z.string().uuid().optional(),
   }),
 ]);
 
@@ -107,42 +108,70 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { data: profile, error: profileError } = await adminClient
+    const { data: profile } = await adminClient
       .from("profiles")
-      .select("display_name, wing, flat_number")
+      .select("display_name, wing, flat_number, phone")
       .eq("user_id", user.id)
       .maybeSingle();
 
-    if (profileError || !profile?.wing || !profile?.flat_number) {
-      return new Response(JSON.stringify({ error: "Resident profile is missing wing or flat details" }), {
+    const { data: flatRows } = await adminClient
+      .from("resident_flats")
+      .select("id, wing, flat_number, is_primary, created_at")
+      .eq("user_id", user.id)
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: true });
+
+    let flats = (flatRows ?? []).map((f) => ({
+      id: f.id as string,
+      wing: (f.wing as string).trim().toUpperCase(),
+      flat_number: (f.flat_number as string).trim().toUpperCase(),
+      is_primary: !!f.is_primary,
+      flat_label: buildFlatLabel((f.wing as string).trim().toUpperCase(), (f.flat_number as string).trim().toUpperCase()),
+    }));
+
+    if (flats.length === 0 && profile?.wing && profile?.flat_number) {
+      const w = profile.wing.trim().toUpperCase();
+      const fn = profile.flat_number.trim().toUpperCase();
+      flats = [{ id: "", wing: w, flat_number: fn, is_primary: true, flat_label: buildFlatLabel(w, fn) }];
+    }
+
+    if (flats.length === 0) {
+      return new Response(JSON.stringify({ error: "Resident profile is missing flat details" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const resident = {
-      owner_name: profile.display_name?.trim() || user.email?.split("@")[0] || "Resident",
-      wing: profile.wing.trim().toUpperCase(),
-      flat_number: profile.flat_number.trim().toUpperCase(),
+    const ownerName = profile?.display_name?.trim() || user.email?.split("@")[0] || "Resident";
+
+    const pickFlat = (flatId?: string) => {
+      if (flatId) {
+        const found = flats.find((f) => f.id === flatId);
+        if (found) return found;
+      }
+      return flats[0];
     };
-    const flatLabel = buildFlatLabel(resident.wing, resident.flat_number);
 
     if (parsedBody.data.action === "list") {
+      const activeFlat = pickFlat();
+      const resident = { owner_name: ownerName, wing: activeFlat.wing, flat_number: activeFlat.flat_number };
+      const flatLabel = activeFlat.flat_label;
+      const flatLabels = flats.map((f) => f.flat_label);
       const [passesResult, logsResult] = await Promise.all([
         adminClient
           .from("visitor_requests")
           .select("id, visitor_name, phone, vehicle_number, purpose, status, created_at")
-          .eq("flat_number", flatLabel)
+          .in("flat_number", flatLabels)
           .in("status", ["guest_pass", "entered"])
           .order("created_at", { ascending: false })
-          .limit(5),
+          .limit(10),
         adminClient
           .from("entry_logs")
           .select("id, vehicle_number, owner_name, entry_type, entry_time, exit_time")
-          .eq("flat_number", resident.flat_number)
-          .eq("wing", resident.wing)
+          .in("flat_number", flats.map((f) => f.flat_number))
+          .in("wing", flats.map((f) => f.wing))
           .order("entry_time", { ascending: false })
-          .limit(10),
+          .limit(20),
       ]);
 
       if (passesResult.error) {
@@ -155,6 +184,8 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({
           resident: { ...resident, flat_label: flatLabel },
+          profile: { display_name: ownerName, phone: profile?.phone ?? null },
+          flats,
           passes: (passesResult.data ?? []).map((pass) => ({
             ...pass,
             qr_payload: JSON.stringify(createGuestPassPayload(pass, resident)),
@@ -168,7 +199,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { visitor_name, phone, vehicle_number, purpose } = parsedBody.data;
+    const { visitor_name, phone, vehicle_number, purpose, flat_id } = parsedBody.data;
+    const activeFlat = pickFlat(flat_id);
+    const resident = { owner_name: ownerName, wing: activeFlat.wing, flat_number: activeFlat.flat_number };
+    const flatLabel = activeFlat.flat_label;
 
     const { data: pass, error } = await adminClient
       .from("visitor_requests")
@@ -193,6 +227,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         resident: { ...resident, flat_label: flatLabel },
+        flats,
         pass: {
           ...pass,
           qr_payload: JSON.stringify(createGuestPassPayload(pass, resident)),
