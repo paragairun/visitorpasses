@@ -1,52 +1,72 @@
-## Goal
-Let residents request adding a new vehicle or removing one of their existing vehicles. Each request goes to the admin for review; admin can edit the details before approving, or reject it.
+# Resident Profile Edit + Multi-Flat Registration
 
-## Database
+Add profile editing for residents (name, mobile, flats), support multiple flats per resident, and auto-fill owner name from the profile everywhere — never asked twice.
 
-New table `vehicle_change_requests`:
-- `id`, `created_at`, `updated_at`
-- `request_type` text — `'add'` or `'remove'`
-- `requested_by` uuid (resident's user_id)
-- `wing`, `flat_number` text (snapshot from resident profile)
-- `owner_name`, `vehicle_number`, `vehicle_type` text (editable by admin)
-- `target_vehicle_id` uuid nullable (for remove requests, points to `vehicles.id`)
-- `status` text — `'pending' | 'approved' | 'rejected'`, default `'pending'`
-- `notes` text nullable (admin notes / reason)
-- `reviewed_by` uuid nullable, `reviewed_at` timestamptz nullable
+## 1. Database changes
+
+**`profiles` table** — add `phone TEXT` column (nullable for now, validated at edit time).
+
+**New table `resident_flats`** — represents the many-to-many between residents and flats. A resident's "flats" live here instead of (or in addition to) `profiles.wing`/`flat_number`.
+
+Columns:
+- `id uuid pk`
+- `user_id uuid not null` (the resident)
+- `wing text not null`
+- `flat_number text not null`
+- `is_primary boolean not null default false`
+- `created_at timestamptz default now()`
+- unique (`user_id`, `wing`, `flat_number`)
 
 RLS:
-- Residents: INSERT where `requested_by = auth.uid()` and they have resident role; SELECT their own pending/processed requests.
-- Admins: full SELECT / UPDATE / DELETE via `has_role(auth.uid(),'admin')`.
+- Resident can SELECT/INSERT/DELETE their own rows (`auth.uid() = user_id AND has_role(auth.uid(),'resident')`).
+- Admin full access via `has_role(auth.uid(),'admin')`.
+- Guards SELECT (so vehicle/visitor lookups still work) — same pattern as `vehicles`.
 
-Trigger: `update_updated_at_column` on update.
+Backfill: copy existing `profiles.wing` + `profiles.flat_number` rows into `resident_flats` as `is_primary = true` for each resident with both fields set.
 
-On approval (handled in admin UI, not DB trigger to keep it explicit):
-- `add` → insert into `vehicles` using request fields, then set status `approved`.
-- `remove` → delete the `vehicles` row identified by `target_vehicle_id`, then set status `approved`.
-- `rejected` → just update status + notes.
+We keep `profiles.wing` / `profiles.flat_number` for backwards compat (treated as primary flat / display fallback) — no schema removal in this pass.
 
-## Resident Portal (`src/pages/ResidentPortal.tsx`)
+**`vehicles` RLS update** — extend "Residents can view own flat vehicles" so it matches any flat in `resident_flats` for the user (not only the profile's single flat). Existing single-flat residents still match through the backfill.
 
-In the **My Vehicles** card:
-- Add a "Request New Vehicle" button that opens a small form (vehicle number, type, owner name pre-filled). On submit → insert into `vehicle_change_requests` with `request_type='add'`. Toast: "Sent to admin for approval".
-- Each existing vehicle row gets a "Request Removal" button → confirm dialog → insert request with `request_type='remove'` and `target_vehicle_id`. Toast confirmation.
+## 2. Edge function `resident-guest-passes`
 
-New section **My Pending Requests**: list resident's `vehicle_change_requests` with status badge so they can track approval.
+- Pull all flats from `resident_flats` for the user; if empty, fall back to `profiles.wing` + `profiles.flat_number`.
+- Accept an optional `flat_id` in `list` and `create` to pick which flat the pass is for; default to the primary flat.
+- Response shape gains `flats: [{ id, wing, flat_number, flat_label, is_primary }]` plus the existing `resident` object reflecting the active flat.
+- Guest pass `owner_name` always sourced from `profiles.display_name` — never from the client.
 
-## Admin Panel (`src/pages/AdminPanel.tsx`)
+## 3. Resident Portal UI (`src/pages/ResidentPortal.tsx`)
 
-New section **Vehicle Change Requests** (pending count badge):
-- Table of pending requests showing type (Add / Remove), resident flat, current/proposed vehicle details, submitted date.
-- "Review" opens an editable dialog:
-  - For `add`: editable fields owner_name, vehicle_number, vehicle_type, wing, flat_number. Approve / Reject buttons.
-  - For `remove`: read-only vehicle details to confirm, Approve / Reject buttons.
-- On Approve: persist any edits to the request, perform the matching vehicles insert/delete, mark request approved.
-- On Reject: prompt for optional reason, mark rejected.
+**New "My Profile" card** at the top:
+- Editable: Display Name, Mobile Number.
+- Flats list: each row shows `Wing-Flat` with a Remove button; "Add Flat" row with wing + flat number inputs and an Add button. (Pure profile-side; not gated through admin approval — that's only for vehicles.)
+- One "Save Profile" button persists name + phone via an `update` on `profiles`. Flat add/remove writes directly to `resident_flats`.
 
-## Files Touched
-- New migration creating `vehicle_change_requests` with RLS + trigger.
-- `src/pages/ResidentPortal.tsx` — add request form, removal buttons, my-requests list.
-- `src/pages/AdminPanel.tsx` — new requests section + review dialog.
-- (Possibly) small helper in `src/lib/` if logic grows.
+**Flat picker**: A compact `Select` at the top of "Generate Guest Pass" and "My Vehicles" / "Request New Vehicle" sections lets the resident switch the active flat. Hidden if the resident has only one flat.
 
-No changes to existing `vehicles` schema or other tables. Existing QR / filename logic untouched.
+**Remove "Owner Name" inputs** everywhere they used to be collected from the resident:
+- Guest pass form: never had it (passes use `profiles.display_name` server-side). No change.
+- "Request New Vehicle" form: drop the `owner_name` field — derive from `profiles.display_name` at submit.
+- Removal request: keep using the existing vehicle's stored `owner_name`.
+
+**Vehicles list filter** now driven by the currently-selected flat (`wing`/`flat_number`).
+
+## 4. Admin side
+
+- `VehicleChangeRequestsAdmin` review dialog keeps editable `owner_name` (admin override) — no UI change needed; `add` requests now arrive with the resident's profile name pre-filled.
+- No admin UI changes required for multi-flat — admin already sees `wing` + `flat_number` per request/vehicle row.
+
+## 5. Out of scope
+
+- No QR generator changes.
+- Guard dashboard, access logs, visitor form: unchanged (they read `wing` + `flat_number` from existing rows).
+- No removal of `profiles.wing` / `profiles.flat_number` (kept as primary flat shadow).
+- No dashboard sidebar refactor (separate request).
+
+## Files touched
+
+- New migration: add `profiles.phone`, create `resident_flats` + RLS, backfill from `profiles`, update `vehicles` SELECT policy for residents.
+- `supabase/functions/resident-guest-passes/index.ts` — multi-flat aware.
+- `src/pages/ResidentPortal.tsx` — profile card, flat picker, drop owner_name input.
+
+After approval I'll run the migration first, then update the edge function and the portal.

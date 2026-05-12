@@ -94,6 +94,7 @@ export type Database = {
           display_name: string | null
           flat_number: string | null
           id: string
+          phone: string | null
           updated_at: string
           user_id: string
           wing: string | null
@@ -103,6 +104,7 @@ export type Database = {
           display_name?: string | null
           flat_number?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id: string
           wing?: string | null
@@ -112,6 +114,7 @@ export type Database = {
           display_name?: string | null
           flat_number?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
           user_id?: string
           wing?: string | null
@@ -154,6 +157,33 @@ export type Database = {
           reviewed_by?: string | null
           status?: string
           wing?: string | null
+        }
+        Relationships: []
+      }
+      resident_flats: {
+        Row: {
+          created_at: string
+          flat_number: string
+          id: string
+          is_primary: boolean
+          user_id: string
+          wing: string
+        }
+        Insert: {
+          created_at?: string
+          flat_number: string
+          id?: string
+          is_primary?: boolean
+          user_id: string
+          wing: string
+        }
+        Update: {
+          created_at?: string
+          flat_number?: string
+          id?: string
+          is_primary?: boolean
+          user_id?: string
+          wing?: string
         }
         Relationships: []
       }
