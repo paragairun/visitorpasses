@@ -667,17 +667,11 @@ const ResidentPortal = () => {
             <p className="text-xs text-muted-foreground">
               Submit a request to register a new vehicle. Admin approval is required.
             </p>
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="req-owner">Owner Name *</Label>
-                <Input
-                  id="req-owner"
-                  placeholder="Full name"
-                  value={vehicleReqForm.owner_name}
-                  onChange={(e) => setVehicleReqForm((p) => ({ ...p, owner_name: e.target.value }))}
-                  className="touch-target"
-                />
-              </div>
+            <p className="text-xs text-muted-foreground">
+              Owner: <span className="font-medium text-foreground">{profileForm.display_name || "(set your name in My Profile)"}</span>
+              {activeFlat ? <> • Flat: <span className="font-medium text-foreground">{activeFlat.flat_label}</span></> : null}
+            </p>
+            <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="req-vnum">Vehicle Number *</Label>
                 <Input
