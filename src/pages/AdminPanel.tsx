@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Shield, Power, Trash2, ChevronDown, ChevronUp, Link as LinkIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
 import BulkResidentUpload from "@/components/BulkResidentUpload";
@@ -20,11 +20,27 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
+import DashboardShell, { NavItem } from "@/components/DashboardShell";
 
 type Vehicle = Tables<"vehicles">;
+type EntryLog = Tables<"entry_logs">;
+
+const NAV: NavItem[] = [
+  { id: "stats", title: "Statistics", icon: BarChart3 },
+  { id: "register", title: "Register Vehicle", icon: Plus },
+  { id: "registry", title: "Vehicle Registry", icon: Car },
+  { id: "bulk-vehicles", title: "Bulk Vehicle Upload", icon: Upload },
+  { id: "bulk-residents", title: "Bulk Resident Upload", icon: UserPlus },
+  { id: "reg-requests", title: "Registration Requests", icon: ClipboardCheck },
+  { id: "vehicle-requests", title: "Vehicle Change Requests", icon: FileSpreadsheet },
+  { id: "access-logs", title: "Access Logs", icon: ClipboardList },
+  { id: "users", title: "User Registry", icon: Users },
+  { id: "visitor-qr", title: "Visitor Form QR", icon: LinkIcon },
+];
 
 const AdminPanel = () => {
   useInactivityLogout("/admin");
+  const [activeView, setActiveView] = useState("stats");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
   const [showQrWing, setShowQrWing] = useState<string | undefined>(undefined);
@@ -32,7 +48,8 @@ const AdminPanel = () => {
   const [justRegisteredWing, setJustRegisteredWing] = useState<string | undefined>(undefined);
   const [justRegisteredName, setJustRegisteredName] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
-  const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0 });
+  const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0, week_entries: 0, total_residents: 0, pending_requests: 0 });
+  const [recentEntries, setRecentEntries] = useState<EntryLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingVehicle, setSavingVehicle] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -45,105 +62,77 @@ const AdminPanel = () => {
 
   const fetchAdminData = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
+    const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(); startOfWeek.setDate(startOfWeek.getDate() - 7);
 
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const [vehiclesResult, insideResult, todayResult] = await Promise.all([
+    const [vehiclesResult, insideResult, todayResult, weekResult, residentsResult, pendingResult, recentResult] = await Promise.all([
       supabase.from("vehicles").select("*").order("created_at", { ascending: false }),
       supabase.from("entry_logs").select("id", { count: "exact", head: true }).is("exit_time", null),
       supabase.from("entry_logs").select("id", { count: "exact", head: true }).gte("entry_time", startOfDay.toISOString()),
+      supabase.from("entry_logs").select("id", { count: "exact", head: true }).gte("entry_time", startOfWeek.toISOString()),
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("vehicle_change_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+      supabase.from("entry_logs").select("*").order("entry_time", { ascending: false }).limit(8),
     ]);
 
-    if (vehiclesResult.error) {
-      toast({ title: "Could not load vehicles", description: vehiclesResult.error.message, variant: "destructive" });
-    } else {
-      const nextVehicles = (vehiclesResult.data ?? []) as Vehicle[];
-      setVehicles(nextVehicles);
-      setStats((prev) => ({ ...prev, total_vehicles: nextVehicles.length }));
+    if (vehiclesResult.error) toast({ title: "Could not load vehicles", description: vehiclesResult.error.message, variant: "destructive" });
+    else {
+      const nv = (vehiclesResult.data ?? []) as Vehicle[];
+      setVehicles(nv);
+      setStats((p) => ({ ...p, total_vehicles: nv.length }));
     }
-
-    if (insideResult.error) {
-      toast({ title: "Could not load active entries", description: insideResult.error.message, variant: "destructive" });
-    } else {
-      setStats((prev) => ({ ...prev, currently_inside: insideResult.count ?? 0 }));
-    }
-
-    if (todayResult.error) {
-      toast({ title: "Could not load today's entries", description: todayResult.error.message, variant: "destructive" });
-    } else {
-      setStats((prev) => ({ ...prev, today_entries: todayResult.count ?? 0 }));
-    }
+    if (!insideResult.error) setStats((p) => ({ ...p, currently_inside: insideResult.count ?? 0 }));
+    if (!todayResult.error) setStats((p) => ({ ...p, today_entries: todayResult.count ?? 0 }));
+    if (!weekResult.error) setStats((p) => ({ ...p, week_entries: weekResult.count ?? 0 }));
+    if (!residentsResult.error) setStats((p) => ({ ...p, total_residents: residentsResult.count ?? 0 }));
+    if (!pendingResult.error) setStats((p) => ({ ...p, pending_requests: pendingResult.count ?? 0 }));
+    if (!recentResult.error) setRecentEntries((recentResult.data ?? []) as EntryLog[]);
 
     if (showLoader) setLoading(false);
   }, [toast]);
 
   useEffect(() => {
     void fetchAdminData(true);
-
-    const interval = window.setInterval(() => {
-      void fetchAdminData(false);
-    }, 5000);
-
+    const interval = window.setInterval(() => void fetchAdminData(false), 5000);
     return () => window.clearInterval(interval);
   }, [fetchAdminData]);
 
+  const vehicleBreakdown = useMemo(() => {
+    const byType: Record<string, number> = {};
+    const byWing: Record<string, number> = {};
+    vehicles.forEach((v) => {
+      byType[v.vehicle_type] = (byType[v.vehicle_type] ?? 0) + 1;
+      byWing[v.wing] = (byWing[v.wing] ?? 0) + 1;
+    });
+    return { byType, byWing };
+  }, [vehicles]);
+
   const addVehicle = async () => {
     if (!newVehicle.flat_number || !newVehicle.vehicle_number || !newVehicle.owner_name) {
-      toast({ title: "Fill all required fields", variant: "destructive" });
-      return;
+      toast({ title: "Fill all required fields", variant: "destructive" }); return;
     }
-
     setSavingVehicle(true);
-
     const normalized = newVehicle.vehicle_number.toUpperCase().replace(/[^A-Z0-9]/g, "");
-
-    // Pre-check for duplicates (case/space/symbol insensitive)
-    const { data: existing } = await supabase
-      .from("vehicles")
-      .select("vehicle_number, owner_name, wing, flat_number");
-    const dup = (existing ?? []).find(
-      (v) => v.vehicle_number.toUpperCase().replace(/[^A-Z0-9]/g, "") === normalized,
-    );
+    const { data: existing } = await supabase.from("vehicles").select("vehicle_number, owner_name, wing, flat_number");
+    const dup = (existing ?? []).find((v) => v.vehicle_number.toUpperCase().replace(/[^A-Z0-9]/g, "") === normalized);
     if (dup) {
       setSavingVehicle(false);
-      toast({
-        title: "Duplicate vehicle",
-        description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${dup.wing}-${dup.flat_number}).`,
-        variant: "destructive",
-      });
+      toast({ title: "Duplicate vehicle", description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${dup.wing}-${dup.flat_number}).`, variant: "destructive" });
       return;
     }
-
     const qr = createOpaqueVehicleQrCode();
-
-    const { data, error } = await supabase
-      .from("vehicles")
-      .insert({
-        flat_number: newVehicle.flat_number.trim(),
-        wing: newVehicle.wing,
-        vehicle_number: newVehicle.vehicle_number.trim().toUpperCase(),
-        vehicle_type: newVehicle.vehicle_type,
-        owner_name: newVehicle.owner_name.trim(),
-        qr_code: qr,
-      })
-      .select("*")
-      .single();
-
+    const { data, error } = await supabase.from("vehicles").insert({
+      flat_number: newVehicle.flat_number.trim(), wing: newVehicle.wing,
+      vehicle_number: newVehicle.vehicle_number.trim().toUpperCase(),
+      vehicle_type: newVehicle.vehicle_type, owner_name: newVehicle.owner_name.trim(), qr_code: qr,
+    }).select("*").single();
     setSavingVehicle(false);
-
     if (error) {
       const isDup = error.code === "23505" || /duplicate|unique/i.test(error.message);
-      toast({
-        title: isDup ? "Duplicate vehicle" : "Vehicle registration failed",
-        description: isDup
-          ? `${newVehicle.vehicle_number.toUpperCase()} is already registered.`
-          : error.message,
-        variant: "destructive",
-      });
+      toast({ title: isDup ? "Duplicate vehicle" : "Vehicle registration failed",
+        description: isDup ? `${newVehicle.vehicle_number.toUpperCase()} is already registered.` : error.message, variant: "destructive" });
       return;
     }
-
     setJustRegisteredQr(qr);
     setJustRegisteredWing(newVehicle.wing);
     setJustRegisteredName(`${newVehicle.wing}-${newVehicle.flat_number.trim()}-${newVehicle.vehicle_number.trim().toUpperCase()}`);
@@ -155,39 +144,15 @@ const AdminPanel = () => {
   };
 
   const allSelected = vehicles.length > 0 && selectedIds.size === vehicles.length;
-
-  const toggleSelect = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id); else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(vehicles.map((v) => v.id)));
-    }
-  };
+  const toggleSelect = (id: string) => setSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelectAll = () => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(vehicles.map((v) => v.id)));
 
   const deleteSelected = async () => {
     if (selectedIds.size === 0) return;
     setDeleting(true);
-
-    const { error } = await supabase
-      .from("vehicles")
-      .delete()
-      .in("id", Array.from(selectedIds));
-
+    const { error } = await supabase.from("vehicles").delete().in("id", Array.from(selectedIds));
     setDeleting(false);
-
-    if (error) {
-      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
-      return;
-    }
-
+    if (error) { toast({ title: "Delete failed", description: error.message, variant: "destructive" }); return; }
     toast({ title: `Deleted ${selectedIds.size} vehicle(s)` });
     setSelectedIds(new Set());
     await fetchAdminData(false);
@@ -201,234 +166,243 @@ const AdminPanel = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen p-4 max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Shield className="h-7 w-7 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-            <p className="text-muted-foreground text-sm">Committee Management • Triumph Tower CHSL</p>
+  const StatCard = ({ label, value, icon: Icon, accent }: { label: string; value: number; icon: typeof Car; accent?: string }) => (
+    <Card>
+      <CardContent className="p-4 flex items-center gap-3">
+        <div className={`h-10 w-10 rounded-lg flex items-center justify-center ${accent ?? "bg-primary/10 text-primary"}`}>
+          <Icon className="h-5 w-5" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-2xl font-bold text-foreground leading-none">{value}</p>
+          <p className="text-xs text-muted-foreground mt-1 truncate">{label}</p>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderStats = () => (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+        <StatCard label="Registered Vehicles" value={stats.total_vehicles} icon={Car} />
+        <StatCard label="Currently Inside" value={stats.currently_inside} icon={Activity} accent="bg-success/10 text-success" />
+        <StatCard label="Today's Entries" value={stats.today_entries} icon={QrCode} />
+        <StatCard label="Last 7 Days" value={stats.week_entries} icon={TrendingUp} accent="bg-accent/10 text-accent" />
+        <StatCard label="Total Residents" value={stats.total_residents} icon={Users} />
+        <StatCard label="Pending Requests" value={stats.pending_requests} icon={ClipboardCheck} accent="bg-warning/10 text-warning" />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Vehicles by Type</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {Object.keys(vehicleBreakdown.byType).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No data</p>
+            ) : Object.entries(vehicleBreakdown.byType).map(([type, count]) => {
+              const pct = stats.total_vehicles ? (count / stats.total_vehicles) * 100 : 0;
+              return (
+                <div key={type} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="capitalize text-foreground">{type}</span>
+                    <span className="text-muted-foreground">{count}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-primary" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3"><CardTitle className="text-base">Vehicles by Wing</CardTitle></CardHeader>
+          <CardContent className="space-y-2">
+            {Object.keys(vehicleBreakdown.byWing).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No data</p>
+            ) : Object.entries(vehicleBreakdown.byWing).sort(([a], [b]) => a.localeCompare(b)).map(([wing, count]) => {
+              const pct = stats.total_vehicles ? (count / stats.total_vehicles) * 100 : 0;
+              return (
+                <div key={wing} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-foreground">Wing {wing}</span>
+                    <span className="text-muted-foreground">{count}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3"><CardTitle className="text-base">Recent Activity</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          {recentEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recent activity</p>
+          ) : recentEntries.map((e) => (
+            <div key={e.id} className="flex items-center justify-between p-2 rounded-md bg-secondary/50 border border-border">
+              <div className="min-w-0">
+                <p className="font-medium text-foreground text-sm truncate">{e.vehicle_number} • {e.owner_name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {e.entry_type} {e.wing && `• ${e.wing}-${e.flat_number}`} • {new Date(e.entry_time).toLocaleString()}
+                </p>
+              </div>
+              <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${e.exit_time ? "bg-muted text-muted-foreground" : "bg-success/15 text-success"}`}>
+                {e.exit_time ? "exited" : "inside"}
+              </span>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+    </>
+  );
+
+  const renderRegister = () => (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg"><Plus className="h-5 w-5 text-primary" /> Register New Vehicle</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label>Owner Name *</Label>
+            <Input placeholder="Full name" value={newVehicle.owner_name} onChange={(e) => setNewVehicle((p) => ({ ...p, owner_name: e.target.value }))} className="touch-target" />
+          </div>
+          <div className="space-y-2">
+            <Label>Vehicle Number *</Label>
+            <Input placeholder="MH02AB1234" value={newVehicle.vehicle_number} onChange={(e) => setNewVehicle((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
+          </div>
+          <div className="space-y-2">
+            <Label>Wing</Label>
+            <Select value={newVehicle.wing} onValueChange={(v) => setNewVehicle((p) => ({ ...p, wing: v }))}>
+              <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
+              <SelectContent>{["A","B","C","D","E","F","G","H"].map((w) => <SelectItem key={w} value={w}>Wing {w}</SelectItem>)}</SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Flat Number *</Label>
+            <Input placeholder="101" value={newVehicle.flat_number} onChange={(e) => setNewVehicle((p) => ({ ...p, flat_number: e.target.value }))} className="touch-target" />
+          </div>
+          <div className="space-y-2">
+            <Label>Vehicle Type</Label>
+            <Select value={newVehicle.vehicle_type} onValueChange={(v) => setNewVehicle((p) => ({ ...p, vehicle_type: v }))}>
+              <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="car">Car</SelectItem>
+                <SelectItem value="bike">Bike</SelectItem>
+                <SelectItem value="scooty">Scooty</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
-        <Button variant="ghost" size="icon" onClick={handleSignOut} className="touch-target text-muted-foreground hover:text-destructive">
-          <Power className="h-5 w-5" />
+        <Button onClick={() => void addVehicle()} className="touch-target gap-2" disabled={savingVehicle}>
+          <QrCode className="h-4 w-4" /> {savingVehicle ? "Saving..." : "Register & Generate QR"}
         </Button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
-        {[
-          { label: "Registered Vehicles", value: stats.total_vehicles, icon: Car },
-          { label: "Currently Inside", value: stats.currently_inside, icon: BarChart3 },
-          { label: "Today's Entries", value: stats.today_entries, icon: QrCode },
-        ].map((stat) => (
-          <Card key={stat.label}>
-            <CardContent className="p-4 text-center">
-              <stat.icon className="h-6 w-6 text-primary mx-auto mb-1" />
-              <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-              <p className="text-xs text-muted-foreground">{stat.label}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Register Vehicle */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Plus className="h-5 w-5 text-primary" />
-            Register New Vehicle
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label>Owner Name *</Label>
-              <Input placeholder="Full name" value={newVehicle.owner_name} onChange={(e) => setNewVehicle((p) => ({ ...p, owner_name: e.target.value }))} className="touch-target" />
-            </div>
-            <div className="space-y-2">
-              <Label>Vehicle Number *</Label>
-              <Input placeholder="MH02AB1234" value={newVehicle.vehicle_number} onChange={(e) => setNewVehicle((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
-            </div>
-            <div className="space-y-2">
-              <Label>Wing</Label>
-              <Select value={newVehicle.wing} onValueChange={(v) => setNewVehicle((p) => ({ ...p, wing: v }))}>
-                <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {["A", "B", "C", "D", "E", "F", "G", "H"].map((w) => <SelectItem key={w} value={w}>Wing {w}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Flat Number *</Label>
-              <Input placeholder="101" value={newVehicle.flat_number} onChange={(e) => setNewVehicle((p) => ({ ...p, flat_number: e.target.value }))} className="touch-target" />
-            </div>
-            <div className="space-y-2">
-              <Label>Vehicle Type</Label>
-              <Select value={newVehicle.vehicle_type} onValueChange={(v) => setNewVehicle((p) => ({ ...p, vehicle_type: v }))}>
-                <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="car">Car</SelectItem>
-                  <SelectItem value="bike">Bike</SelectItem>
-                  <SelectItem value="scooty">Scooty</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+        {justRegisteredQr && (
+          <div className="flex justify-center pt-4">
+            <QrGenerator value={justRegisteredQr} label={`Vehicle QR: ${justRegisteredQr}`} size={400} wing={justRegisteredWing} fileBaseName={justRegisteredName ?? undefined} />
           </div>
-          <Button onClick={() => void addVehicle()} className="touch-target gap-2" disabled={savingVehicle}>
-            <QrCode className="h-4 w-4" />
-            {savingVehicle ? "Saving..." : "Register & Generate QR"}
-          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
 
-          {justRegisteredQr && (
-            <div className="flex justify-center pt-4">
-              <QrGenerator
-                value={justRegisteredQr}
-                label={`Vehicle QR: ${justRegisteredQr}`}
-                size={400}
-                wing={justRegisteredWing}
-                fileBaseName={justRegisteredName ?? undefined}
-              />
+  const renderRegistry = () => (
+    <Card>
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <CardTitle className="text-lg">Vehicle Registry ({vehicles.length})</CardTitle>
+          {vehicles.length > 0 && (
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={toggleSelectAll} className="gap-1 text-xs">
+                <Checkbox checked={allSelected} className="pointer-events-none" />
+                {allSelected ? "Deselect All" : "Select All"}
+              </Button>
+              {selectedIds.size > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => void deleteSelected()} disabled={deleting} className="gap-1 text-xs">
+                  <Trash2 className="h-4 w-4" /> {deleting ? "Deleting..." : `Delete (${selectedIds.size})`}
+                </Button>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Bulk Upload */}
-      <CsvUpload onComplete={() => { void fetchAdminData(false); }} />
-
-      {/* Bulk Resident Registration */}
-      <BulkResidentUpload />
-
-      {/* Registration Requests */}
-      <RegistrationRequests />
-
-      {/* Vehicle Change Requests */}
-      <VehicleChangeRequestsAdmin onChanged={() => { void fetchAdminData(false); }} />
-
-      {/* Access Logs */}
-      <AccessLogsViewer />
-
-      {/* User Registry */}
-      <UserRegistry />
-
-      {/* Visitor Form QR */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <LinkIcon className="h-5 w-5 text-primary" />
-            Visitor Form Access QR
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-3 text-center">
-            Visitors can scan this QR to open the entry form.
-          </p>
-          <div className="flex justify-center">
-            <QrGenerator
-              value={`${window.location.origin}/visitor/form`}
-              label="Visitor Form"
-              size={400}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Vehicle Registry */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg">Vehicle Registry ({vehicles.length})</CardTitle>
-            {vehicles.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={toggleSelectAll}
-                  className="touch-target gap-1 text-xs"
-                >
-                  <Checkbox checked={allSelected} className="pointer-events-none" />
-                  {allSelected ? "Deselect All" : "Select All"}
-                </Button>
-                {selectedIds.size > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={() => void deleteSelected()}
-                    disabled={deleting}
-                    className="touch-target gap-1 text-xs"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    {deleting ? "Deleting..." : `Delete (${selectedIds.size})`}
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {vehicles.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No vehicles registered yet</p>
-            ) : (
-              (vehiclesExpanded ? vehicles : vehicles.slice(0, 5)).map((v) => (
-                <div key={v.id} className="space-y-2">
-                  <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
-                    <Checkbox
-                      checked={selectedIds.has(v.id)}
-                      onCheckedChange={() => toggleSelect(v.id)}
-                      className="shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-bold text-foreground">{v.vehicle_number}</p>
-                      <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
-                    </div>
-                    <Button variant="outline" size="sm" onClick={() => {
-                      if (showQrFor === v.qr_code) {
-                        setShowQrFor(null);
-                        setShowQrWing(undefined);
-                      } else {
-                        setShowQrFor(v.qr_code);
-                        setShowQrWing(v.wing);
-                      }
-                    }} className="touch-target gap-1">
-                      <QrCode className="h-4 w-4" />
-                      QR
-                    </Button>
-                  </div>
-                  {showQrFor === v.qr_code && (
-                    <div className="flex justify-center py-2">
-                      <QrGenerator
-                        value={v.qr_code}
-                        label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`}
-                        size={400}
-                        wing={v.wing}
-                        fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_number}`}
-                      />
-                    </div>
-                  )}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {vehicles.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No vehicles registered yet</p>
+          ) : (vehiclesExpanded ? vehicles : vehicles.slice(0, 5)).map((v) => (
+            <div key={v.id} className="space-y-2">
+              <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
+                <Checkbox checked={selectedIds.has(v.id)} onCheckedChange={() => toggleSelect(v.id)} className="shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold text-foreground">{v.vehicle_number}</p>
+                  <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
                 </div>
-              ))
-            )}
-            {vehicles.length > 5 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setVehiclesExpanded((v) => !v)}
-                className="w-full touch-target gap-1 text-xs"
-              >
-                {vehiclesExpanded ? (
-                  <><ChevronUp className="h-4 w-4" /> Show less</>
-                ) : (
-                  <><ChevronDown className="h-4 w-4" /> Show {vehicles.length - 5} more</>
-                )}
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+                <Button variant="outline" size="sm" onClick={() => {
+                  if (showQrFor === v.qr_code) { setShowQrFor(null); setShowQrWing(undefined); }
+                  else { setShowQrFor(v.qr_code); setShowQrWing(v.wing); }
+                }} className="gap-1">
+                  <QrCode className="h-4 w-4" /> QR
+                </Button>
+              </div>
+              {showQrFor === v.qr_code && (
+                <div className="flex justify-center py-2">
+                  <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`} size={400} wing={v.wing} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_number}`} />
+                </div>
+              )}
+            </div>
+          ))}
+          {vehicles.length > 5 && (
+            <Button variant="ghost" size="sm" onClick={() => setVehiclesExpanded((v) => !v)} className="w-full gap-1 text-xs">
+              {vehiclesExpanded ? <><ChevronUp className="h-4 w-4" /> Show less</> : <><ChevronDown className="h-4 w-4" /> Show {vehicles.length - 5} more</>}
+            </Button>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  const renderVisitorQr = () => (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <LinkIcon className="h-5 w-5 text-primary" /> Visitor Form Access QR
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className="text-sm text-muted-foreground mb-3 text-center">Visitors can scan this QR to open the entry form.</p>
+        <div className="flex justify-center">
+          <QrGenerator value={`${window.location.origin}/visitor/form`} label="Visitor Form" size={400} />
+        </div>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <DashboardShell
+      brandTitle="Admin Panel"
+      brandSubtitle="Triumph Tower CHSL"
+      groupLabel="Management"
+      items={NAV}
+      activeId={activeView}
+      onSelect={setActiveView}
+      onSignOut={handleSignOut}
+    >
+      {activeView === "stats" && renderStats()}
+      {activeView === "register" && renderRegister()}
+      {activeView === "registry" && renderRegistry()}
+      {activeView === "bulk-vehicles" && <CsvUpload onComplete={() => { void fetchAdminData(false); }} />}
+      {activeView === "bulk-residents" && <BulkResidentUpload />}
+      {activeView === "reg-requests" && <RegistrationRequests />}
+      {activeView === "vehicle-requests" && <VehicleChangeRequestsAdmin onChanged={() => { void fetchAdminData(false); }} />}
+      {activeView === "access-logs" && <AccessLogsViewer />}
+      {activeView === "users" && <UserRegistry />}
+      {activeView === "visitor-qr" && renderVisitorQr()}
+    </DashboardShell>
   );
 };
 
