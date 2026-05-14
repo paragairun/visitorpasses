@@ -25,6 +25,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <main>
           <Routes>
             <Route path="/" element={<Navigate to="/guard" replace />} />
             <Route path="/register" element={<Register />} />
@@ -59,6 +60,7 @@ const App = () => (
 
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </main>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
