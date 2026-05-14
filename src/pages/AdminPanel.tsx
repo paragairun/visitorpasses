@@ -135,7 +135,7 @@ const AdminPanel = () => {
     }
     setJustRegisteredQr(qr);
     setJustRegisteredWing(newVehicle.wing);
-    setJustRegisteredName(`${newVehicle.wing}-${newVehicle.flat_number.trim()}-${newVehicle.vehicle_number.trim().toUpperCase()}`);
+    setJustRegisteredName(`${newVehicle.wing}-${newVehicle.flat_number.trim()}-${newVehicle.vehicle_type}-${newVehicle.vehicle_number.trim().toUpperCase()}`);
     setShowQrFor(null);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
     setVehicles((prev) => [data as Vehicle, ...prev]);
