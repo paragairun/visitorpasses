@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import CsvUpload from "@/components/CsvUpload";
 import BulkResidentUpload from "@/components/BulkResidentUpload";
@@ -12,6 +12,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 import QrGenerator from "@/components/QrGenerator";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
@@ -24,6 +27,7 @@ import DashboardShell, { NavItem } from "@/components/DashboardShell";
 
 type Vehicle = Tables<"vehicles">;
 type EntryLog = Tables<"entry_logs">;
+type ResidentOption = { user_id: string; display_name: string; flats: { wing: string; flat_number: string }[] };
 
 const NAV: NavItem[] = [
   { id: "stats", title: "Statistics", icon: BarChart3 },
@@ -48,6 +52,9 @@ const AdminPanel = () => {
   const [justRegisteredWing, setJustRegisteredWing] = useState<string | undefined>(undefined);
   const [justRegisteredName, setJustRegisteredName] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
+  const [residents, setResidents] = useState<ResidentOption[]>([]);
+  const [selectedResidentId, setSelectedResidentId] = useState<string>("");
+  const [ownerPickerOpen, setOwnerPickerOpen] = useState(false);
   const [stats, setStats] = useState({ total_vehicles: 0, currently_inside: 0, today_entries: 0, week_entries: 0, total_residents: 0, pending_requests: 0 });
   const [recentEntries, setRecentEntries] = useState<EntryLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +104,46 @@ const AdminPanel = () => {
     return () => window.clearInterval(interval);
   }, [fetchAdminData]);
 
+  useEffect(() => {
+    const loadResidents = async () => {
+      const [profilesRes, flatsRes] = await Promise.all([
+        supabase.from("profiles").select("user_id, display_name, wing, flat_number"),
+        supabase.from("resident_flats").select("user_id, wing, flat_number"),
+      ]);
+      const flatsByUser = new Map<string, { wing: string; flat_number: string }[]>();
+      (flatsRes.data ?? []).forEach((f) => {
+        const arr = flatsByUser.get(f.user_id) ?? [];
+        arr.push({ wing: f.wing, flat_number: f.flat_number });
+        flatsByUser.set(f.user_id, arr);
+      });
+      const list: ResidentOption[] = (profilesRes.data ?? [])
+        .filter((p) => p.display_name && p.display_name.trim().length > 0)
+        .map((p) => {
+          let flats = flatsByUser.get(p.user_id) ?? [];
+          if (flats.length === 0 && p.wing && p.flat_number) {
+            flats = [{ wing: p.wing, flat_number: p.flat_number }];
+          }
+          // de-duplicate flats
+          const seen = new Set<string>();
+          flats = flats.filter((f) => {
+            const k = `${f.wing}|${f.flat_number}`;
+            if (seen.has(k)) return false;
+            seen.add(k); return true;
+          });
+          return { user_id: p.user_id, display_name: p.display_name as string, flats };
+        })
+        .filter((r) => r.flats.length > 0)
+        .sort((a, b) => a.display_name.localeCompare(b.display_name));
+      setResidents(list);
+    };
+    void loadResidents();
+  }, []);
+
+  const selectedResident = useMemo(
+    () => residents.find((r) => r.user_id === selectedResidentId) ?? null,
+    [residents, selectedResidentId],
+  );
+
   const vehicleBreakdown = useMemo(() => {
     const byType: Record<string, number> = {};
     const byWing: Record<string, number> = {};
@@ -108,8 +155,17 @@ const AdminPanel = () => {
   }, [vehicles]);
 
   const addVehicle = async () => {
+    if (!selectedResident) {
+      toast({ title: "Select an owner from the resident list", variant: "destructive" }); return;
+    }
     if (!newVehicle.flat_number || !newVehicle.vehicle_number || !newVehicle.owner_name) {
       toast({ title: "Fill all required fields", variant: "destructive" }); return;
+    }
+    const flatMatch = selectedResident.flats.some(
+      (f) => f.wing === newVehicle.wing && f.flat_number === newVehicle.flat_number,
+    );
+    if (!flatMatch) {
+      toast({ title: "Select a flat from the owner's registered flats", variant: "destructive" }); return;
     }
     setSavingVehicle(true);
     const normalized = newVehicle.vehicle_number.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -138,6 +194,7 @@ const AdminPanel = () => {
     setJustRegisteredName(`${newVehicle.wing}-${newVehicle.flat_number.trim()}-${newVehicle.vehicle_type}-${newVehicle.vehicle_number.trim().toUpperCase()}`);
     setShowQrFor(null);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
+    setSelectedResidentId("");
     setVehicles((prev) => [data as Vehicle, ...prev]);
     await fetchAdminData(false);
     toast({ title: "Vehicle Registered", description: `QR: ${qr}` });
@@ -269,22 +326,77 @@ const AdminPanel = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label>Owner Name *</Label>
-            <Input placeholder="Full name" value={newVehicle.owner_name} onChange={(e) => setNewVehicle((p) => ({ ...p, owner_name: e.target.value }))} className="touch-target" />
+            <Popover open={ownerPickerOpen} onOpenChange={setOwnerPickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" aria-expanded={ownerPickerOpen}
+                  className="touch-target w-full justify-between font-normal">
+                  <span className={cn("truncate", !selectedResident && "text-muted-foreground")}>
+                    {selectedResident ? selectedResident.display_name : "Search resident..."}
+                  </span>
+                  <ChevronsUpDown className="h-4 w-4 opacity-50 shrink-0" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                <Command>
+                  <CommandInput placeholder="Search by name..." />
+                  <CommandList>
+                    <CommandEmpty>No resident found.</CommandEmpty>
+                    <CommandGroup>
+                      {residents.map((r) => (
+                        <CommandItem key={r.user_id} value={r.display_name}
+                          onSelect={() => {
+                            setSelectedResidentId(r.user_id);
+                            const first = r.flats[0];
+                            setNewVehicle((p) => ({
+                              ...p,
+                              owner_name: r.display_name,
+                              wing: first?.wing ?? p.wing,
+                              flat_number: first?.flat_number ?? "",
+                            }));
+                            setOwnerPickerOpen(false);
+                          }}>
+                          <Check className={cn("mr-2 h-4 w-4", selectedResidentId === r.user_id ? "opacity-100" : "opacity-0")} />
+                          <span className="flex-1 truncate">{r.display_name}</span>
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            {r.flats.map((f) => `${f.wing}-${f.flat_number}`).join(", ")}
+                          </span>
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
           </div>
           <div className="space-y-2">
             <Label>Vehicle Number *</Label>
             <Input placeholder="MH02AB1234" value={newVehicle.vehicle_number} onChange={(e) => setNewVehicle((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
           </div>
-          <div className="space-y-2">
-            <Label>Wing</Label>
-            <Select value={newVehicle.wing} onValueChange={(v) => setNewVehicle((p) => ({ ...p, wing: v }))}>
-              <SelectTrigger className="touch-target"><SelectValue /></SelectTrigger>
-              <SelectContent>{["A","B","C","D","E","F","G","H"].map((w) => <SelectItem key={w} value={w}>Wing {w}</SelectItem>)}</SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Flat Number *</Label>
-            <Input placeholder="101" value={newVehicle.flat_number} onChange={(e) => setNewVehicle((p) => ({ ...p, flat_number: e.target.value }))} className="touch-target" />
+          <div className="space-y-2 md:col-span-2">
+            <Label>Flat *</Label>
+            {selectedResident ? (
+              selectedResident.flats.length > 1 ? (
+                <Select
+                  value={newVehicle.wing && newVehicle.flat_number ? `${newVehicle.wing}|${newVehicle.flat_number}` : ""}
+                  onValueChange={(v) => {
+                    const [wing, flat_number] = v.split("|");
+                    setNewVehicle((p) => ({ ...p, wing, flat_number }));
+                  }}>
+                  <SelectTrigger className="touch-target"><SelectValue placeholder="Select flat" /></SelectTrigger>
+                  <SelectContent>
+                    {selectedResident.flats.map((f) => (
+                      <SelectItem key={`${f.wing}|${f.flat_number}`} value={`${f.wing}|${f.flat_number}`}>
+                        Wing {f.wing} — Flat {f.flat_number}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input value={`Wing ${newVehicle.wing} — Flat ${newVehicle.flat_number}`} readOnly className="touch-target bg-muted" />
+              )
+            ) : (
+              <Input value="" readOnly placeholder="Select an owner first" className="touch-target bg-muted" />
+            )}
           </div>
           <div className="space-y-2">
             <Label>Vehicle Type</Label>
