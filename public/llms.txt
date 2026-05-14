@@ -1,0 +1,11 @@
+# GatePass Pro
+
+> QR-powered vehicle and visitor management system for Triumph Tower CHSL — used by security guards, residents, and the building committee.
+
+## Pages
+
+- [Guard Login](/guard): Security guard sign-in for QR vehicle scanning and visitor approvals.
+- [Resident Login](/resident): Resident portal to generate guest passes and manage vehicles.
+- [Admin Login](/admin): Committee admin panel for managing vehicles, residents, and reports.
+- [Visitor Form](/visitor/form): Public self-service form for visitors to request entry.
+- [Register](/register): Account registration for residents, guards, and admins.
