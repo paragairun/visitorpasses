@@ -349,7 +349,7 @@ const ResidentPortal = () => {
                   </div>
                   {showVehicleQr === v.qr_code && (
                     <div className="flex justify-center py-2">
-                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} • ${v.wing}-${v.flat_number}`} size={400} wing={v.wing} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_number}`} />
+                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${v.wing}-${v.flat_number}`} size={400} wing={v.wing} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
                     </div>
                   )}
                 </div>
