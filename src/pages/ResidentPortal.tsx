@@ -424,9 +424,11 @@ const ResidentPortal = () => {
                       <Button variant="outline" size="sm" onClick={() => setShowVehicleQr(showVehicleQr === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
                         <QrCode className="h-4 w-4" /> QR
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setRemoveTarget(v)} disabled={removingId === v.id} className="touch-target gap-1 text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" /> Remove
-                      </Button>
+                      {!isChild && (
+                        <Button variant="ghost" size="sm" onClick={() => setRemoveTarget(v)} disabled={removingId === v.id} className="touch-target gap-1 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" /> Remove
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {showVehicleQr === v.qr_code && (
@@ -438,6 +440,7 @@ const ResidentPortal = () => {
               ))
             )}
           </div>
+          {!isChild && (
           <div className="rounded-lg border border-dashed border-border p-3 space-y-3">
             <div className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /><p className="text-sm font-medium text-foreground">Request New Vehicle</p></div>
             <p className="text-xs text-muted-foreground">Submit a request to register a new vehicle. Admin approval is required.</p>
@@ -466,6 +469,7 @@ const ResidentPortal = () => {
               <Plus className="h-4 w-4" /> {submittingVehicleReq ? "Submitting..." : "Send Request to Admin"}
             </Button>
           </div>
+          )}
         </CardContent>
       </Card>
     </>
@@ -668,7 +672,7 @@ const ResidentPortal = () => {
     >
       {activeView === "guest" && renderGuest()}
       {activeView === "vehicles" && renderVehicles()}
-      {activeView === "requests" && renderRequests()}
+      {activeView === "requests" && !isChild && renderRequests()}
       {activeView === "history" && renderHistory()}
       {activeView === "profile" && renderProfile()}
       <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
@@ -684,6 +688,20 @@ const ResidentPortal = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => void submitRemoveRequest()}>Send Request</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!removeChildTarget} onOpenChange={(o) => !o && setRemoveChildTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeChildTarget && (<>This permanently deletes the account for <span className="font-semibold">{removeChildTarget.display_name}</span>. They will no longer be able to log in.</>)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => removeChildTarget && void removeChild(removeChildTarget.user_id)}>Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
