@@ -1,72 +1,84 @@
-# Resident Profile Edit + Multi-Flat Registration
+# Primary & Child Resident Accounts
 
-Add profile editing for residents (name, mobile, flats), support multiple flats per resident, and auto-fill owner name from the profile everywhere — never asked twice.
+## Goal
 
-## 1. Database changes
+Each flat has exactly one **primary** resident. The primary can invite **child accounts** (Family or Tenant) directly — no admin approval — with limited, read-mostly access.
 
-**`profiles` table** — add `phone TEXT` column (nullable for now, validated at edit time).
+## Account Capabilities
 
-**New table `resident_flats`** — represents the many-to-many between residents and flats. A resident's "flats" live here instead of (or in addition to) `profiles.wing`/`flat_number`.
+| Capability | Primary | Child (Family / Tenant) |
+|---|---|---|
+| Register vehicles, request changes | ✅ | ❌ |
+| Generate guest passes | ✅ | ✅ |
+| View flat vehicles | ✅ | ✅ |
+| View entry/exit logs for flat vehicles | ✅ | ✅ |
+| Edit flat / vehicle details | ✅ | ❌ |
+| Edit own name & phone | ✅ | ✅ |
+| Edit anything else on profile | ✅ | ❌ |
+| Manage child accounts | ✅ (sees list, can add/remove) | ❌ |
 
-Columns:
-- `id uuid pk`
-- `user_id uuid not null` (the resident)
-- `wing text not null`
-- `flat_number text not null`
-- `is_primary boolean not null default false`
-- `created_at timestamptz default now()`
-- unique (`user_id`, `wing`, `flat_number`)
+## Database Changes
 
-RLS:
-- Resident can SELECT/INSERT/DELETE their own rows (`auth.uid() = user_id AND has_role(auth.uid(),'resident')`).
-- Admin full access via `has_role(auth.uid(),'admin')`.
-- Guards SELECT (so vehicle/visitor lookups still work) — same pattern as `vehicles`.
+1. **`profiles`**
+   - Add `parent_user_id uuid NULL` — null = primary; non-null = child of that primary
+   - Add `child_type text NULL` — `'family'` or `'tenant'` (only for children)
 
-Backfill: copy existing `profiles.wing` + `profiles.flat_number` rows into `resident_flats` as `is_primary = true` for each resident with both fields set.
+2. **`resident_flats`**
+   - Enforce one primary per flat: partial unique index on `(wing, flat_number)` where the owning user has no parent. (Implemented via a `BEFORE INSERT/UPDATE` trigger because the parent flag lives in `profiles`.)
 
-We keep `profiles.wing` / `profiles.flat_number` for backwards compat (treated as primary flat / display fallback) — no schema removal in this pass.
+3. **RLS updates**
+   - **`vehicles`** — children inherit "view own flat vehicles" via parent's `resident_flats`. Update existing SELECT policy to also match flats of `parent_user_id`.
+   - **`vehicle_change_requests`** — INSERT restricted to primaries only (block when `profiles.parent_user_id IS NOT NULL`).
+   - **`resident_flats`** — INSERT/UPDATE/DELETE restricted to primaries only.
+   - **`profiles`** — primary can SELECT child profiles where `parent_user_id = auth.uid()`; child can update only `display_name` and `phone` of own row (enforced via trigger that rejects changes to `wing`/`flat_number`).
+   - **Guest passes / entry logs** — already keyed off flat; extend SELECT to include parent's flats.
 
-**`vehicles` RLS update** — extend "Residents can view own flat vehicles" so it matches any flat in `resident_flats` for the user (not only the profile's single flat). Existing single-flat residents still match through the backfill.
+4. **Helper function** `public.is_primary_resident(_user_id)` — `SELECT parent_user_id IS NULL FROM profiles WHERE user_id = _user_id`. Used in policies.
 
-## 2. Edge function `resident-guest-passes`
+## Account Creation Flow
 
-- Pull all flats from `resident_flats` for the user; if empty, fall back to `profiles.wing` + `profiles.flat_number`.
-- Accept an optional `flat_id` in `list` and `create` to pick which flat the pass is for; default to the primary flat.
-- Response shape gains `flats: [{ id, wing, flat_number, flat_label, is_primary }]` plus the existing `resident` object reflecting the active flat.
-- Guest pass `owner_name` always sourced from `profiles.display_name` — never from the client.
+Primary resident, in their portal → **"Family & Tenants"** section:
 
-## 3. Resident Portal UI (`src/pages/ResidentPortal.tsx`)
+- Form: email, full name, child type (Family / Tenant)
+- Calls new edge function `create-child-account` (service role):
+  - Verifies caller is a primary resident (`has_role('resident')` AND `parent_user_id IS NULL`)
+  - Creates auth user with auto-generated temp password, `email_confirm: true`
+  - Inserts `user_roles(role='resident')`
+  - Inserts `profiles` with `parent_user_id = caller.id`, `child_type`, primary's `wing`/`flat_number`
+  - Returns temp password for primary to share with child
+- No `registration_requests` row, no admin approval
 
-**New "My Profile" card** at the top:
-- Editable: Display Name, Mobile Number.
-- Flats list: each row shows `Wing-Flat` with a Remove button; "Add Flat" row with wing + flat number inputs and an Add button. (Pure profile-side; not gated through admin approval — that's only for vehicles.)
-- One "Save Profile" button persists name + phone via an `update` on `profiles`. Flat add/remove writes directly to `resident_flats`.
+Child sign-in: same `/resident` login. Their portal hides write actions and the "Family & Tenants" section.
 
-**Flat picker**: A compact `Select` at the top of "Generate Guest Pass" and "My Vehicles" / "Request New Vehicle" sections lets the resident switch the active flat. Hidden if the resident has only one flat.
+## UI Changes
 
-**Remove "Owner Name" inputs** everywhere they used to be collected from the resident:
-- Guest pass form: never had it (passes use `profiles.display_name` server-side). No change.
-- "Request New Vehicle" form: drop the `owner_name` field — derive from `profiles.display_name` at submit.
-- Removal request: keep using the existing vehicle's stored `owner_name`.
+**`ResidentPortal.tsx`**
+- Detect `isChild = profile.parent_user_id !== null`
+- Sidebar items conditionally rendered:
+  - Hide for child: "Add Vehicle", "Request Vehicle Change", "Manage Flats"
+  - Show for child: "Guest Pass" (default), "My Vehicles" (read-only), "Entry/Exit Logs"
+- Profile page:
+  - Primary: existing fields + new **Family & Tenants** card listing children (name, email, type, added on) with **Add Child** button and **Remove** action
+  - Child: only `display_name` and `phone` editable; flat/wing shown read-only; show badge "Family" or "Tenant" and "Linked to: <primary name>"
 
-**Vehicles list filter** now driven by the currently-selected flat (`wing`/`flat_number`).
+**`AdminPanel`** — Optional: in Resident Registry, show a "Type" column (Primary / Family / Tenant) and the parent for children.
 
-## 4. Admin side
+## Edge Functions
 
-- `VehicleChangeRequestsAdmin` review dialog keeps editable `owner_name` (admin override) — no UI change needed; `add` requests now arrive with the resident's profile name pre-filled.
-- No admin UI changes required for multi-flat — admin already sees `wing` + `flat_number` per request/vehicle row.
+- **New:** `supabase/functions/create-child-account/index.ts` — described above
+- **New:** `supabase/functions/delete-child-account/index.ts` — primary deletes own child (verifies parent_user_id matches caller); reuses delete-user logic
+- Existing `submit-visitor-request` and `resident-guest-passes` already work for any authenticated resident; no change needed beyond confirming child role passes.
 
-## 5. Out of scope
+## Out of Scope
 
-- No QR generator changes.
-- Guard dashboard, access logs, visitor form: unchanged (they read `wing` + `flat_number` from existing rows).
-- No removal of `profiles.wing` / `profiles.flat_number` (kept as primary flat shadow).
-- No dashboard sidebar refactor (separate request).
+- Email notifications (separate pending request — needs domain setup)
+- Changing primary resident transfer flow
+- Per-child granular permission toggles
 
-## Files touched
+## Files Touched
 
-- New migration: add `profiles.phone`, create `resident_flats` + RLS, backfill from `profiles`, update `vehicles` SELECT policy for residents.
-- `supabase/functions/resident-guest-passes/index.ts` — multi-flat aware.
-- `src/pages/ResidentPortal.tsx` — profile card, flat picker, drop owner_name input.
-
-After approval I'll run the migration first, then update the edge function and the portal.
+- `supabase/migrations/<new>.sql` — schema, trigger, RLS, helper fn
+- `supabase/functions/create-child-account/index.ts` (new)
+- `supabase/functions/delete-child-account/index.ts` (new)
+- `src/pages/ResidentPortal.tsx` — gating + Family & Tenants section
+- `src/components/UserRegistry.tsx` (admin) — show child relationship column
