@@ -528,9 +528,18 @@ const ResidentPortal = () => {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <User className="h-5 w-5 text-primary" /> My Profile
+          {isChild && childType && (
+            <Badge variant="secondary" className="ml-2 capitalize">{childType}</Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {isChild && (
+          <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm text-muted-foreground">
+            Linked to primary resident: <span className="font-medium text-foreground">{parentName ?? "—"}</span>
+            {activeFlat && <> • Flat: <span className="font-medium text-foreground">{activeFlat.flat_label}</span></>}
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="profile-name">Full Name *</Label>
@@ -544,6 +553,8 @@ const ResidentPortal = () => {
         <Button onClick={() => void saveProfile()} disabled={savingProfile} className="touch-target gap-2">
           <Save className="h-4 w-4" /> {savingProfile ? "Saving..." : "Save Profile"}
         </Button>
+        {!isChild && (
+        <>
         <div className="pt-2 border-t border-border space-y-3">
           <div className="flex items-center gap-2"><Home className="h-4 w-4 text-primary" /><p className="text-sm font-medium text-foreground">My Flats ({flats.length})</p></div>
           <div className="space-y-2">
@@ -577,6 +588,70 @@ const ResidentPortal = () => {
             </div>
           </div>
         </div>
+        <div className="pt-2 border-t border-border space-y-3">
+          <div className="flex items-center gap-2"><Users className="h-4 w-4 text-primary" /><p className="text-sm font-medium text-foreground">Family & Tenants ({children.length})</p></div>
+          <p className="text-xs text-muted-foreground">Add accounts for family members or tenants. They can generate guest passes and view flat vehicles, but cannot edit vehicle or flat details.</p>
+          <div className="space-y-2">
+            {children.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No child accounts yet.</p>
+            ) : children.map((c) => (
+              <div key={c.user_id} className="flex items-center justify-between p-2 rounded-md bg-secondary/50 border border-border">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{c.display_name}</p>
+                    <Badge variant="secondary" className="capitalize">{c.child_type}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{c.phone || "no phone"} • added {new Date(c.created_at).toLocaleDateString()}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setRemoveChildTarget(c)} className="text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="child-email">Email *</Label>
+              <Input id="child-email" type="email" placeholder="user@example.com" value={childForm.email} onChange={(e) => setChildForm((p) => ({ ...p, email: e.target.value }))} className="touch-target" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="child-name">Full Name *</Label>
+              <Input id="child-name" placeholder="Name" value={childForm.display_name} onChange={(e) => setChildForm((p) => ({ ...p, display_name: e.target.value }))} className="touch-target" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="child-type">Type</Label>
+              <Select value={childForm.child_type} onValueChange={(v) => setChildForm((p) => ({ ...p, child_type: v as "family" | "tenant" }))}>
+                <SelectTrigger id="child-type" className="touch-target"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="family">Family</SelectItem>
+                  <SelectItem value="tenant">Tenant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button onClick={() => void addChild()} disabled={addingChild} className="touch-target gap-2">
+            <Plus className="h-4 w-4" /> {addingChild ? "Adding..." : "Add Child Account"}
+          </Button>
+          {issuedChildCred && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <p className="text-sm font-medium text-foreground">Share these credentials with the user:</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-mono">{issuedChildCred.email}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm gap-2">
+                <span className="text-muted-foreground">Password:</span>
+                <span className="font-mono break-all">{issuedChildCred.password}</span>
+                <Button size="sm" variant="ghost" onClick={() => { void navigator.clipboard.writeText(issuedChildCred.password); toast({ title: "Copied" }); }}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setIssuedChildCred(null)}>Dismiss</Button>
+            </div>
+          )}
+        </div>
+        </>
+        )}
       </CardContent>
     </Card>
   );
