@@ -90,30 +90,36 @@ export type Database = {
       }
       profiles: {
         Row: {
+          child_type: string | null
           created_at: string
           display_name: string | null
           flat_number: string | null
           id: string
+          parent_user_id: string | null
           phone: string | null
           updated_at: string
           user_id: string
           wing: string | null
         }
         Insert: {
+          child_type?: string | null
           created_at?: string
           display_name?: string | null
           flat_number?: string | null
           id?: string
+          parent_user_id?: string | null
           phone?: string | null
           updated_at?: string
           user_id: string
           wing?: string | null
         }
         Update: {
+          child_type?: string | null
           created_at?: string
           display_name?: string | null
           flat_number?: string | null
           id?: string
+          parent_user_id?: string | null
           phone?: string | null
           updated_at?: string
           user_id?: string
@@ -337,6 +343,7 @@ export type Database = {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      get_parent_user_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -344,6 +351,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_primary_resident: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "guard" | "resident" | "admin" | "visitor"

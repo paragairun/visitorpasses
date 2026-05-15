@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Car, ClipboardList, QrCode, Plus, Trash2, ClipboardCheck, User, Home, Save } from "lucide-react";
+import { Car, ClipboardList, QrCode, Plus, Trash2, ClipboardCheck, User, Home, Save, Users, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/StatusBadge";
 import QrGenerator from "@/components/QrGenerator";
 import { useToast } from "@/hooks/use-toast";
@@ -25,17 +26,26 @@ interface GuestPass {
 interface ResidentSummary { owner_name: string; wing: string; flat_number: string; flat_label: string; }
 interface ResidentFlat { id: string; wing: string; flat_number: string; is_primary: boolean; flat_label: string; }
 interface ProfileSummary { display_name: string; phone: string | null; }
+interface ChildAccount { user_id: string; display_name: string; phone: string | null; child_type: "family" | "tenant"; created_at: string; email?: string | null; }
 interface VisitLog { id: string; vehicle_number: string; owner_name: string; entry_type: string; entry_time: string; exit_time: string | null; }
 interface ResidentVehicle { id: string; vehicle_number: string; vehicle_type: string; owner_name: string; wing: string; flat_number: string; qr_code: string; }
 interface ChangeRequestRow { id: string; request_type: string; vehicle_number: string; vehicle_type: string; owner_name: string; wing: string; flat_number: string; status: string; notes: string | null; created_at: string; }
 
 const emptyForm = { visitor_name: "", phone: "", vehicle_number: "", purpose: "" };
 const emptyVehicleRequest = { vehicle_number: "", vehicle_type: "car" };
+const emptyChildForm = { email: "", display_name: "", child_type: "family" as "family" | "tenant" };
 
-const NAV: NavItem[] = [
+const PRIMARY_NAV: NavItem[] = [
   { id: "guest", title: "Guest Pass", icon: QrCode },
   { id: "vehicles", title: "My Vehicles", icon: Car },
   { id: "requests", title: "My Requests", icon: ClipboardCheck },
+  { id: "history", title: "Visit History", icon: ClipboardList },
+  { id: "profile", title: "My Profile", icon: User },
+];
+
+const CHILD_NAV: NavItem[] = [
+  { id: "guest", title: "Guest Pass", icon: QrCode },
+  { id: "vehicles", title: "Flat Vehicles", icon: Car },
   { id: "history", title: "Visit History", icon: ClipboardList },
   { id: "profile", title: "My Profile", icon: User },
 ];
@@ -63,11 +73,45 @@ const ResidentPortal = () => {
   const [savingProfile, setSavingProfile] = useState(false);
   const [newFlat, setNewFlat] = useState({ wing: "", flat_number: "" });
   const [addingFlat, setAddingFlat] = useState(false);
+  const [isChild, setIsChild] = useState(false);
+  const [childType, setChildType] = useState<"family" | "tenant" | null>(null);
+  const [parentName, setParentName] = useState<string | null>(null);
+  const [children, setChildren] = useState<ChildAccount[]>([]);
+  const [childForm, setChildForm] = useState(emptyChildForm);
+  const [addingChild, setAddingChild] = useState(false);
+  const [issuedChildCred, setIssuedChildCred] = useState<{ email: string; password: string } | null>(null);
+  const [removeChildTarget, setRemoveChildTarget] = useState<ChildAccount | null>(null);
   const { toast } = useToast();
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
 
   const activeFlat = useMemo(() => flats.find((f) => f.id === activeFlatId) ?? flats[0], [flats, activeFlatId]);
+  const NAV = isChild ? CHILD_NAV : PRIMARY_NAV;
+
+  const loadProfileAndChildren = useCallback(async () => {
+    if (!user) return;
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("parent_user_id, child_type")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    const child = !!prof?.parent_user_id;
+    setIsChild(child);
+    setChildType((prof?.child_type as "family" | "tenant" | null) ?? null);
+    if (child && prof?.parent_user_id) {
+      const { data: parent } = await supabase
+        .from("profiles").select("display_name").eq("user_id", prof.parent_user_id).maybeSingle();
+      setParentName(parent?.display_name ?? null);
+    } else {
+      // load my children
+      const { data: kids } = await supabase
+        .from("profiles")
+        .select("user_id, display_name, phone, child_type, created_at")
+        .eq("parent_user_id", user.id)
+        .order("created_at", { ascending: true });
+      setChildren((kids ?? []) as ChildAccount[]);
+    }
+  }, [user]);
 
   useEffect(() => {
     const loadGuestPasses = async () => {
@@ -86,8 +130,11 @@ const ResidentPortal = () => {
       setActiveFlatId((prev) => prev || fl.find((f) => f.is_primary)?.id || fl[0]?.id || "");
       if (data.profile) setProfileForm({ display_name: data.profile.display_name ?? "", phone: data.profile.phone ?? "" });
     };
-    if (user) void loadGuestPasses();
-  }, [toast, user]);
+    if (user) {
+      void loadGuestPasses();
+      void loadProfileAndChildren();
+    }
+  }, [toast, user, loadProfileAndChildren]);
 
   const loadVehicles = useCallback(async () => {
     if (!activeFlat) return;
@@ -113,6 +160,7 @@ const ResidentPortal = () => {
 
   const refreshFlats = useCallback(async () => {
     if (!user) return;
+    if (isChild) return;
     const { data } = await supabase
       .from("resident_flats").select("id, wing, flat_number, is_primary, created_at")
       .eq("user_id", user.id).order("is_primary", { ascending: false }).order("created_at", { ascending: true });
@@ -123,7 +171,41 @@ const ResidentPortal = () => {
     }));
     setFlats(fl);
     setActiveFlatId((prev) => fl.find((x) => x.id === prev)?.id || fl.find((x) => x.is_primary)?.id || fl[0]?.id || "");
-  }, [user]);
+  }, [user, isChild]);
+
+  const addChild = async () => {
+    if (!childForm.email.trim() || !childForm.display_name.trim()) {
+      toast({ title: "Email and name are required", variant: "destructive" }); return;
+    }
+    setAddingChild(true);
+    const { data, error } = await supabase.functions.invoke("create-child-account", {
+      body: {
+        email: childForm.email.trim(),
+        display_name: childForm.display_name.trim(),
+        child_type: childForm.child_type,
+      },
+    });
+    setAddingChild(false);
+    if (error || data?.error) {
+      toast({ title: "Could not add child", description: error?.message ?? data?.error ?? "Please try again.", variant: "destructive" });
+      return;
+    }
+    setIssuedChildCred({ email: data.email, password: data.temp_password });
+    setChildForm(emptyChildForm);
+    await loadProfileAndChildren();
+    toast({ title: "Child account created", description: "Share the temporary password with them." });
+  };
+
+  const removeChild = async (childId: string) => {
+    const { data, error } = await supabase.functions.invoke("delete-child-account", { body: { child_user_id: childId } });
+    if (error || data?.error) {
+      toast({ title: "Could not remove", description: error?.message ?? data?.error ?? "", variant: "destructive" });
+      return;
+    }
+    toast({ title: "Child account removed" });
+    setRemoveChildTarget(null);
+    await loadProfileAndChildren();
+  };
 
   const saveProfile = async () => {
     if (!user) return;
@@ -342,9 +424,11 @@ const ResidentPortal = () => {
                       <Button variant="outline" size="sm" onClick={() => setShowVehicleQr(showVehicleQr === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
                         <QrCode className="h-4 w-4" /> QR
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => setRemoveTarget(v)} disabled={removingId === v.id} className="touch-target gap-1 text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" /> Remove
-                      </Button>
+                      {!isChild && (
+                        <Button variant="ghost" size="sm" onClick={() => setRemoveTarget(v)} disabled={removingId === v.id} className="touch-target gap-1 text-destructive hover:text-destructive">
+                          <Trash2 className="h-4 w-4" /> Remove
+                        </Button>
+                      )}
                     </div>
                   </div>
                   {showVehicleQr === v.qr_code && (
@@ -356,6 +440,7 @@ const ResidentPortal = () => {
               ))
             )}
           </div>
+          {!isChild && (
           <div className="rounded-lg border border-dashed border-border p-3 space-y-3">
             <div className="flex items-center gap-2"><Plus className="h-4 w-4 text-primary" /><p className="text-sm font-medium text-foreground">Request New Vehicle</p></div>
             <p className="text-xs text-muted-foreground">Submit a request to register a new vehicle. Admin approval is required.</p>
@@ -384,6 +469,7 @@ const ResidentPortal = () => {
               <Plus className="h-4 w-4" /> {submittingVehicleReq ? "Submitting..." : "Send Request to Admin"}
             </Button>
           </div>
+          )}
         </CardContent>
       </Card>
     </>
@@ -446,9 +532,18 @@ const ResidentPortal = () => {
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <User className="h-5 w-5 text-primary" /> My Profile
+          {isChild && childType && (
+            <Badge variant="secondary" className="ml-2 capitalize">{childType}</Badge>
+          )}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        {isChild && (
+          <div className="rounded-lg border border-border bg-secondary/40 p-3 text-sm text-muted-foreground">
+            Linked to primary resident: <span className="font-medium text-foreground">{parentName ?? "—"}</span>
+            {activeFlat && <> • Flat: <span className="font-medium text-foreground">{activeFlat.flat_label}</span></>}
+          </div>
+        )}
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label htmlFor="profile-name">Full Name *</Label>
@@ -462,6 +557,8 @@ const ResidentPortal = () => {
         <Button onClick={() => void saveProfile()} disabled={savingProfile} className="touch-target gap-2">
           <Save className="h-4 w-4" /> {savingProfile ? "Saving..." : "Save Profile"}
         </Button>
+        {!isChild && (
+        <>
         <div className="pt-2 border-t border-border space-y-3">
           <div className="flex items-center gap-2"><Home className="h-4 w-4 text-primary" /><p className="text-sm font-medium text-foreground">My Flats ({flats.length})</p></div>
           <div className="space-y-2">
@@ -495,6 +592,70 @@ const ResidentPortal = () => {
             </div>
           </div>
         </div>
+        <div className="pt-2 border-t border-border space-y-3">
+          <div className="flex items-center gap-2"><Users className="h-4 w-4 text-primary" /><p className="text-sm font-medium text-foreground">Family & Tenants ({children.length})</p></div>
+          <p className="text-xs text-muted-foreground">Add accounts for family members or tenants. They can generate guest passes and view flat vehicles, but cannot edit vehicle or flat details.</p>
+          <div className="space-y-2">
+            {children.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No child accounts yet.</p>
+            ) : children.map((c) => (
+              <div key={c.user_id} className="flex items-center justify-between p-2 rounded-md bg-secondary/50 border border-border">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-foreground">{c.display_name}</p>
+                    <Badge variant="secondary" className="capitalize">{c.child_type}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{c.phone || "no phone"} • added {new Date(c.created_at).toLocaleDateString()}</p>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setRemoveChildTarget(c)} className="text-destructive hover:text-destructive">
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <div className="grid gap-3 md:grid-cols-4">
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="child-email">Email *</Label>
+              <Input id="child-email" type="email" placeholder="user@example.com" value={childForm.email} onChange={(e) => setChildForm((p) => ({ ...p, email: e.target.value }))} className="touch-target" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="child-name">Full Name *</Label>
+              <Input id="child-name" placeholder="Name" value={childForm.display_name} onChange={(e) => setChildForm((p) => ({ ...p, display_name: e.target.value }))} className="touch-target" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="child-type">Type</Label>
+              <Select value={childForm.child_type} onValueChange={(v) => setChildForm((p) => ({ ...p, child_type: v as "family" | "tenant" }))}>
+                <SelectTrigger id="child-type" className="touch-target"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="family">Family</SelectItem>
+                  <SelectItem value="tenant">Tenant</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <Button onClick={() => void addChild()} disabled={addingChild} className="touch-target gap-2">
+            <Plus className="h-4 w-4" /> {addingChild ? "Adding..." : "Add Child Account"}
+          </Button>
+          {issuedChildCred && (
+            <div className="rounded-md border border-primary/30 bg-primary/5 p-3 space-y-2">
+              <p className="text-sm font-medium text-foreground">Share these credentials with the user:</p>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">Email:</span>
+                <span className="font-mono">{issuedChildCred.email}</span>
+              </div>
+              <div className="flex items-center justify-between text-sm gap-2">
+                <span className="text-muted-foreground">Password:</span>
+                <span className="font-mono break-all">{issuedChildCred.password}</span>
+                <Button size="sm" variant="ghost" onClick={() => { void navigator.clipboard.writeText(issuedChildCred.password); toast({ title: "Copied" }); }}>
+                  <Copy className="h-3 w-3" />
+                </Button>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => setIssuedChildCred(null)}>Dismiss</Button>
+            </div>
+          )}
+        </div>
+        </>
+        )}
       </CardContent>
     </Card>
   );
@@ -511,7 +672,7 @@ const ResidentPortal = () => {
     >
       {activeView === "guest" && renderGuest()}
       {activeView === "vehicles" && renderVehicles()}
-      {activeView === "requests" && renderRequests()}
+      {activeView === "requests" && !isChild && renderRequests()}
       {activeView === "history" && renderHistory()}
       {activeView === "profile" && renderProfile()}
       <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
@@ -527,6 +688,20 @@ const ResidentPortal = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => void submitRemoveRequest()}>Send Request</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={!!removeChildTarget} onOpenChange={(o) => !o && setRemoveChildTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove this account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {removeChildTarget && (<>This permanently deletes the account for <span className="font-semibold">{removeChildTarget.display_name}</span>. They will no longer be able to log in.</>)}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => removeChildTarget && void removeChild(removeChildTarget.user_id)}>Remove</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

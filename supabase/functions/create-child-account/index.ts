@@ -1,0 +1,117 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "npm:zod@3.25.76";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+const BodySchema = z.object({
+  email: z.string().trim().email().max(254),
+  display_name: z.string().trim().min(1).max(100),
+  child_type: z.enum(["family", "tenant"]),
+  phone: z.string().trim().max(20).optional().nullable(),
+});
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  try {
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Missing auth" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+
+    const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
+    const { data: { user: caller } } = await userClient.auth.getUser();
+    if (!caller) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey);
+    const { data: isResident } = await adminClient.rpc("has_role", { _user_id: caller.id, _role: "resident" });
+    if (!isResident) {
+      return new Response(JSON.stringify({ error: "Resident access only" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const { data: callerProfile } = await adminClient
+      .from("profiles")
+      .select("parent_user_id, display_name")
+      .eq("user_id", caller.id)
+      .maybeSingle();
+
+    if (!callerProfile || callerProfile.parent_user_id !== null) {
+      return new Response(JSON.stringify({ error: "Only primary residents can add child accounts" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const parsed = BodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const { email, display_name, child_type, phone } = parsed.data;
+
+    // Reject if email already has an account
+    const { data: existingList } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 200 });
+    if (existingList?.users?.some((u) => (u.email ?? "").toLowerCase() === email.toLowerCase())) {
+      return new Response(JSON.stringify({ error: "An account with this email already exists" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    const tempPassword = `Triumph${Date.now().toString(36)}!`;
+    const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+      email,
+      password: tempPassword,
+      email_confirm: true,
+      user_metadata: { display_name },
+    });
+    if (createErr || !created.user) {
+      return new Response(JSON.stringify({ error: createErr?.message ?? "Could not create user" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+    const newUserId = created.user.id;
+
+    // Pick parent's primary flat to mirror on profile
+    const { data: primaryFlat } = await adminClient
+      .from("resident_flats")
+      .select("wing, flat_number")
+      .eq("user_id", caller.id)
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    await adminClient.from("user_roles").insert({ user_id: newUserId, role: "resident" });
+
+    // handle_new_user trigger creates a base profile; update it with relationship + flat
+    const profilePayload = {
+      user_id: newUserId,
+      display_name,
+      phone: phone?.trim() || null,
+      parent_user_id: caller.id,
+      child_type,
+      wing: primaryFlat?.wing ?? null,
+      flat_number: primaryFlat?.flat_number ?? null,
+    };
+
+    const { data: existingProfile } = await adminClient
+      .from("profiles").select("id").eq("user_id", newUserId).maybeSingle();
+
+    const profileQuery = existingProfile
+      ? adminClient.from("profiles").update(profilePayload).eq("user_id", newUserId)
+      : adminClient.from("profiles").insert(profilePayload);
+
+    const { error: profileError } = await profileQuery;
+    if (profileError) {
+      return new Response(JSON.stringify({ error: profileError.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, user_id: newUserId, email, temp_password: tempPassword }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+    );
+  } catch (err) {
+    return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+  }
+});
