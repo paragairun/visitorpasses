@@ -110,14 +110,17 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await adminClient
       .from("profiles")
-      .select("display_name, wing, flat_number, phone")
+      .select("display_name, wing, flat_number, phone, parent_user_id, child_type")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    // Children inherit flats from their parent (primary resident)
+    const flatsOwnerId = profile?.parent_user_id ?? user.id;
 
     const { data: flatRows } = await adminClient
       .from("resident_flats")
       .select("id, wing, flat_number, is_primary, created_at")
-      .eq("user_id", user.id)
+      .eq("user_id", flatsOwnerId)
       .order("is_primary", { ascending: false })
       .order("created_at", { ascending: true });
 
