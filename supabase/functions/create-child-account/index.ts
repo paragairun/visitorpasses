@@ -119,11 +119,27 @@ Deno.serve(async (req) => {
 
         const { data: existingProfile } = await adminClient
           .from("profiles")
-          .select("parent_user_id, child_type")
+          .select("parent_user_id, child_type, wing, flat_number")
           .eq("user_id", existingUser.id)
           .maybeSingle();
 
-        if (!existingProfile) return createChildProfile(existingUser.id, null);
+        const [{ data: existingRoles }, { data: existingFlat }] = await Promise.all([
+          adminClient.from("user_roles").select("role").eq("user_id", existingUser.id),
+          adminClient.from("resident_flats").select("id").eq("user_id", existingUser.id).limit(1).maybeSingle(),
+        ]);
+        const roles = (existingRoles ?? []).map((row) => row.role as string);
+        const hasBlockingRole = roles.some((role) => role !== "resident");
+        const hasFlatMapping = !!existingFlat || !!existingProfile?.wing || !!existingProfile?.flat_number;
+
+        if (!existingProfile || (!existingProfile.parent_user_id && !existingProfile.child_type && !hasBlockingRole && !hasFlatMapping)) {
+          const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: { display_name },
+          });
+          if (updateErr) return json({ error: updateErr.message }, 400);
+          return createChildProfile(existingUser.id, tempPassword);
+        }
         if (existingProfile.parent_user_id === caller.id) return json({ error: "This child account is already linked to your profile" }, 400);
         if (existingProfile.parent_user_id) return json({ error: "This email is already linked to another primary resident" }, 400);
 
