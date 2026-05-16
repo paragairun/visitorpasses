@@ -56,7 +56,7 @@ const findAuthUserByEmail = async (
     if (pageResult.users.length < 1000) break;
   }
 
-  return { user: null, error: listError?.message ?? null };
+  return { user: null, error: null };
 };
 
 Deno.serve(async (req) => {
@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
     if (createErr || !created.user) {
       const msg = createErr?.message ?? "Could not create user";
       if (/already|exists|registered|in use/i.test(msg)) {
-        const { user: existingUser, error: lookupError } = await findAuthUserByEmail(adminClient, supabaseUrl, serviceRoleKey, email);
+        const { user: existingUser, error: lookupError } = await findAuthUserByEmail(supabaseUrl, serviceRoleKey, email);
         if (lookupError) return businessError(lookupError);
         if (!existingUser) return businessError("This email already exists, but the account could not be recovered. Please contact support.");
 
@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
           if (updateErr) return json({ error: updateErr.message }, 400);
           return createChildProfile(existingUser.id, tempPassword);
         }
-        if (existingProfile.parent_user_id === caller.id) {
+        if (existingProfile?.parent_user_id === caller.id) {
           const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
             password: tempPassword,
             email_confirm: true,
