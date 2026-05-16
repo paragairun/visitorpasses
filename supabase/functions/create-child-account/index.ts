@@ -18,6 +18,7 @@ const json = (body: Record<string, unknown>, status = 200) =>
 const businessError = (message: string) => json({ success: false, error: message });
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const normalizeText = (value: string) => value.trim().toLowerCase();
 
 type AuthUser = {
   id: string;
@@ -116,8 +117,6 @@ Deno.serve(async (req) => {
         .limit(1)
         .maybeSingle();
 
-      await adminClient.from("user_roles").upsert({ user_id: newUserId, role: "resident" }, { onConflict: "user_id,role" });
-
       // handle_new_user trigger creates a base profile; update it with relationship + flat
       const profilePayload = {
         user_id: newUserId,
@@ -142,6 +141,11 @@ Deno.serve(async (req) => {
 
       const { error: profileError } = await profileQuery;
       if (profileError) return json({ error: profileError.message }, 400);
+
+      const { error: roleError } = await adminClient
+        .from("user_roles")
+        .upsert({ user_id: newUserId, role: "resident" }, { onConflict: "user_id,role" });
+      if (roleError) return json({ error: roleError.message }, 400);
 
       return json({ success: true, user_id: newUserId, email, temp_password: password });
     };
@@ -170,13 +174,12 @@ Deno.serve(async (req) => {
           adminClient.from("resident_flats").select("id").eq("user_id", existingUser.id).limit(1).maybeSingle(),
         ]);
         const roles = (existingRoles ?? []).map((row) => row.role as string);
-        const hasBlockingRole = roles.some((role) => role !== "resident");
         const metadataName = typeof existingUser.user_metadata?.display_name === "string" ? existingUser.user_metadata.display_name : "";
         const isMatchingUnclaimedAccount = [existingProfile?.display_name, metadataName]
-          .some((name) => normalizeEmail(name ?? "") === normalizeEmail(display_name));
-        const isUnclaimedProfile = !existingProfile?.parent_user_id && !existingProfile?.child_type && !existingFlat;
+          .some((name) => normalizeText(name ?? "") === normalizeText(display_name));
+        const isPartialChildCreation = !existingProfile && roles.length === 0 && !existingFlat;
 
-        if (isUnclaimedProfile && !hasBlockingRole && (isMatchingUnclaimedAccount || !metadataName)) {
+        if (existingProfile?.parent_user_id === caller.id) {
           const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
             password: tempPassword,
             email_confirm: true,
@@ -185,7 +188,7 @@ Deno.serve(async (req) => {
           if (updateErr) return json({ error: updateErr.message }, 400);
           return createChildProfile(existingUser.id, tempPassword);
         }
-        if (existingProfile?.parent_user_id === caller.id) {
+        if (isPartialChildCreation && (isMatchingUnclaimedAccount || !metadataName)) {
           const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
             password: tempPassword,
             email_confirm: true,
@@ -196,7 +199,7 @@ Deno.serve(async (req) => {
         }
         if (existingProfile?.parent_user_id) return businessError("This email is already linked to another primary resident");
 
-        return businessError("This email already belongs to a primary resident or staff account");
+        return businessError("This email is already registered. Please use a new email address for the child account.");
       }
       return json({ error: msg }, 400);
     }
