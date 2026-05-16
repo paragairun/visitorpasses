@@ -13,6 +13,11 @@ const BodySchema = z.object({
   phone: z.string().trim().max(20).optional().nullable(),
 });
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
