@@ -13,6 +13,11 @@ const BodySchema = z.object({
   phone: z.string().trim().max(20).optional().nullable(),
 });
 
+const json = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
@@ -52,9 +57,51 @@ Deno.serve(async (req) => {
     if (!parsed.success) {
       return new Response(JSON.stringify({ error: "Invalid input" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
-    const { email, display_name, child_type, phone } = parsed.data;
+    const { display_name, child_type, phone } = parsed.data;
+    const email = normalizeEmail(parsed.data.email);
 
     const tempPassword = `Triumph${Date.now().toString(36)}!`;
+    const createChildProfile = async (newUserId: string, password: string | null) => {
+      // Pick parent's primary flat to mirror on profile
+      const { data: primaryFlat } = await adminClient
+        .from("resident_flats")
+        .select("wing, flat_number")
+        .eq("user_id", caller.id)
+        .order("is_primary", { ascending: false })
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      await adminClient.from("user_roles").upsert({ user_id: newUserId, role: "resident" }, { onConflict: "user_id,role" });
+
+      // handle_new_user trigger creates a base profile; update it with relationship + flat
+      const profilePayload = {
+        user_id: newUserId,
+        display_name,
+        phone: phone?.trim() || null,
+        parent_user_id: caller.id,
+        child_type,
+        wing: primaryFlat?.wing ?? null,
+        flat_number: primaryFlat?.flat_number ?? null,
+      };
+
+      const { data: existingProfile } = await adminClient
+        .from("profiles").select("id, parent_user_id").eq("user_id", newUserId).maybeSingle();
+
+      if (existingProfile?.parent_user_id && existingProfile.parent_user_id !== caller.id) {
+        return json({ error: "This email is already linked to another primary resident" }, 400);
+      }
+
+      const profileQuery = existingProfile
+        ? adminClient.from("profiles").update(profilePayload).eq("user_id", newUserId)
+        : adminClient.from("profiles").insert(profilePayload);
+
+      const { error: profileError } = await profileQuery;
+      if (profileError) return json({ error: profileError.message }, 400);
+
+      return json({ success: true, user_id: newUserId, email, temp_password: password });
+    };
+
     const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
       email,
       password: tempPassword,
@@ -63,52 +110,56 @@ Deno.serve(async (req) => {
     });
     if (createErr || !created.user) {
       const msg = createErr?.message ?? "Could not create user";
-      const friendly = /already|exists|registered/i.test(msg)
-        ? "An account with this email already exists"
-        : msg;
-      return new Response(JSON.stringify({ error: friendly }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      if (/already|exists|registered|in use/i.test(msg)) {
+        const { data: existingUsers, error: listError } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 10, filter: email });
+        if (listError) return json({ error: listError.message }, 400);
+
+        const existingUser = existingUsers.users.find((u) => normalizeEmail(u.email ?? "") === email);
+        if (!existingUser) return json({ error: "An account with this email already exists" }, 400);
+
+        const { data: existingProfile } = await adminClient
+          .from("profiles")
+          .select("parent_user_id, child_type, display_name, wing, flat_number")
+          .eq("user_id", existingUser.id)
+          .maybeSingle();
+
+        const [{ data: existingRoles }, { data: existingFlat }] = await Promise.all([
+          adminClient.from("user_roles").select("role").eq("user_id", existingUser.id),
+          adminClient.from("resident_flats").select("id").eq("user_id", existingUser.id).limit(1).maybeSingle(),
+        ]);
+        const roles = (existingRoles ?? []).map((row) => row.role as string);
+        const hasBlockingRole = roles.some((role) => role !== "resident");
+        const hasFlatMapping = !!existingFlat || !!existingProfile?.wing || !!existingProfile?.flat_number;
+        const metadataName = typeof existingUser.user_metadata?.display_name === "string" ? existingUser.user_metadata.display_name : "";
+        const isMatchingUnclaimedAccount = [existingProfile?.display_name, metadataName]
+          .some((name) => normalizeEmail(name ?? "") === normalizeEmail(display_name));
+
+        if ((!existingProfile || (!existingProfile.parent_user_id && !existingProfile.child_type)) && !hasBlockingRole && !hasFlatMapping && isMatchingUnclaimedAccount) {
+          const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: { display_name },
+          });
+          if (updateErr) return json({ error: updateErr.message }, 400);
+          return createChildProfile(existingUser.id, tempPassword);
+        }
+        if (existingProfile.parent_user_id === caller.id) {
+          const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
+            password: tempPassword,
+            email_confirm: true,
+            user_metadata: { display_name },
+          });
+          if (updateErr) return json({ error: updateErr.message }, 400);
+          return createChildProfile(existingUser.id, tempPassword);
+        }
+        if (existingProfile.parent_user_id) return json({ error: "This email is already linked to another primary resident" }, 400);
+
+        return json({ error: "This email already belongs to a primary resident or staff account" }, 400);
+      }
+      return json({ error: msg }, 400);
     }
-    const newUserId = created.user.id;
 
-    // Pick parent's primary flat to mirror on profile
-    const { data: primaryFlat } = await adminClient
-      .from("resident_flats")
-      .select("wing, flat_number")
-      .eq("user_id", caller.id)
-      .order("is_primary", { ascending: false })
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    await adminClient.from("user_roles").insert({ user_id: newUserId, role: "resident" });
-
-    // handle_new_user trigger creates a base profile; update it with relationship + flat
-    const profilePayload = {
-      user_id: newUserId,
-      display_name,
-      phone: phone?.trim() || null,
-      parent_user_id: caller.id,
-      child_type,
-      wing: primaryFlat?.wing ?? null,
-      flat_number: primaryFlat?.flat_number ?? null,
-    };
-
-    const { data: existingProfile } = await adminClient
-      .from("profiles").select("id").eq("user_id", newUserId).maybeSingle();
-
-    const profileQuery = existingProfile
-      ? adminClient.from("profiles").update(profilePayload).eq("user_id", newUserId)
-      : adminClient.from("profiles").insert(profilePayload);
-
-    const { error: profileError } = await profileQuery;
-    if (profileError) {
-      return new Response(JSON.stringify({ error: profileError.message }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
-    return new Response(
-      JSON.stringify({ success: true, user_id: newUserId, email, temp_password: tempPassword }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
-    );
+    return createChildProfile(created.user.id, tempPassword);
   } catch (err) {
     return new Response(JSON.stringify({ error: (err as Error).message }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
   }
