@@ -54,12 +54,6 @@ Deno.serve(async (req) => {
     }
     const { email, display_name, child_type, phone } = parsed.data;
 
-    // Reject if email already has an account
-    const { data: existingList } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 200 });
-    if (existingList?.users?.some((u) => (u.email ?? "").toLowerCase() === email.toLowerCase())) {
-      return new Response(JSON.stringify({ error: "An account with this email already exists" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
-    }
-
     const tempPassword = `Triumph${Date.now().toString(36)}!`;
     const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
       email,
@@ -68,7 +62,11 @@ Deno.serve(async (req) => {
       user_metadata: { display_name },
     });
     if (createErr || !created.user) {
-      return new Response(JSON.stringify({ error: createErr?.message ?? "Could not create user" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+      const msg = createErr?.message ?? "Could not create user";
+      const friendly = /already|exists|registered/i.test(msg)
+        ? "An account with this email already exists"
+        : msg;
+      return new Response(JSON.stringify({ error: friendly }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const newUserId = created.user.id;
 
