@@ -15,8 +15,49 @@ const BodySchema = z.object({
 
 const json = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+const businessError = (message: string) => json({ success: false, error: message });
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+
+type AuthUser = {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+};
+
+const findAuthUserByEmail = async (
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  email: string,
+): Promise<{ user: AuthUser | null; error: string | null }> => {
+  const exactEmail = normalizeEmail(email);
+  const pickExact = (users: AuthUser[] = []) => users.find((user) => normalizeEmail(user.email ?? "") === exactEmail) ?? null;
+
+  const fetchUsersPage = async (page: number, withFilter: boolean) => {
+    const filter = withFilter ? `&filter=${encodeURIComponent(exactEmail)}` : "";
+    const response = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=1000${filter}`, {
+      headers: { Authorization: `Bearer ${serviceRoleKey}`, apikey: serviceRoleKey },
+    });
+    if (!response.ok) return { users: [] as AuthUser[], error: await response.text() };
+    const payload = await response.json();
+    return { users: (payload.users ?? []) as AuthUser[], error: null };
+  };
+
+  const filteredPage = await fetchUsersPage(1, true);
+  if (filteredPage.error) return { user: null, error: filteredPage.error };
+  const filteredMatch = pickExact(filteredPage.users);
+  if (filteredMatch) return { user: filteredMatch, error: null };
+
+  for (let page = 1; page <= 100; page += 1) {
+    const pageResult = await fetchUsersPage(page, false);
+    if (pageResult.error) return { user: null, error: pageResult.error };
+    const match = pickExact(pageResult.users);
+    if (match) return { user: match, error: null };
+    if (pageResult.users.length < 1000) break;
+  }
+
+  return { user: null, error: null };
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -92,7 +133,7 @@ Deno.serve(async (req) => {
         .from("profiles").select("id, parent_user_id").eq("user_id", newUserId).maybeSingle();
 
       if (existingProfile?.parent_user_id && existingProfile.parent_user_id !== caller.id) {
-        return json({ error: "This email is already linked to another primary resident" }, 400);
+        return businessError("This email is already linked to another primary resident");
       }
 
       const profileQuery = existingProfile
@@ -114,11 +155,9 @@ Deno.serve(async (req) => {
     if (createErr || !created.user) {
       const msg = createErr?.message ?? "Could not create user";
       if (/already|exists|registered|in use/i.test(msg)) {
-        const { data: existingUsers, error: listError } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 10, filter: email });
-        if (listError) return json({ error: listError.message }, 400);
-
-        const existingUser = existingUsers.users.find((u) => normalizeEmail(u.email ?? "") === email);
-        if (!existingUser) return json({ error: "An account with this email already exists" }, 400);
+        const { user: existingUser, error: lookupError } = await findAuthUserByEmail(supabaseUrl, serviceRoleKey, email);
+        if (lookupError) return businessError(lookupError);
+        if (!existingUser) return businessError("This email already exists, but the account could not be recovered. Please contact support.");
 
         const { data: existingProfile } = await adminClient
           .from("profiles")
@@ -132,12 +171,12 @@ Deno.serve(async (req) => {
         ]);
         const roles = (existingRoles ?? []).map((row) => row.role as string);
         const hasBlockingRole = roles.some((role) => role !== "resident");
-        const hasFlatMapping = !!existingFlat || !!existingProfile?.wing || !!existingProfile?.flat_number;
         const metadataName = typeof existingUser.user_metadata?.display_name === "string" ? existingUser.user_metadata.display_name : "";
         const isMatchingUnclaimedAccount = [existingProfile?.display_name, metadataName]
           .some((name) => normalizeEmail(name ?? "") === normalizeEmail(display_name));
+        const isUnclaimedProfile = !existingProfile?.parent_user_id && !existingProfile?.child_type && !existingFlat;
 
-        if ((!existingProfile || (!existingProfile.parent_user_id && !existingProfile.child_type)) && !hasBlockingRole && !hasFlatMapping && isMatchingUnclaimedAccount) {
+        if (isUnclaimedProfile && !hasBlockingRole && (isMatchingUnclaimedAccount || !metadataName)) {
           const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
             password: tempPassword,
             email_confirm: true,
@@ -146,7 +185,7 @@ Deno.serve(async (req) => {
           if (updateErr) return json({ error: updateErr.message }, 400);
           return createChildProfile(existingUser.id, tempPassword);
         }
-        if (existingProfile.parent_user_id === caller.id) {
+        if (existingProfile?.parent_user_id === caller.id) {
           const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
             password: tempPassword,
             email_confirm: true,
@@ -155,9 +194,9 @@ Deno.serve(async (req) => {
           if (updateErr) return json({ error: updateErr.message }, 400);
           return createChildProfile(existingUser.id, tempPassword);
         }
-        if (existingProfile.parent_user_id) return json({ error: "This email is already linked to another primary resident" }, 400);
+        if (existingProfile?.parent_user_id) return businessError("This email is already linked to another primary resident");
 
-        return json({ error: "This email already belongs to a primary resident or staff account" }, 400);
+        return businessError("This email already belongs to a primary resident or staff account");
       }
       return json({ error: msg }, 400);
     }
