@@ -26,19 +26,12 @@ type AuthUser = {
 };
 
 const findAuthUserByEmail = async (
-  adminClient: ReturnType<typeof createClient>,
   supabaseUrl: string,
   serviceRoleKey: string,
   email: string,
 ): Promise<{ user: AuthUser | null; error: string | null }> => {
   const exactEmail = normalizeEmail(email);
   const pickExact = (users: AuthUser[] = []) => users.find((user) => normalizeEmail(user.email ?? "") === exactEmail) ?? null;
-
-  const { data: filteredList, error: listError } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000, filter: exactEmail });
-  if (!listError) {
-    const match = pickExact(filteredList?.users as AuthUser[] | undefined);
-    if (match) return { user: match, error: null };
-  }
 
   const fetchUsersPage = async (page: number, withFilter: boolean) => {
     const filter = withFilter ? `&filter=${encodeURIComponent(exactEmail)}` : "";
