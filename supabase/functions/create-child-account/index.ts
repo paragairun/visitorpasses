@@ -161,11 +161,9 @@ Deno.serve(async (req) => {
     if (createErr || !created.user) {
       const msg = createErr?.message ?? "Could not create user";
       if (/already|exists|registered|in use/i.test(msg)) {
-        const { data: existingUsers, error: listError } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 10, filter: email });
-        if (listError) return json({ error: listError.message }, 400);
-
-        const existingUser = existingUsers.users.find((u) => normalizeEmail(u.email ?? "") === email);
-        if (!existingUser) return json({ error: "An account with this email already exists" }, 400);
+        const { user: existingUser, error: lookupError } = await findAuthUserByEmail(adminClient, supabaseUrl, serviceRoleKey, email);
+        if (lookupError) return json({ error: lookupError }, 400);
+        if (!existingUser) return json({ error: "This email already exists, but the account could not be recovered. Please contact support." }, 400);
 
         const { data: existingProfile } = await adminClient
           .from("profiles")
@@ -179,12 +177,13 @@ Deno.serve(async (req) => {
         ]);
         const roles = (existingRoles ?? []).map((row) => row.role as string);
         const hasBlockingRole = roles.some((role) => role !== "resident");
-        const hasFlatMapping = !!existingFlat || !!existingProfile?.wing || !!existingProfile?.flat_number;
+        const hasFlatMapping = !!existingFlat;
         const metadataName = typeof existingUser.user_metadata?.display_name === "string" ? existingUser.user_metadata.display_name : "";
         const isMatchingUnclaimedAccount = [existingProfile?.display_name, metadataName]
           .some((name) => normalizeEmail(name ?? "") === normalizeEmail(display_name));
+        const isUnclaimedProfile = !existingProfile?.parent_user_id && !existingProfile?.child_type && !existingFlat;
 
-        if ((!existingProfile || (!existingProfile.parent_user_id && !existingProfile.child_type)) && !hasBlockingRole && !hasFlatMapping && isMatchingUnclaimedAccount) {
+        if (isUnclaimedProfile && !hasBlockingRole && (isMatchingUnclaimedAccount || !metadataName)) {
           const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
             password: tempPassword,
             email_confirm: true,
