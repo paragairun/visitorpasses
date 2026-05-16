@@ -15,6 +15,7 @@ const BodySchema = z.object({
 
 const json = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+const businessError = (message: string) => json({ success: false, error: message });
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
@@ -139,7 +140,7 @@ Deno.serve(async (req) => {
         .from("profiles").select("id, parent_user_id").eq("user_id", newUserId).maybeSingle();
 
       if (existingProfile?.parent_user_id && existingProfile.parent_user_id !== caller.id) {
-        return json({ error: "This email is already linked to another primary resident" }, 400);
+        return businessError("This email is already linked to another primary resident");
       }
 
       const profileQuery = existingProfile
@@ -162,8 +163,8 @@ Deno.serve(async (req) => {
       const msg = createErr?.message ?? "Could not create user";
       if (/already|exists|registered|in use/i.test(msg)) {
         const { user: existingUser, error: lookupError } = await findAuthUserByEmail(adminClient, supabaseUrl, serviceRoleKey, email);
-        if (lookupError) return json({ error: lookupError }, 400);
-        if (!existingUser) return json({ error: "This email already exists, but the account could not be recovered. Please contact support." }, 400);
+        if (lookupError) return businessError(lookupError);
+        if (!existingUser) return businessError("This email already exists, but the account could not be recovered. Please contact support.");
 
         const { data: existingProfile } = await adminClient
           .from("profiles")
@@ -200,9 +201,9 @@ Deno.serve(async (req) => {
           if (updateErr) return json({ error: updateErr.message }, 400);
           return createChildProfile(existingUser.id, tempPassword);
         }
-        if (existingProfile?.parent_user_id) return json({ error: "This email is already linked to another primary resident" }, 400);
+        if (existingProfile?.parent_user_id) return businessError("This email is already linked to another primary resident");
 
-        return json({ error: "This email already belongs to a primary resident or staff account" }, 400);
+        return businessError("This email already belongs to a primary resident or staff account");
       }
       return json({ error: msg }, 400);
     }
