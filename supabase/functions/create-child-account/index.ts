@@ -18,6 +18,53 @@ const json = (body: Record<string, unknown>, status = 200) =>
 
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
 
+type AuthUser = {
+  id: string;
+  email?: string | null;
+  user_metadata?: Record<string, unknown> | null;
+};
+
+const findAuthUserByEmail = async (
+  adminClient: ReturnType<typeof createClient>,
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  email: string,
+): Promise<{ user: AuthUser | null; error: string | null }> => {
+  const exactEmail = normalizeEmail(email);
+  const pickExact = (users: AuthUser[] = []) => users.find((user) => normalizeEmail(user.email ?? "") === exactEmail) ?? null;
+
+  const { data: filteredList, error: listError } = await adminClient.auth.admin.listUsers({ page: 1, perPage: 1000, filter: exactEmail });
+  if (!listError) {
+    const match = pickExact(filteredList?.users as AuthUser[] | undefined);
+    if (match) return { user: match, error: null };
+  }
+
+  const fetchUsersPage = async (page: number, withFilter: boolean) => {
+    const filter = withFilter ? `&filter=${encodeURIComponent(exactEmail)}` : "";
+    const response = await fetch(`${supabaseUrl}/auth/v1/admin/users?page=${page}&per_page=1000${filter}`, {
+      headers: { Authorization: `Bearer ${serviceRoleKey}`, apikey: serviceRoleKey },
+    });
+    if (!response.ok) return { users: [] as AuthUser[], error: await response.text() };
+    const payload = await response.json();
+    return { users: (payload.users ?? []) as AuthUser[], error: null };
+  };
+
+  const filteredPage = await fetchUsersPage(1, true);
+  if (filteredPage.error) return { user: null, error: filteredPage.error };
+  const filteredMatch = pickExact(filteredPage.users);
+  if (filteredMatch) return { user: filteredMatch, error: null };
+
+  for (let page = 1; page <= 100; page += 1) {
+    const pageResult = await fetchUsersPage(page, false);
+    if (pageResult.error) return { user: null, error: pageResult.error };
+    const match = pickExact(pageResult.users);
+    if (match) return { user: match, error: null };
+    if (pageResult.users.length < 1000) break;
+  }
+
+  return { user: null, error: listError?.message ?? null };
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
