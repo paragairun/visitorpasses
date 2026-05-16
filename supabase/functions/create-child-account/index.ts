@@ -119,7 +119,7 @@ Deno.serve(async (req) => {
 
         const { data: existingProfile } = await adminClient
           .from("profiles")
-          .select("parent_user_id, child_type, wing, flat_number")
+          .select("parent_user_id, child_type, display_name, wing, flat_number")
           .eq("user_id", existingUser.id)
           .maybeSingle();
 
@@ -130,8 +130,11 @@ Deno.serve(async (req) => {
         const roles = (existingRoles ?? []).map((row) => row.role as string);
         const hasBlockingRole = roles.some((role) => role !== "resident");
         const hasFlatMapping = !!existingFlat || !!existingProfile?.wing || !!existingProfile?.flat_number;
+        const metadataName = typeof existingUser.user_metadata?.display_name === "string" ? existingUser.user_metadata.display_name : "";
+        const isMatchingUnclaimedAccount = [existingProfile?.display_name, metadataName]
+          .some((name) => normalizeEmail(name ?? "") === normalizeEmail(display_name));
 
-        if (!existingProfile || (!existingProfile.parent_user_id && !existingProfile.child_type && !hasBlockingRole && !hasFlatMapping)) {
+        if ((!existingProfile || (!existingProfile.parent_user_id && !existingProfile.child_type)) && !hasBlockingRole && !hasFlatMapping && isMatchingUnclaimedAccount) {
           const { error: updateErr } = await adminClient.auth.admin.updateUserById(existingUser.id, {
             password: tempPassword,
             email_confirm: true,
