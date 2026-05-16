@@ -177,7 +177,6 @@ Deno.serve(async (req) => {
         ]);
         const roles = (existingRoles ?? []).map((row) => row.role as string);
         const hasBlockingRole = roles.some((role) => role !== "resident");
-        const hasFlatMapping = !!existingFlat;
         const metadataName = typeof existingUser.user_metadata?.display_name === "string" ? existingUser.user_metadata.display_name : "";
         const isMatchingUnclaimedAccount = [existingProfile?.display_name, metadataName]
           .some((name) => normalizeEmail(name ?? "") === normalizeEmail(display_name));
@@ -201,7 +200,7 @@ Deno.serve(async (req) => {
           if (updateErr) return json({ error: updateErr.message }, 400);
           return createChildProfile(existingUser.id, tempPassword);
         }
-        if (existingProfile.parent_user_id) return json({ error: "This email is already linked to another primary resident" }, 400);
+        if (existingProfile?.parent_user_id) return json({ error: "This email is already linked to another primary resident" }, 400);
 
         return json({ error: "This email already belongs to a primary resident or staff account" }, 400);
       }
