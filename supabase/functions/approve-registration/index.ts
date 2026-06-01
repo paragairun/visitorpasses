@@ -95,8 +95,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Approve: create user with a temp password, assign role
-    const tempPassword = `Triumph${Date.now().toString(36)}!`;
+    // Approve: use the password the user chose at registration (fallback to a temp password for legacy requests)
+    const userChosenPassword: string | null =
+      typeof regRequest.password === "string" && regRequest.password.length >= 8
+        ? regRequest.password
+        : null;
+    const tempPassword = userChosenPassword ?? `Triumph${Date.now().toString(36)}!`;
 
     // Check if a user with this email already exists (registered under a different role)
     let existingUserId: string | null = null;
@@ -156,7 +160,8 @@ Deno.serve(async (req) => {
         });
       }
       userId = newUser.user.id;
-      issuedTempPassword = tempPassword;
+      // Only surface the password to the admin if it was an auto-generated fallback
+      issuedTempPassword = userChosenPassword ? null : tempPassword;
     }
 
     const { error: roleError } = await adminClient.from("user_roles").insert({
@@ -200,7 +205,7 @@ Deno.serve(async (req) => {
     // Mark request as approved
     await adminClient
       .from("registration_requests")
-      .update({ status: "approved", reviewed_by: caller.id, reviewed_at: new Date().toISOString() })
+      .update({ status: "approved", reviewed_by: caller.id, reviewed_at: new Date().toISOString(), password: null })
       .eq("id", request_id);
 
     return new Response(

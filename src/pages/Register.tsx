@@ -25,6 +25,8 @@ const Register = () => {
     display_name: "",
     flat_number: "",
     wing: "",
+    password: "",
+    confirm_password: "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -38,6 +40,15 @@ const Register = () => {
       return;
     }
 
+    if (form.password.length < 8) {
+      toast({ title: "Password must be at least 8 characters", variant: "destructive" });
+      return;
+    }
+    if (form.password !== form.confirm_password) {
+      toast({ title: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+
     setIsLoading(true);
     const { error } = await supabase.from("registration_requests").insert({
       email: form.email.trim(),
@@ -45,6 +56,7 @@ const Register = () => {
       requested_role: validRole,
       flat_number: form.flat_number.trim() || null,
       wing: form.wing || null,
+      password: form.password,
     });
     setIsLoading(false);
 
@@ -161,6 +173,27 @@ const Register = () => {
                 </div>
               </div>
             )}
+
+            <div className="space-y-2">
+              <Label>Password *</Label>
+              <Input
+                type="password"
+                placeholder="Min 8 characters"
+                value={form.password}
+                onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                className="touch-target"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm Password *</Label>
+              <Input
+                type="password"
+                placeholder="Re-enter password"
+                value={form.confirm_password}
+                onChange={(e) => setForm((p) => ({ ...p, confirm_password: e.target.value }))}
+                className="touch-target"
+              />
+            </div>
 
             <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold" disabled={isLoading}>
               {isLoading ? "Submitting..." : "Submit Request"}
