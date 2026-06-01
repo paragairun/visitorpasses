@@ -32,13 +32,13 @@ type ResidentOption = { user_id: string; display_name: string; flats: { wing: st
 const NAV: NavItem[] = [
   { id: "stats", title: "Statistics", icon: BarChart3 },
   { id: "register", title: "Register Vehicle", icon: Plus },
-  { id: "registry", title: "Vehicle Registry", icon: Car },
   { id: "bulk-vehicles", title: "Bulk Vehicle Upload", icon: Upload },
   { id: "bulk-residents", title: "Bulk Resident Upload", icon: UserPlus },
-  { id: "reg-requests", title: "Registration Requests", icon: ClipboardCheck },
+  { id: "reg-requests", title: "User Registrations Requests", icon: ClipboardCheck },
   { id: "vehicle-requests", title: "Vehicle Change Requests", icon: FileSpreadsheet },
   { id: "access-logs", title: "Access Logs", icon: ClipboardList },
   { id: "users", title: "User Registry", icon: Users },
+  { id: "registry", title: "Vehicle Registry", icon: Car },
   { id: "visitor-qr", title: "Visitor Form QR", icon: LinkIcon },
 ];
 
