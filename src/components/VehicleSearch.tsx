@@ -10,6 +10,7 @@ interface SearchResult {
   type: "resident" | "guest";
   wing: string;
   flat_number: string;
+  vehicle_number: string;
 }
 
 const normalize = (v: string) =>
@@ -35,17 +36,17 @@ const VehicleSearch = () => {
     const matches: SearchResult[] = [];
 
     (vehiclesRes.data ?? []).forEach((v) => {
-      if (normalize(v.vehicle_number) === norm) {
-        matches.push({ type: "resident", wing: v.wing, flat_number: v.flat_number });
+      if (normalize(v.vehicle_number).includes(norm)) {
+        matches.push({ type: "resident", wing: v.wing, flat_number: v.flat_number, vehicle_number: v.vehicle_number });
       }
     });
 
     (visitorsRes.data ?? [])
       .filter((v) => v.status !== "rejected")
       .forEach((v) => {
-        if (normalize(v.vehicle_number) === norm) {
+        if (normalize(v.vehicle_number).includes(norm)) {
           const parts = v.flat_number.includes("-") ? v.flat_number.split("-") : ["", v.flat_number];
-          matches.push({ type: "guest", wing: parts[0], flat_number: parts.slice(1).join("-") || parts[0] });
+          matches.push({ type: "guest", wing: parts[0], flat_number: parts.slice(1).join("-") || parts[0], vehicle_number: v.vehicle_number });
         }
       });
 
@@ -61,7 +62,7 @@ const VehicleSearch = () => {
           className="flex gap-2"
         >
           <Input
-            placeholder="Search vehicle number…"
+            placeholder="Search vehicle number (partial allowed)…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="flex-1"
@@ -78,7 +79,8 @@ const VehicleSearch = () => {
             results.map((r, i) => (
               <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
                 <div>
-                  <p className="font-bold text-foreground">{r.wing}-{r.flat_number}</p>
+                  <p className="font-bold text-foreground">{r.vehicle_number}</p>
+                  <p className="text-xs text-muted-foreground">{r.wing}-{r.flat_number}</p>
                 </div>
                 <Badge variant={r.type === "resident" ? "default" : "secondary"}>
                   {r.type === "resident" ? "Resident" : "Guest"}
