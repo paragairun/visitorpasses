@@ -134,6 +134,7 @@ export type Database = {
           email: string
           flat_number: string | null
           id: string
+          password: string | null
           requested_role: string
           reviewed_at: string | null
           reviewed_by: string | null
@@ -146,6 +147,7 @@ export type Database = {
           email: string
           flat_number?: string | null
           id?: string
+          password?: string | null
           requested_role: string
           reviewed_at?: string | null
           reviewed_by?: string | null
@@ -158,6 +160,7 @@ export type Database = {
           email?: string
           flat_number?: string | null
           id?: string
+          password?: string | null
           requested_role?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
