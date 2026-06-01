@@ -174,6 +174,27 @@ const Register = () => {
               </div>
             )}
 
+            <div className="space-y-2">
+              <Label>Password *</Label>
+              <Input
+                type="password"
+                placeholder="Min 8 characters"
+                value={form.password}
+                onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                className="touch-target"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Confirm Password *</Label>
+              <Input
+                type="password"
+                placeholder="Re-enter password"
+                value={form.confirm_password}
+                onChange={(e) => setForm((p) => ({ ...p, confirm_password: e.target.value }))}
+                className="touch-target"
+              />
+            </div>
+
             <Button type="submit" size="lg" className="w-full touch-target text-lg font-bold" disabled={isLoading}>
               {isLoading ? "Submitting..." : "Submit Request"}
             </Button>
