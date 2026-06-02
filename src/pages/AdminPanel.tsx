@@ -62,6 +62,7 @@ const AdminPanel = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [vehiclesExpanded, setVehiclesExpanded] = useState(false);
+  const [registrySearchQuery, setRegistrySearchQuery] = useState("");
   const { toast } = useToast();
   const { signOut } = useAuth();
   const navigate = useNavigate();
