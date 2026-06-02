@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, Trash2, Users } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, Trash2, Users, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,6 +44,7 @@ const UserRegistry = () => {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const { toast } = useToast();
 
   const fetchUsers = useCallback(async () => {
@@ -103,13 +105,27 @@ const UserRegistry = () => {
     await fetchUsers();
   };
 
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return users;
+    const q = searchQuery.trim().toLowerCase();
+    return users.filter((u) => {
+      if (u.display_name?.toLowerCase().includes(q)) return true;
+      if (u.email?.toLowerCase().includes(q)) return true;
+      if (u.wing?.toLowerCase().includes(q)) return true;
+      if (u.flat_number?.toLowerCase().includes(q)) return true;
+      if (u.role.toLowerCase().includes(q)) return true;
+      if (u.vehicles.some((v) => v.vehicle_number.toLowerCase().includes(q) || v.vehicle_type.toLowerCase().includes(q))) return true;
+      return false;
+    });
+  }, [users, searchQuery]);
+
   return (
     <Card>
       <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Users className="h-5 w-5 text-primary" />
-            User Registry ({users.length})
+            User Registry ({filteredUsers.length})
           </CardTitle>
           {selected.size > 0 && (
             <AlertDialog>
@@ -136,13 +152,22 @@ const UserRegistry = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, email, role, wing, flat, or vehicle..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         {loading ? (
           <p className="text-sm text-muted-foreground text-center py-4">Loading...</p>
-        ) : users.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No users registered</p>
+        ) : filteredUsers.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-4">No users found</p>
         ) : (
           <div className="space-y-2">
-            {(expanded ? users : users.slice(0, 5)).map((u) => (
+            {(expanded ? filteredUsers : filteredUsers.slice(0, 5)).map((u) => (
               <div key={u.user_id} className="flex items-start gap-3 p-3 rounded-lg bg-secondary/50 border border-border">
                 <Checkbox
                   checked={selected.has(u.user_id)}
@@ -170,7 +195,7 @@ const UserRegistry = () => {
                 </div>
               </div>
             ))}
-            {users.length > 5 && (
+            {filteredUsers.length > 5 && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -180,7 +205,7 @@ const UserRegistry = () => {
                 {expanded ? (
                   <><ChevronUp className="h-4 w-4" /> Show less</>
                 ) : (
-                  <><ChevronDown className="h-4 w-4" /> Show {users.length - 5} more</>
+                  <><ChevronDown className="h-4 w-4" /> Show {filteredUsers.length - 5} more</>
                 )}
               </Button>
             )}
