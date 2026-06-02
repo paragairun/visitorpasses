@@ -145,6 +145,18 @@ const AdminPanel = () => {
     [residents, selectedResidentId],
   );
 
+  const filteredVehicles = useMemo(() => {
+    if (!registrySearchQuery.trim()) return vehicles;
+    const q = registrySearchQuery.trim().toLowerCase();
+    return vehicles.filter((v) =>
+      v.vehicle_number.toLowerCase().includes(q) ||
+      v.owner_name.toLowerCase().includes(q) ||
+      v.wing.toLowerCase().includes(q) ||
+      v.flat_number.toLowerCase().includes(q) ||
+      v.vehicle_type.toLowerCase().includes(q)
+    );
+  }, [vehicles, registrySearchQuery]);
+
   const vehicleBreakdown = useMemo(() => {
     const byType: Record<string, number> = {};
     const byWing: Record<string, number> = {};
