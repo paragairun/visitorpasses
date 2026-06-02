@@ -167,7 +167,7 @@ const RegistrationRequests = () => {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <Clock className="h-5 w-5 text-primary" />
-            User Registrations Requests ({pendingRequests.length} pending)
+            User Registration Requests ({pendingRequests.length} pending)
           </CardTitle>
           {pendingRequests.length > 1 && (
             <Button

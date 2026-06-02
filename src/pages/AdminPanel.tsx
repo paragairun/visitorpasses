@@ -34,7 +34,7 @@ const NAV: NavItem[] = [
   { id: "register", title: "Register Vehicle", icon: Plus },
   { id: "bulk-vehicles", title: "Bulk Vehicle Upload", icon: Upload },
   { id: "bulk-residents", title: "Bulk Resident Upload", icon: UserPlus },
-  { id: "reg-requests", title: "User Registrations Requests", icon: ClipboardCheck },
+  { id: "reg-requests", title: "User Registration Requests", icon: ClipboardCheck },
   { id: "vehicle-requests", title: "Vehicle Change Requests", icon: FileSpreadsheet },
   { id: "access-logs", title: "Access Logs", icon: ClipboardList },
   { id: "users", title: "User Registry", icon: Users },
