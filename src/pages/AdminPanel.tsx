@@ -439,8 +439,8 @@ const AdminPanel = () => {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
-          <CardTitle className="text-lg">Vehicle Registry ({vehicles.length})</CardTitle>
-          {vehicles.length > 0 && (
+          <CardTitle className="text-lg">Vehicle Registry ({filteredVehicles.length})</CardTitle>
+          {filteredVehicles.length > 0 && (
             <div className="flex items-center gap-2">
               <Button variant="outline" size="sm" onClick={toggleSelectAll} className="gap-1 text-xs">
                 <Checkbox checked={allSelected} className="pointer-events-none" />
@@ -456,10 +456,19 @@ const AdminPanel = () => {
         </div>
       </CardHeader>
       <CardContent>
+        <div className="relative mb-3">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by vehicle number, owner, wing, flat, or type..."
+            value={registrySearchQuery}
+            onChange={(e) => setRegistrySearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
         <div className="space-y-2">
-          {vehicles.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No vehicles registered yet</p>
-          ) : (vehiclesExpanded ? vehicles : vehicles.slice(0, 5)).map((v) => (
+          {filteredVehicles.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">No vehicles found</p>
+          ) : (vehiclesExpanded ? filteredVehicles : filteredVehicles.slice(0, 5)).map((v) => (
             <div key={v.id} className="space-y-2">
               <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
                 <Checkbox checked={selectedIds.has(v.id)} onCheckedChange={() => toggleSelect(v.id)} className="shrink-0" />
@@ -481,9 +490,9 @@ const AdminPanel = () => {
               )}
             </div>
           ))}
-          {vehicles.length > 5 && (
+          {filteredVehicles.length > 5 && (
             <Button variant="ghost" size="sm" onClick={() => setVehiclesExpanded((v) => !v)} className="w-full gap-1 text-xs">
-              {vehiclesExpanded ? <><ChevronUp className="h-4 w-4" /> Show less</> : <><ChevronDown className="h-4 w-4" /> Show {vehicles.length - 5} more</>}
+              {vehiclesExpanded ? <><ChevronUp className="h-4 w-4" /> Show less</> : <><ChevronDown className="h-4 w-4" /> Show {filteredVehicles.length - 5} more</>}
             </Button>
           )}
         </div>
