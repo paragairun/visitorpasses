@@ -164,7 +164,7 @@ const Register = () => {
             {showFlatFields && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-2">
-                  <Label>Wing</Label>
+                  <Label>Wing *</Label>
                   <Select value={form.wing} onValueChange={(v) => setForm((p) => ({ ...p, wing: v }))}>
                     <SelectTrigger className="touch-target"><SelectValue placeholder="Wing" /></SelectTrigger>
                     <SelectContent>
@@ -175,7 +175,7 @@ const Register = () => {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label>Flat Number</Label>
+                  <Label>Flat Number *</Label>
                   <Input
                     placeholder="101"
                     value={form.flat_number}
