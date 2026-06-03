@@ -105,20 +105,28 @@ Deno.serve(async (req) => {
     // Check if a user with this email already exists (registered under a different role)
     let existingUserId: string | null = null;
     {
-      const { data: list, error: listErr } = await adminClient.auth.admin.listUsers({
-        page: 1,
-        perPage: 200,
-      });
-      if (listErr) {
-        return new Response(JSON.stringify({ error: listErr.message }), {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+      const targetEmail = regRequest.email.toLowerCase();
+      const perPage = 1000;
+      for (let page = 1; page <= 50; page++) {
+        const { data: list, error: listErr } = await adminClient.auth.admin.listUsers({
+          page,
+          perPage,
         });
+        if (listErr) {
+          return new Response(JSON.stringify({ error: listErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const match = list.users.find(
+          (u) => (u.email ?? "").toLowerCase() === targetEmail
+        );
+        if (match) {
+          existingUserId = match.id;
+          break;
+        }
+        if (list.users.length < perPage) break;
       }
-      const match = list.users.find(
-        (u) => (u.email ?? "").toLowerCase() === regRequest.email.toLowerCase()
-      );
-      if (match) existingUserId = match.id;
     }
 
     let userId: string;
@@ -144,6 +152,19 @@ Deno.serve(async (req) => {
           JSON.stringify({ error: "User is already registered with this role" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+      // If the user supplied a (new) password during this registration, reset it
+      // so the credentials they just chose actually work for the new role login.
+      if (userChosenPassword) {
+        const { error: pwErr } = await adminClient.auth.admin.updateUserById(userId, {
+          password: userChosenPassword,
+        });
+        if (pwErr) {
+          return new Response(JSON.stringify({ error: pwErr.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
       }
     } else {
       const { data: newUser, error: createErr } = await adminClient.auth.admin.createUser({
