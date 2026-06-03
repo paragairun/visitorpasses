@@ -40,6 +40,18 @@ const Register = () => {
       return;
     }
 
+    const normalizedEmail = form.email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(normalizedEmail)) {
+      toast({ title: "Please enter a valid email address", variant: "destructive" });
+      return;
+    }
+
+    if (validRole === "resident" && (!form.wing || !form.flat_number.trim())) {
+      toast({ title: "Wing and Flat Number are required for residents", variant: "destructive" });
+      return;
+    }
+
     if (form.password.length < 8) {
       toast({ title: "Password must be at least 8 characters", variant: "destructive" });
       return;
@@ -51,7 +63,7 @@ const Register = () => {
 
     setIsLoading(true);
     const { error } = await supabase.from("registration_requests").insert({
-      email: form.email.trim(),
+      email: normalizedEmail,
       display_name: form.display_name.trim(),
       requested_role: validRole,
       flat_number: form.flat_number.trim() || null,
