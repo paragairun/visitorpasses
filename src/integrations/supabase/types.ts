@@ -52,6 +52,93 @@ export type Database = {
           },
         ]
       }
+      barrier_devices: {
+        Row: {
+          created_at: string
+          device_token: string
+          direction: string
+          id: string
+          is_active: boolean
+          last_seen_at: string | null
+          location: string | null
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          device_token: string
+          direction: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          location?: string | null
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          device_token?: string
+          direction?: string
+          id?: string
+          is_active?: boolean
+          last_seen_at?: string | null
+          location?: string | null
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      barrier_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          decision: string
+          device_id: string | null
+          entry_log_id: string | null
+          id: string
+          qr_payload: string | null
+          reason: string | null
+          vehicle_number: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          decision: string
+          device_id?: string | null
+          entry_log_id?: string | null
+          id?: string
+          qr_payload?: string | null
+          reason?: string | null
+          vehicle_number?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          decision?: string
+          device_id?: string | null
+          entry_log_id?: string | null
+          id?: string
+          qr_payload?: string | null
+          reason?: string | null
+          vehicle_number?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "barrier_events_device_id_fkey"
+            columns: ["device_id"]
+            isOneToOne: false
+            referencedRelation: "barrier_devices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "barrier_events_entry_log_id_fkey"
+            columns: ["entry_log_id"]
+            isOneToOne: false
+            referencedRelation: "entry_logs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       entry_logs: {
         Row: {
           entry_time: string

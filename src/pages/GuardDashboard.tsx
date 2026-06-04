@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScanLine, Check, X, LogOut, Car, Search, ClipboardList } from "lucide-react";
+import { ScanLine, Check, X, LogOut, Car, Search, ClipboardList, Radio } from "lucide-react";
 import VehicleSearch from "@/components/VehicleSearch";
+import GateActivity from "@/components/GateActivity";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +22,7 @@ const NAV: NavItem[] = [
   { id: "scan", title: "Search & Scan", icon: Search },
   { id: "approvals", title: "Pending Approvals", icon: ClipboardList },
   { id: "live", title: "Live Inside", icon: Car },
+  { id: "barriers", title: "Boom Barriers", icon: Radio },
 ];
 
 const GuardDashboard = () => {
@@ -274,6 +276,7 @@ const GuardDashboard = () => {
       {activeView === "scan" && renderScan()}
       {activeView === "approvals" && renderApprovals()}
       {activeView === "live" && renderLive()}
+      {activeView === "barriers" && <GateActivity />}
       {scanning && <QrScanner onScan={handleScan} onClose={() => setScanning(false)} />}
     </DashboardShell>
   );
