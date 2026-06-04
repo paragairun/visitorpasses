@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
+import BarrierDevicesAdmin from "@/components/BarrierDevicesAdmin";
 import CsvUpload from "@/components/CsvUpload";
 import BulkResidentUpload from "@/components/BulkResidentUpload";
 import AccessLogsViewer from "@/components/AccessLogsViewer";
@@ -40,6 +41,7 @@ const NAV: NavItem[] = [
   { id: "users", title: "User Registry", icon: Users },
   { id: "registry", title: "Vehicle Registry", icon: Car },
   { id: "visitor-qr", title: "Visitor Form QR", icon: LinkIcon },
+  { id: "barriers", title: "Boom Barriers", icon: Radio },
 ];
 
 const AdminPanel = () => {
@@ -536,6 +538,7 @@ const AdminPanel = () => {
       {activeView === "access-logs" && <AccessLogsViewer />}
       {activeView === "users" && <UserRegistry />}
       {activeView === "visitor-qr" && renderVisitorQr()}
+      {activeView === "barriers" && <BarrierDevicesAdmin />}
     </DashboardShell>
   );
 };
