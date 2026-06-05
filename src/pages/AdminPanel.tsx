@@ -475,6 +475,9 @@ const AdminPanel = () => {
           <CardTitle className="text-lg">Vehicle Registry ({filteredVehicles.length})</CardTitle>
           {filteredVehicles.length > 0 && (
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => void downloadRegistry()} className="gap-1 text-xs">
+                <Download className="h-4 w-4" /> Download
+              </Button>
               <Button variant="outline" size="sm" onClick={toggleSelectAll} className="gap-1 text-xs">
                 <Checkbox checked={allSelected} className="pointer-events-none" />
                 {allSelected ? "Deselect All" : "Select All"}
