@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import BarrierDevicesAdmin from "@/components/BarrierDevicesAdmin";
 import CsvUpload from "@/components/CsvUpload";
@@ -437,6 +437,37 @@ const AdminPanel = () => {
     </Card>
   );
 
+  const downloadRegistry = () => {
+    const headers = ["Vehicle Number", "Owner Name", "Wing", "Flat Number", "Vehicle Type", "QR Code", "Registered At"];
+    const rows = vehicles.map((v) => [
+      v.vehicle_number,
+      v.owner_name,
+      v.wing,
+      v.flat_number,
+      v.vehicle_type,
+      v.qr_code,
+      new Date(v.created_at).toLocaleString(),
+    ]);
+    const escapeCsv = (value: string) => {
+      const str = String(value);
+      if (str.includes('"') || str.includes(",") || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+    const csv = [headers.join(","), ...rows.map((r) => r.map(escapeCsv).join(","))].join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `vehicle-registry-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Download started", description: `${vehicles.length} vehicles exported.` });
+  };
+
   const renderRegistry = () => (
     <Card>
       <CardHeader className="pb-3">
@@ -444,6 +475,9 @@ const AdminPanel = () => {
           <CardTitle className="text-lg">Vehicle Registry ({filteredVehicles.length})</CardTitle>
           {filteredVehicles.length > 0 && (
             <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => void downloadRegistry()} className="gap-1 text-xs">
+                <Download className="h-4 w-4" /> Download
+              </Button>
               <Button variant="outline" size="sm" onClick={toggleSelectAll} className="gap-1 text-xs">
                 <Checkbox checked={allSelected} className="pointer-events-none" />
                 {allSelected ? "Deselect All" : "Select All"}
