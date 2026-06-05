@@ -15,6 +15,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export interface NavItem {
   id: string;
@@ -125,6 +126,7 @@ const DashboardShell = ({
               </h1>
             </div>
             {headerExtra}
+            <ThemeToggle />
             <Button
               variant="ghost"
               size="icon"
