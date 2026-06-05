@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Shield, ScanLine, ClipboardList, Car, QrCode, Lock, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const roleCards = [
   {
@@ -52,6 +53,9 @@ const Index = () => (
     {/* Hero */}
     <section className="relative overflow-hidden border-b border-border">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent pointer-events-none" />
+      <div className="absolute top-3 right-3 z-10">
+        <ThemeToggle />
+      </div>
       <div className="relative max-w-5xl mx-auto px-4 py-16 sm:py-24 text-center">
         <div className="mx-auto h-20 w-20 rounded-2xl bg-primary/15 flex items-center justify-center mb-6">
           <Car className="h-10 w-10 text-primary" />
