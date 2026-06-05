@@ -437,6 +437,37 @@ const AdminPanel = () => {
     </Card>
   );
 
+  const downloadRegistry = () => {
+    const headers = ["Vehicle Number", "Owner Name", "Wing", "Flat Number", "Vehicle Type", "QR Code", "Registered At"];
+    const rows = vehicles.map((v) => [
+      v.vehicle_number,
+      v.owner_name,
+      v.wing,
+      v.flat_number,
+      v.vehicle_type,
+      v.qr_code,
+      new Date(v.created_at).toLocaleString(),
+    ]);
+    const escapeCsv = (value: string) => {
+      const str = String(value);
+      if (str.includes('"') || str.includes(",") || str.includes("\n")) {
+        return `"${str.replace(/"/g, '""')}"`;
+      }
+      return str;
+    };
+    const csv = [headers.join(","), ...rows.map((r) => r.map(escapeCsv).join(","))].join("\n");
+    const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `vehicle-registry-${new Date().toISOString().split("T")[0]}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast({ title: "Download started", description: `${vehicles.length} vehicles exported.` });
+  };
+
   const renderRegistry = () => (
     <Card>
       <CardHeader className="pb-3">
