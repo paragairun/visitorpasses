@@ -18,7 +18,10 @@ interface QrGeneratorProps {
 }
 
 const GOLD = "#C9A227";
-const BG = "#0F121C";
+const DARK = "#0F121C";
+const BG = GOLD;
+const FG = DARK;
+const TEXT = "#000000";
 
 const MANDLIK_WINGS = new Set(["A", "B", "C", "D", "E", "F"]);
 const headerForWing = (wing?: string) =>
@@ -40,7 +43,7 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
         width: size,
         margin: 2,
         errorCorrectionLevel: "H",
-        color: { dark: GOLD, light: BG },
+        color: { dark: FG, light: BG },
       });
       const qw = qrCanvas.width;
       const qh = qrCanvas.height;
@@ -52,7 +55,7 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
       const clear = Math.round(qw * 0.13);
       qctx.fillStyle = BG;
       qctx.fillRect(cx - clear, cy - clear, clear * 2, clear * 2);
-      qctx.fillStyle = GOLD;
+      qctx.fillStyle = FG;
       qctx.font = `700 ${Math.round(clear * 1.3)}px "Philosopher", serif`;
       qctx.textAlign = "center";
       qctx.textBaseline = "middle";
@@ -71,14 +74,14 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
       ctx.fillRect(0, 0, W, H);
 
       // Header
-      ctx.fillStyle = GOLD;
+      ctx.fillStyle = TEXT;
       ctx.font = `700 56px "Philosopher", serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
       ctx.fillText(headerText, W / 2, 80);
 
       // Divider
-      ctx.strokeStyle = GOLD;
+      ctx.strokeStyle = TEXT;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(padX, headerH - 10);
@@ -91,6 +94,7 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
       // Footer line 1: continuous solid lines spanning QR width with EXCLUSIVE centered
       ctx.font = `600 20px "Montserrat", sans-serif`;
       ctx.textBaseline = "middle";
+      ctx.fillStyle = TEXT;
       const label1 = "EXCLUSIVE";
       const labelGap = 16; // px gap between text and lines on each side
       const labelW = ctx.measureText(label1).width;
@@ -100,7 +104,7 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
       const lineLeftEnd = W / 2 - labelW / 2 - labelGap;
       const lineRightStart = W / 2 + labelW / 2 + labelGap;
       const lineRightEnd = W - padX;
-      ctx.strokeStyle = GOLD;
+      ctx.strokeStyle = TEXT;
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(lineLeftStart, fy1);
