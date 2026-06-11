@@ -13,6 +13,8 @@ import ResidentPortal from "./pages/ResidentPortal";
 import AdminLogin from "./pages/AdminLogin";
 import AdminPanel from "./pages/AdminPanel";
 import Register from "./pages/Register";
+import SocietyRegister from "./pages/SocietyRegister";
+import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
@@ -30,8 +32,12 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/register-society" element={<SocietyRegister />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            
+
+            {/* Super admin */}
+            <Route path="/super-admin" element={<SuperAdminDashboard />} />
+
             {/* Guard */}
             <Route path="/guard" element={<GuardLogin />} />
             <Route path="/guard/dashboard" element={
