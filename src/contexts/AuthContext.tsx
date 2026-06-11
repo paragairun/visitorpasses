@@ -10,16 +10,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
+  const [societyId, setSocietyId] = useState<string | null>(null);
+  const [societyName, setSocietyName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const latestRoleRequestFor = useRef<string | null>(null);
 
-  const fetchRoles = async (userId: string): Promise<AppRole[]> => {
-    const { data } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", userId);
+  const fetchRolesAndSociety = async (userId: string) => {
+    const [{ data: roleData }, { data: profileData }] = await Promise.all([
+      supabase.from("user_roles").select("role").eq("user_id", userId),
+      supabase.from("profiles").select("society_id").eq("user_id", userId).maybeSingle(),
+    ]);
 
-    return (data ?? []).map((r) => r.role as AppRole);
+    const nextRoles = (roleData ?? []).map((r) => r.role as AppRole);
+    const nextSocietyId = profileData?.society_id ?? null;
+
+    let nextSocietyName: string | null = null;
+    if (nextSocietyId) {
+      const { data: soc } = await supabase
+        .from("societies")
+        .select("name")
+        .eq("id", nextSocietyId)
+        .maybeSingle();
+      nextSocietyName = soc?.name ?? null;
+    }
+
+    return { nextRoles, nextSocietyId, nextSocietyName };
   };
 
   const currentUserIdRef = useRef<string | null>(null);
@@ -31,12 +46,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(nextSession);
     setUser(nextSession?.user ?? null);
 
-    // If the user hasn't changed (e.g. token refresh on tab focus),
-    // don't reset role/loading state — that would cause dashboards to
-    // flash their loading UI and re-fetch data unnecessarily.
-    if (sameUser) {
-      return;
-    }
+    if (sameUser) return;
 
     currentUserIdRef.current = nextUserId;
     latestRoleRequestFor.current = nextUserId;
@@ -44,15 +54,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (!nextUserId) {
       setRole(null);
       setRoles([]);
+      setSocietyId(null);
+      setSocietyName(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    void fetchRoles(nextUserId).then((nextRoles) => {
+    void fetchRolesAndSociety(nextUserId).then(({ nextRoles, nextSocietyId, nextSocietyName }) => {
       if (latestRoleRequestFor.current === nextUserId) {
         setRoles(nextRoles);
         setRole(nextRoles[0] ?? null);
+        setSocietyId(nextSocietyId);
+        setSocietyName(nextSocietyName);
         setLoading(false);
       }
     });
@@ -74,11 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-
-    if (!error) {
-      syncAuthState(data.session);
-    }
-
+    if (!error) syncAuthState(data.session);
     return { error: error?.message ?? null };
   };
 
@@ -88,7 +98,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       password,
       options: { data: { display_name: displayName } },
     });
-
     return { error: error?.message ?? null };
   };
 
@@ -100,11 +109,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     setRole(null);
     setRoles([]);
+    setSocietyId(null);
+    setSocietyName(null);
     setLoading(false);
   };
 
   return (
-    <AuthContext.Provider value={{ session, user, role, roles, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{ session, user, role, roles, societyId, societyName, loading, signIn, signUp, signOut }}
+    >
       {children}
     </AuthContext.Provider>
   );

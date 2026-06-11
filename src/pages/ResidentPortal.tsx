@@ -82,7 +82,7 @@ const ResidentPortal = () => {
   const [issuedChildCred, setIssuedChildCred] = useState<{ email: string; password: string } | null>(null);
   const [removeChildTarget, setRemoveChildTarget] = useState<ChildAccount | null>(null);
   const { toast } = useToast();
-  const { signOut, user } = useAuth();
+  const { signOut, user, societyId } = useAuth();
   const navigate = useNavigate();
 
   const activeFlat = useMemo(() => flats.find((f) => f.id === activeFlatId) ?? flats[0], [flats, activeFlatId]);
@@ -225,8 +225,9 @@ const ResidentPortal = () => {
     const wing = newFlat.wing.trim().toUpperCase();
     const flat_number = newFlat.flat_number.trim().toUpperCase();
     if (!wing || !flat_number) { toast({ title: "Wing and flat number required", variant: "destructive" }); return; }
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
     setAddingFlat(true);
-    const { error } = await supabase.from("resident_flats").insert({ user_id: user.id, wing, flat_number, is_primary: flats.length === 0 });
+    const { error } = await supabase.from("resident_flats").insert({ user_id: user.id, wing, flat_number, is_primary: flats.length === 0, society_id: societyId });
     setAddingFlat(false);
     if (error) { toast({ title: "Could not add flat", description: error.message, variant: "destructive" }); return; }
     setNewFlat({ wing: "", flat_number: "" });
@@ -271,11 +272,13 @@ const ResidentPortal = () => {
     const ownerName = (profileForm.display_name || resident?.owner_name || "").trim();
     if (!vehicleReqForm.vehicle_number.trim()) { toast({ title: "Vehicle number is required", variant: "destructive" }); return; }
     if (!ownerName) { toast({ title: "Set your profile name first", variant: "destructive" }); return; }
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
     setSubmittingVehicleReq(true);
     const { error } = await supabase.from("vehicle_change_requests").insert({
       request_type: "add", requested_by: user.id, wing: activeFlat.wing, flat_number: activeFlat.flat_number,
       owner_name: ownerName, vehicle_number: vehicleReqForm.vehicle_number.trim().toUpperCase(),
       vehicle_type: vehicleReqForm.vehicle_type,
+      society_id: societyId,
     });
     setSubmittingVehicleReq(false);
     if (error) { toast({ title: "Could not submit request", description: error.message, variant: "destructive" }); return; }
@@ -286,11 +289,13 @@ const ResidentPortal = () => {
 
   const submitRemoveRequest = async () => {
     if (!resident || !user || !removeTarget) return;
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
     setRemovingId(removeTarget.id);
     const { error } = await supabase.from("vehicle_change_requests").insert({
       request_type: "remove", requested_by: user.id, wing: removeTarget.wing, flat_number: removeTarget.flat_number,
       owner_name: removeTarget.owner_name, vehicle_number: removeTarget.vehicle_number,
       vehicle_type: removeTarget.vehicle_type, target_vehicle_id: removeTarget.id,
+      society_id: societyId,
     });
     setRemovingId(null); setRemoveTarget(null);
     if (error) { toast({ title: "Could not submit request", description: error.message, variant: "destructive" }); return; }

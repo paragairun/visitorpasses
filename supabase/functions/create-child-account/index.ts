@@ -90,13 +90,14 @@ Deno.serve(async (req) => {
 
     const { data: callerProfile } = await adminClient
       .from("profiles")
-      .select("parent_user_id, display_name")
+      .select("parent_user_id, display_name, society_id")
       .eq("user_id", caller.id)
       .maybeSingle();
 
     if (!callerProfile || callerProfile.parent_user_id !== null) {
       return new Response(JSON.stringify({ error: "Only primary residents can add child accounts" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
+    const parentSocietyId = callerProfile.society_id;
 
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) {
@@ -126,6 +127,7 @@ Deno.serve(async (req) => {
         child_type,
         wing: primaryFlat?.wing ?? null,
         flat_number: primaryFlat?.flat_number ?? null,
+        society_id: parentSocietyId,
       };
 
       const { data: existingProfile } = await adminClient
@@ -144,7 +146,7 @@ Deno.serve(async (req) => {
 
       const { error: roleError } = await adminClient
         .from("user_roles")
-        .upsert({ user_id: newUserId, role: "resident" }, { onConflict: "user_id,role" });
+        .upsert({ user_id: newUserId, role: "resident", society_id: parentSocietyId }, { onConflict: "user_id,role" });
       if (roleError) return json({ error: roleError.message }, 400);
 
       return json({ success: true, user_id: newUserId, email, temp_password: password });

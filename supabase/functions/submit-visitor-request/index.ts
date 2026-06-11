@@ -12,6 +12,7 @@ const BodySchema = z.object({
   vehicle_number: z.string().trim().min(3).max(30),
   purpose: z.string().trim().max(100).nullable().optional(),
   flat_number: z.string().trim().min(1).max(20),
+  society_id: z.string().uuid(),
 });
 
 Deno.serve(async (req) => {
@@ -34,7 +35,7 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
     );
 
-    const { visitor_name, phone, vehicle_number, purpose, flat_number } = parsedBody.data;
+    const { visitor_name, phone, vehicle_number, purpose, flat_number, society_id } = parsedBody.data;
 
     const { error } = await adminClient.from("visitor_requests").insert({
       visitor_name,
@@ -43,6 +44,7 @@ Deno.serve(async (req) => {
       purpose: purpose || null,
       flat_number: flat_number.toUpperCase(),
       status: "pending",
+      society_id,
     });
 
     if (error) {

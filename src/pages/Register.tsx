@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,16 +15,23 @@ const ROLE_LABELS: Record<string, string> = {
   admin: "Committee Admin",
 };
 
+interface SocietyOption {
+  id: string;
+  name: string;
+}
+
 const Register = () => {
   const [searchParams] = useSearchParams();
   const roleFromUrl = searchParams.get("role") || "";
   const validRole = ["guard", "resident", "admin"].includes(roleFromUrl) ? roleFromUrl : "";
 
+  const [societies, setSocieties] = useState<SocietyOption[]>([]);
   const [form, setForm] = useState({
     email: "",
     display_name: "",
     flat_number: "",
     wing: "",
+    society_id: "",
     password: "",
     confirm_password: "",
   });
@@ -32,11 +39,20 @@ const Register = () => {
   const [submitted, setSubmitted] = useState(false);
   const { toast } = useToast();
 
+  useEffect(() => {
+    void supabase
+      .from("societies")
+      .select("id, name")
+      .eq("status", "active")
+      .order("name")
+      .then(({ data }) => setSocieties((data ?? []) as SocietyOption[]));
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.email || !form.display_name || !validRole) {
-      toast({ title: "Please fill all required fields", variant: "destructive" });
+    if (!form.email || !form.display_name || !validRole || !form.society_id) {
+      toast({ title: "Please fill all required fields, including society", variant: "destructive" });
       return;
     }
 
@@ -69,6 +85,7 @@ const Register = () => {
       flat_number: form.flat_number.trim() || null,
       wing: form.wing || null,
       password: form.password,
+      society_id: form.society_id,
     });
     setIsLoading(false);
 
@@ -136,11 +153,29 @@ const Register = () => {
           </div>
           <CardTitle className="text-xl">Register as {ROLE_LABELS[validRole]}</CardTitle>
           <p className="text-muted-foreground text-sm">
-            Triumph Tower CHSL — Submit a registration request
+            Submit a registration request to your society admin
           </p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label>Society *</Label>
+              <Select value={form.society_id} onValueChange={(v) => setForm((p) => ({ ...p, society_id: v }))}>
+                <SelectTrigger className="touch-target"><SelectValue placeholder="Select your society" /></SelectTrigger>
+                <SelectContent>
+                  {societies.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {societies.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  No societies available.{" "}
+                  <Link to="/register-society" className="text-primary hover:underline">Register a new society</Link>
+                </p>
+              )}
+            </div>
+
             <div className="space-y-2">
               <Label>Full Name *</Label>
               <Input

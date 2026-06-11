@@ -17,6 +17,7 @@ import {
 import StatusBadge from "@/components/StatusBadge";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 
@@ -28,6 +29,7 @@ interface Props {
 
 const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
   const { toast } = useToast();
+  const { societyId } = useAuth();
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<ChangeRequest | null>(null);
@@ -96,6 +98,7 @@ const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
         });
         return;
       }
+      if (!societyId) { setBusy(false); toast({ title: "Society not loaded", variant: "destructive" }); return; }
       const qr = createOpaqueVehicleQrCode();
       const { error: insertErr } = await supabase.from("vehicles").insert({
         owner_name: form.owner_name.trim(),
@@ -104,6 +107,7 @@ const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
         wing: form.wing,
         flat_number: form.flat_number.trim(),
         qr_code: qr,
+        society_id: societyId,
       });
       if (insertErr) {
         setBusy(false);

@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Car, Send, CheckCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
+import { Car, Send, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,28 +9,44 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+interface SocietyOption { id: string; name: string; }
+
 const VisitorForm = () => {
+  const [searchParams] = useSearchParams();
+  const urlSociety = searchParams.get("s") || "";
+
+  const [societies, setSocieties] = useState<SocietyOption[]>([]);
+  const [societyId, setSocietyId] = useState<string>(urlSociety);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
-    name: "",
-    phone: "",
-    vehicle_number: "",
-    purpose: "",
-    flat_number: "",
+    name: "", phone: "", vehicle_number: "", purpose: "", flat_number: "",
   });
   const { toast } = useToast();
 
+  useEffect(() => {
+    void supabase
+      .from("societies")
+      .select("id, name")
+      .eq("status", "active")
+      .order("name")
+      .then(({ data }) => setSocieties((data ?? []) as SocietyOption[]));
+  }, []);
+
+  const society = societies.find((s) => s.id === societyId);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
+    if (!societyId) {
+      toast({ title: "Please select a society", variant: "destructive" });
+      return;
+    }
     if (!form.name || !form.phone || !form.vehicle_number || !form.flat_number) {
       toast({ title: "Please fill all required fields", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
-
     const { data, error } = await supabase.functions.invoke("submit-visitor-request", {
       body: {
         visitor_name: form.name.trim(),
@@ -37,9 +54,9 @@ const VisitorForm = () => {
         vehicle_number: form.vehicle_number.trim().toUpperCase(),
         purpose: form.purpose || null,
         flat_number: form.flat_number.trim().toUpperCase(),
+        society_id: societyId,
       },
     });
-
     setIsSubmitting(false);
 
     if (error || data?.error) {
@@ -81,11 +98,24 @@ const VisitorForm = () => {
           <div className="mx-auto h-14 w-14 rounded-full bg-primary/20 flex items-center justify-center mb-2">
             <Car className="h-7 w-7 text-primary" />
           </div>
-          <CardTitle className="text-xl">Triumph Tower CHSL</CardTitle>
+          <CardTitle className="text-xl">{society?.name ?? "Visitor Entry"}</CardTitle>
           <p className="text-muted-foreground text-sm">Visitor Entry Registration</p>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {!urlSociety && (
+              <div className="space-y-2">
+                <Label>Society *</Label>
+                <Select value={societyId} onValueChange={setSocietyId}>
+                  <SelectTrigger className="touch-target"><SelectValue placeholder="Select society you are visiting" /></SelectTrigger>
+                  <SelectContent>
+                    {societies.map((s) => (
+                      <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="name">Your Name *</Label>
               <Input id="name" placeholder="Enter your full name" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} className="touch-target" />
@@ -121,6 +151,9 @@ const VisitorForm = () => {
               <Send className="h-5 w-5" />
               {isSubmitting ? "Submitting..." : "Submit Entry Request"}
             </Button>
+            <p className="text-center text-xs text-muted-foreground">
+              <Link to="/" className="hover:underline">← Back to home</Link>
+            </p>
           </form>
         </CardContent>
       </Card>

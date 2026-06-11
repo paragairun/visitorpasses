@@ -66,7 +66,7 @@ const AdminPanel = () => {
   const [vehiclesExpanded, setVehiclesExpanded] = useState(false);
   const [registrySearchQuery, setRegistrySearchQuery] = useState("");
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { signOut, societyId, societyName } = useAuth();
   const navigate = useNavigate();
   const handleSignOut = async () => { await signOut(); navigate("/admin", { replace: true }); };
 
@@ -191,11 +191,13 @@ const AdminPanel = () => {
       toast({ title: "Duplicate vehicle", description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${dup.wing}-${dup.flat_number}).`, variant: "destructive" });
       return;
     }
+    if (!societyId) { setSavingVehicle(false); toast({ title: "Society not loaded", variant: "destructive" }); return; }
     const qr = createOpaqueVehicleQrCode();
     const { data, error } = await supabase.from("vehicles").insert({
       flat_number: newVehicle.flat_number.trim(), wing: newVehicle.wing,
       vehicle_number: newVehicle.vehicle_number.trim().toUpperCase(),
       vehicle_type: newVehicle.vehicle_type, owner_name: newVehicle.owner_name.trim(), qr_code: qr,
+      society_id: societyId,
     }).select("*").single();
     setSavingVehicle(false);
     if (error) {
@@ -546,7 +548,7 @@ const AdminPanel = () => {
       <CardContent>
         <p className="text-sm text-muted-foreground mb-3 text-center">Visitors can scan this QR to open the entry form.</p>
         <div className="flex justify-center">
-          <QrGenerator value={`${window.location.origin}/visitor/form`} label="Visitor Form" size={400} />
+          <QrGenerator value={`${window.location.origin}/visitor/form?s=${societyId ?? ""}`} label="Visitor Form" size={400} />
         </div>
       </CardContent>
     </Card>
@@ -555,7 +557,7 @@ const AdminPanel = () => {
   return (
     <DashboardShell
       brandTitle="Admin Panel"
-      brandSubtitle="Triumph Tower CHSL"
+      brandSubtitle={societyName ?? "Your Society"}
       groupLabel="Management"
       items={NAV}
       activeId={activeView}

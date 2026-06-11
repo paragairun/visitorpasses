@@ -11,7 +11,7 @@ type Device = Tables<"barrier_devices">;
 type Event = Tables<"barrier_events">;
 
 const GateActivity = () => {
-  const { user } = useAuth();
+  const { user, societyId } = useAuth();
   const { toast } = useToast();
   const [devices, setDevices] = useState<Device[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
@@ -36,12 +36,14 @@ const GateActivity = () => {
   }, [load]);
 
   const override = async (device: Device, decision: "manual_open" | "manual_close") => {
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
     setBusy(device.id);
     const { error } = await supabase.from("barrier_events").insert({
       device_id: device.id,
       decision,
       reason: "guard_override",
       actor_user_id: user?.id ?? null,
+      society_id: societyId,
     });
     setBusy(null);
     if (error) { toast({ title: "Override failed", description: error.message, variant: "destructive" }); return; }

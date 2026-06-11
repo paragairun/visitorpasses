@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 
 interface ParsedRow {
@@ -22,6 +23,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [errors, setErrors] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
+  const { societyId } = useAuth();
 
   const parseCSV = (text: string): { parsed: ParsedRow[]; errs: string[] } => {
     const lines = text.trim().split(/\r?\n/);
@@ -76,6 +78,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
 
   const handleUpload = async () => {
     if (!rows.length) return;
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
     setUploading(true);
 
     const normalize = (v: string) => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -91,7 +94,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
       if (count > 1) inFileDups.push(k);
     });
 
-    // Detect duplicates against the database
+    // Detect duplicates against the database (already society-scoped via RLS)
     const { data: existing } = await supabase.from("vehicles").select("vehicle_number");
     const existingSet = new Set((existing ?? []).map((v) => normalize(v.vehicle_number)));
     const dbDups = rows.filter((r) => existingSet.has(normalize(r.vehicle_number))).map((r) => r.vehicle_number);
@@ -109,6 +112,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
     const vehiclesWithQr = rows.map((r) => ({
       ...r,
       qr_code: createOpaqueVehicleQrCode(),
+      society_id: societyId,
     }));
 
     const { error } = await supabase.from("vehicles").insert(vehiclesWithQr);

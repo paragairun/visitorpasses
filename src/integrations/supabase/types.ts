@@ -20,6 +20,7 @@ export type Database = {
           created_at: string
           id: string
           logged_by: string | null
+          society_id: string
           status: string
           timestamp: string
           vehicle_id: string
@@ -29,6 +30,7 @@ export type Database = {
           created_at?: string
           id?: string
           logged_by?: string | null
+          society_id: string
           status?: string
           timestamp?: string
           vehicle_id: string
@@ -38,11 +40,19 @@ export type Database = {
           created_at?: string
           id?: string
           logged_by?: string | null
+          society_id?: string
           status?: string
           timestamp?: string
           vehicle_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "access_logs_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "access_logs_vehicle_id_fkey"
             columns: ["vehicle_id"]
@@ -62,6 +72,7 @@ export type Database = {
           last_seen_at: string | null
           location: string | null
           name: string
+          society_id: string
           updated_at: string
         }
         Insert: {
@@ -73,6 +84,7 @@ export type Database = {
           last_seen_at?: string | null
           location?: string | null
           name: string
+          society_id: string
           updated_at?: string
         }
         Update: {
@@ -84,9 +96,18 @@ export type Database = {
           last_seen_at?: string | null
           location?: string | null
           name?: string
+          society_id?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "barrier_devices_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       barrier_events: {
         Row: {
@@ -98,6 +119,7 @@ export type Database = {
           id: string
           qr_payload: string | null
           reason: string | null
+          society_id: string
           vehicle_number: string | null
         }
         Insert: {
@@ -109,6 +131,7 @@ export type Database = {
           id?: string
           qr_payload?: string | null
           reason?: string | null
+          society_id: string
           vehicle_number?: string | null
         }
         Update: {
@@ -120,6 +143,7 @@ export type Database = {
           id?: string
           qr_payload?: string | null
           reason?: string | null
+          society_id?: string
           vehicle_number?: string | null
         }
         Relationships: [
@@ -137,6 +161,13 @@ export type Database = {
             referencedRelation: "entry_logs"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "barrier_events_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
         ]
       }
       entry_logs: {
@@ -148,6 +179,7 @@ export type Database = {
           id: string
           logged_by: string | null
           owner_name: string
+          society_id: string
           vehicle_number: string
           wing: string | null
         }
@@ -159,6 +191,7 @@ export type Database = {
           id?: string
           logged_by?: string | null
           owner_name: string
+          society_id: string
           vehicle_number: string
           wing?: string | null
         }
@@ -170,10 +203,19 @@ export type Database = {
           id?: string
           logged_by?: string | null
           owner_name?: string
+          society_id?: string
           vehicle_number?: string
           wing?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "entry_logs_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -184,6 +226,7 @@ export type Database = {
           id: string
           parent_user_id: string | null
           phone: string | null
+          society_id: string | null
           updated_at: string
           user_id: string
           wing: string | null
@@ -196,6 +239,7 @@ export type Database = {
           id?: string
           parent_user_id?: string | null
           phone?: string | null
+          society_id?: string | null
           updated_at?: string
           user_id: string
           wing?: string | null
@@ -208,11 +252,20 @@ export type Database = {
           id?: string
           parent_user_id?: string | null
           phone?: string | null
+          society_id?: string | null
           updated_at?: string
           user_id?: string
           wing?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "profiles_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       registration_requests: {
         Row: {
@@ -225,6 +278,7 @@ export type Database = {
           requested_role: string
           reviewed_at: string | null
           reviewed_by: string | null
+          society_id: string
           status: string
           wing: string | null
         }
@@ -238,6 +292,7 @@ export type Database = {
           requested_role: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          society_id: string
           status?: string
           wing?: string | null
         }
@@ -251,10 +306,19 @@ export type Database = {
           requested_role?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          society_id?: string
           status?: string
           wing?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "registration_requests_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resident_flats: {
         Row: {
@@ -262,6 +326,7 @@ export type Database = {
           flat_number: string
           id: string
           is_primary: boolean
+          society_id: string
           user_id: string
           wing: string
         }
@@ -270,6 +335,7 @@ export type Database = {
           flat_number: string
           id?: string
           is_primary?: boolean
+          society_id: string
           user_id: string
           wing: string
         }
@@ -278,28 +344,164 @@ export type Database = {
           flat_number?: string
           id?: string
           is_primary?: boolean
+          society_id?: string
           user_id?: string
           wing?: string
         }
+        Relationships: [
+          {
+            foreignKeyName: "resident_flats_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      societies: {
+        Row: {
+          address_line: string
+          city: string
+          country: string
+          created_at: string
+          id: string
+          landmark: string | null
+          name: string
+          pin_code: string
+          state: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address_line: string
+          city: string
+          country?: string
+          created_at?: string
+          id?: string
+          landmark?: string | null
+          name: string
+          pin_code: string
+          state: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address_line?: string
+          city?: string
+          country?: string
+          created_at?: string
+          id?: string
+          landmark?: string | null
+          name?: string
+          pin_code?: string
+          state?: string
+          status?: string
+          updated_at?: string
+        }
         Relationships: []
+      }
+      society_registration_requests: {
+        Row: {
+          address_line: string
+          admin_display_name: string
+          admin_email: string
+          admin_password: string
+          admin_phone: string | null
+          city: string
+          country: string
+          created_at: string
+          created_society_id: string | null
+          id: string
+          landmark: string | null
+          pin_code: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          society_name: string
+          state: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          address_line: string
+          admin_display_name: string
+          admin_email: string
+          admin_password: string
+          admin_phone?: string | null
+          city: string
+          country?: string
+          created_at?: string
+          created_society_id?: string | null
+          id?: string
+          landmark?: string | null
+          pin_code: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          society_name: string
+          state: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          address_line?: string
+          admin_display_name?: string
+          admin_email?: string
+          admin_password?: string
+          admin_phone?: string | null
+          city?: string
+          country?: string
+          created_at?: string
+          created_society_id?: string | null
+          id?: string
+          landmark?: string | null
+          pin_code?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          society_name?: string
+          state?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_registration_requests_created_society_id_fkey"
+            columns: ["created_society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
           id: string
           role: Database["public"]["Enums"]["app_role"]
+          society_id: string
           user_id: string
         }
         Insert: {
           id?: string
           role: Database["public"]["Enums"]["app_role"]
+          society_id: string
           user_id: string
         }
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          society_id?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicle_change_requests: {
         Row: {
@@ -312,6 +514,7 @@ export type Database = {
           requested_by: string
           reviewed_at: string | null
           reviewed_by: string | null
+          society_id: string
           status: string
           target_vehicle_id: string | null
           updated_at: string
@@ -329,6 +532,7 @@ export type Database = {
           requested_by: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          society_id: string
           status?: string
           target_vehicle_id?: string | null
           updated_at?: string
@@ -346,6 +550,7 @@ export type Database = {
           requested_by?: string
           reviewed_at?: string | null
           reviewed_by?: string | null
+          society_id?: string
           status?: string
           target_vehicle_id?: string | null
           updated_at?: string
@@ -353,7 +558,15 @@ export type Database = {
           vehicle_type?: string
           wing?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicle_change_requests_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       vehicles: {
         Row: {
@@ -362,6 +575,7 @@ export type Database = {
           id: string
           owner_name: string
           qr_code: string
+          society_id: string
           updated_at: string
           vehicle_number: string
           vehicle_type: string
@@ -373,6 +587,7 @@ export type Database = {
           id?: string
           owner_name: string
           qr_code: string
+          society_id: string
           updated_at?: string
           vehicle_number: string
           vehicle_type?: string
@@ -384,12 +599,21 @@ export type Database = {
           id?: string
           owner_name?: string
           qr_code?: string
+          society_id?: string
           updated_at?: string
           vehicle_number?: string
           vehicle_type?: string
           wing?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "vehicles_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       visitor_requests: {
         Row: {
@@ -398,6 +622,7 @@ export type Database = {
           id: string
           phone: string
           purpose: string | null
+          society_id: string
           status: string
           vehicle_number: string
           visitor_name: string
@@ -408,6 +633,7 @@ export type Database = {
           id?: string
           phone: string
           purpose?: string | null
+          society_id: string
           status?: string
           vehicle_number: string
           visitor_name: string
@@ -418,11 +644,20 @@ export type Database = {
           id?: string
           phone?: string
           purpose?: string | null
+          society_id?: string
           status?: string
           vehicle_number?: string
           visitor_name?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "visitor_requests_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -434,6 +669,7 @@ export type Database = {
         Returns: boolean
       }
       get_parent_user_id: { Args: { _user_id: string }; Returns: string }
+      get_user_society_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -442,9 +678,10 @@ export type Database = {
         Returns: boolean
       }
       is_primary_resident: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "guard" | "resident" | "admin" | "visitor"
+      app_role: "guard" | "resident" | "admin" | "visitor" | "super_admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -572,7 +809,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["guard", "resident", "admin", "visitor"],
+      app_role: ["guard", "resident", "admin", "visitor", "super_admin"],
     },
   },
 } as const

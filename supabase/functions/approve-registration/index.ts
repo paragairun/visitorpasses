@@ -188,6 +188,7 @@ Deno.serve(async (req) => {
     const { error: roleError } = await adminClient.from("user_roles").insert({
       user_id: userId,
       role: regRequest.requested_role,
+      society_id: regRequest.society_id,
     });
 
     if (roleError) {
@@ -208,6 +209,7 @@ Deno.serve(async (req) => {
       display_name: regRequest.display_name,
       flat_number: regRequest.requested_role === "resident" ? regRequest.flat_number : null,
       wing: regRequest.requested_role === "resident" ? regRequest.wing : null,
+      society_id: regRequest.society_id,
     };
 
     const profileQuery = existingProfile
