@@ -44,7 +44,7 @@ const SuperAdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) { navigate("/admin", { replace: true }); return; }
+    if (!loading && !user) { navigate("/super-admin/login", { replace: true }); return; }
     if (!loading && user && !isSuper) {
       toast({ title: "Super-admin access required", variant: "destructive" });
       navigate("/", { replace: true });

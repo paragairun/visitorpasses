@@ -15,6 +15,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Register from "./pages/Register";
 import SocietyRegister from "./pages/SocietyRegister";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
+import SuperAdminLogin from "./pages/SuperAdminLogin";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
 
             {/* Super admin */}
+            <Route path="/super-admin/login" element={<SuperAdminLogin />} />
             <Route path="/super-admin" element={<SuperAdminDashboard />} />
 
             {/* Guard */}
