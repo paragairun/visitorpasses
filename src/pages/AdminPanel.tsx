@@ -66,7 +66,7 @@ const AdminPanel = () => {
   const [vehiclesExpanded, setVehiclesExpanded] = useState(false);
   const [registrySearchQuery, setRegistrySearchQuery] = useState("");
   const { toast } = useToast();
-  const { signOut } = useAuth();
+  const { signOut, societyId } = useAuth();
   const navigate = useNavigate();
   const handleSignOut = async () => { await signOut(); navigate("/admin", { replace: true }); };
 
@@ -191,11 +191,13 @@ const AdminPanel = () => {
       toast({ title: "Duplicate vehicle", description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${dup.wing}-${dup.flat_number}).`, variant: "destructive" });
       return;
     }
+    if (!societyId) { setSavingVehicle(false); toast({ title: "Society not loaded", variant: "destructive" }); return; }
     const qr = createOpaqueVehicleQrCode();
     const { data, error } = await supabase.from("vehicles").insert({
       flat_number: newVehicle.flat_number.trim(), wing: newVehicle.wing,
       vehicle_number: newVehicle.vehicle_number.trim().toUpperCase(),
       vehicle_type: newVehicle.vehicle_type, owner_name: newVehicle.owner_name.trim(), qr_code: qr,
+      society_id: societyId,
     }).select("*").single();
     setSavingVehicle(false);
     if (error) {

@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+
 
 interface ParsedResident {
   display_name: string;
@@ -21,6 +23,7 @@ const BulkResidentUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const { toast } = useToast();
+  const { societyId } = useAuth();
 
   const parseCSV = (text: string): { parsed: ParsedResident[]; errs: string[] } => {
     const lines = text.trim().split(/\r?\n/);
@@ -92,6 +95,7 @@ const BulkResidentUpload = () => {
 
   const handleUpload = async () => {
     if (!rows.length) return;
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
     setUploading(true);
     setProgress({ done: 0, total: rows.length });
 
@@ -110,6 +114,7 @@ const BulkResidentUpload = () => {
           wing: row.wing,
           flat_number: row.flat_number,
           status: "pending",
+          society_id: societyId,
         })
         .select("id")
         .single();

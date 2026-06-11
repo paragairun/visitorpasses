@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Trash2, Copy, Plus, Radio } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 
 type Device = Tables<"barrier_devices">;
@@ -20,6 +21,7 @@ const generateToken = () => {
 
 const BarrierDevicesAdmin = () => {
   const { toast } = useToast();
+  const { societyId } = useAuth();
   const [devices, setDevices] = useState<Device[]>([]);
   const [form, setForm] = useState({ name: "", location: "", direction: "both" });
   const [saving, setSaving] = useState(false);
@@ -37,12 +39,14 @@ const BarrierDevicesAdmin = () => {
 
   const addDevice = async () => {
     if (!form.name.trim()) { toast({ title: "Name is required", variant: "destructive" }); return; }
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
     setSaving(true);
     const { error } = await supabase.from("barrier_devices").insert({
       name: form.name.trim(),
       location: form.location.trim() || null,
       direction: form.direction,
       device_token: generateToken(),
+      society_id: societyId,
     });
     setSaving(false);
     if (error) { toast({ title: "Could not add device", description: error.message, variant: "destructive" }); return; }

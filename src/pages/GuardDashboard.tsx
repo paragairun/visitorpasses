@@ -35,7 +35,7 @@ const GuardDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
-  const { signOut, user } = useAuth();
+  const { signOut, user, societyId } = useAuth();
   const navigate = useNavigate();
 
   const loadDashboardData = useCallback(async (showLoader = false) => {
@@ -95,10 +95,12 @@ const GuardDashboard = () => {
       await loadDashboardData(false);
       return true;
     }
+    if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return true; }
     const { error: entryError } = await supabase.from("entry_logs").insert({
       vehicle_number: request.vehicle_number, flat_number: guestPass.flat_number, wing: guestPass.wing,
       entry_type: "visitor", owner_name: `${request.visitor_name} (Guest of ${guestPass.owner_name})`,
       logged_by: user?.id ?? null,
+      society_id: societyId,
     });
     if (entryError) {
       toast({ title: "Could not log guest entry", description: entryError.message, variant: "destructive" });
@@ -116,9 +118,11 @@ const GuardDashboard = () => {
     if (handledGuestPass) { setTimeout(() => setScanResult(null), 5000); return; }
     const vehicle = vehicles.find((v) => v.qr_code === result);
     if (vehicle) {
+      if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
       const { error } = await supabase.from("entry_logs").insert({
         vehicle_number: vehicle.vehicle_number, flat_number: vehicle.flat_number, wing: vehicle.wing,
         entry_type: "resident", owner_name: vehicle.owner_name, logged_by: user?.id ?? null,
+        society_id: societyId,
       });
       if (error) { toast({ title: "Could not log entry", description: error.message, variant: "destructive" }); return; }
       setScanResult(`✅ ${vehicle.wing}-${vehicle.flat_number} — ${vehicle.vehicle_number}`);
@@ -137,9 +141,11 @@ const GuardDashboard = () => {
     setProcessingId(id);
     const { error: updateError } = await supabase.from("visitor_requests").update({ status: "approved" }).eq("id", id);
     if (updateError) { setProcessingId(null); toast({ title: "Approval failed", description: updateError.message, variant: "destructive" }); return; }
+    if (!societyId) { setProcessingId(null); toast({ title: "Society not loaded", variant: "destructive" }); return; }
     const { error: entryError } = await supabase.from("entry_logs").insert({
       vehicle_number: visitor.vehicle_number, flat_number: visitor.flat_number, wing: "",
       entry_type: "visitor", owner_name: `${visitor.visitor_name} (Visitor)`, logged_by: user?.id ?? null,
+      society_id: societyId,
     });
     setProcessingId(null);
     if (entryError) { toast({ title: "Approval saved but entry log failed", description: entryError.message, variant: "destructive" }); return; }
