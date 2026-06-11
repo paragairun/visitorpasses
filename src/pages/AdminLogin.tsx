@@ -8,7 +8,7 @@ const AdminLogin = () => (
     icon={Shield}
     accentClass="bg-warning/20 text-warning"
     dashboardPath="/admin/dashboard"
-    description="Triumph Tower CHSL — Admin Panel"
+    description="Society Admin Login"
   />
 );
 

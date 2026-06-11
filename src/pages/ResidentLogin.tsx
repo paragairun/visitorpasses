@@ -8,7 +8,7 @@ const ResidentLogin = () => (
     icon={ClipboardList}
     accentClass="bg-success/20 text-success"
     dashboardPath="/resident/dashboard"
-    description="Triumph Tower CHSL — Resident Access"
+    description="Resident Portal Login"
   />
 );
 

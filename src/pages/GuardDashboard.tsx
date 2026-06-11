@@ -272,7 +272,7 @@ const GuardDashboard = () => {
   return (
     <DashboardShell
       brandTitle="Guard Dashboard"
-      brandSubtitle="Triumph Tower CHSL"
+      brandSubtitle={useAuth().societyName ?? "Your Society"}
       groupLabel="Operations"
       items={NAV}
       activeId={activeView}

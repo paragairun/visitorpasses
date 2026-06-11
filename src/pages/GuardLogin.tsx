@@ -8,7 +8,7 @@ const GuardLogin = () => (
     icon={ScanLine}
     accentClass="bg-primary/20 text-primary"
     dashboardPath="/guard/dashboard"
-    description="Triumph Tower CHSL — Guard Portal"
+    description="Security Guard Login"
   />
 );
 
