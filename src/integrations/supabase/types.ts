@@ -478,19 +478,19 @@ export type Database = {
         Row: {
           id: string
           role: Database["public"]["Enums"]["app_role"]
-          society_id: string
+          society_id: string | null
           user_id: string
         }
         Insert: {
           id?: string
           role: Database["public"]["Enums"]["app_role"]
-          society_id: string
+          society_id?: string | null
           user_id: string
         }
         Update: {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
-          society_id?: string
+          society_id?: string | null
           user_id?: string
         }
         Relationships: [
