@@ -1,84 +1,86 @@
-# Primary & Child Resident Accounts
+# Multi-Society Platform Conversion
 
-## Goal
+Transform the current single-society portal (Triumph Tower CHSL) into a multi-tenant SaaS where any society can register, get approved by a platform super-admin, and operate its own isolated portal.
 
-Each flat has exactly one **primary** resident. The primary can invite **child accounts** (Family or Tenant) directly — no admin approval — with limited, read-mostly access.
+## Core concept
 
-## Account Capabilities
+Every existing piece of user-facing data (profiles, residents, flats, vehicles, visitors, logs, registration requests, barrier devices) becomes **scoped to a `society_id`**. RLS policies are rewritten so users can only see/touch data belonging to their own society. A new `super_admin` role sits above everything and manages society onboarding.
 
-| Capability | Primary | Child (Family / Tenant) |
-|---|---|---|
-| Register vehicles, request changes | ✅ | ❌ |
-| Generate guest passes | ✅ | ✅ |
-| View flat vehicles | ✅ | ✅ |
-| View entry/exit logs for flat vehicles | ✅ | ✅ |
-| Edit flat / vehicle details | ✅ | ❌ |
-| Edit own name & phone | ✅ | ✅ |
-| Edit anything else on profile | ✅ | ❌ |
-| Manage child accounts | ✅ (sees list, can add/remove) | ❌ |
+## 1. Database changes (one migration)
 
-## Database Changes
+**New tables**
+- `societies` — `id`, `name`, `address_line`, `landmark`, `city`, `state`, `country`, `pin_code`, `status` (`pending` | `active` | `suspended`), `created_at`, `updated_at`.
+- `society_registration_requests` — society details + proposed admin email/display name + hashed password marker + `status` (`pending` | `approved` | `rejected`) + review fields.
 
-1. **`profiles`**
-   - Add `parent_user_id uuid NULL` — null = primary; non-null = child of that primary
-   - Add `child_type text NULL` — `'family'` or `'tenant'` (only for children)
+**Schema updates**
+- Add `society_id uuid` (FK → `societies.id`) to: `profiles`, `user_roles`, `resident_flats`, `vehicles`, `visitor_requests`, `entry_logs`, `access_logs`, `barrier_devices`, `barrier_events`, `registration_requests`, `vehicle_change_requests`.
+- Extend `app_role` enum with `super_admin`.
 
-2. **`resident_flats`**
-   - Enforce one primary per flat: partial unique index on `(wing, flat_number)` where the owning user has no parent. (Implemented via a `BEFORE INSERT/UPDATE` trigger because the parent flag lives in `profiles`.)
+**Data migration (Triumph Tower as society #1)**
+- Insert a `societies` row for Triumph Tower (status `active`).
+- Backfill `society_id` on every existing row to that society's id.
+- Make `society_id` `NOT NULL` after backfill.
+- Promote whichever user(s) you designate to `super_admin` (default: `triumphtower2024@gmail.com` keeps `admin`; you tell me which email becomes the platform super-admin — happy to default to a new one).
 
-3. **RLS updates**
-   - **`vehicles`** — children inherit "view own flat vehicles" via parent's `resident_flats`. Update existing SELECT policy to also match flats of `parent_user_id`.
-   - **`vehicle_change_requests`** — INSERT restricted to primaries only (block when `profiles.parent_user_id IS NOT NULL`).
-   - **`resident_flats`** — INSERT/UPDATE/DELETE restricted to primaries only.
-   - **`profiles`** — primary can SELECT child profiles where `parent_user_id = auth.uid()`; child can update only `display_name` and `phone` of own row (enforced via trigger that rejects changes to `wing`/`flat_number`).
-   - **Guest passes / entry logs** — already keyed off flat; extend SELECT to include parent's flats.
+**RLS rewrite**
+- New SECURITY DEFINER helpers: `get_user_society_id(uuid)`, `is_super_admin(uuid)`.
+- Every existing policy gets an additional `society_id = get_user_society_id(auth.uid())` clause.
+- `super_admin` bypasses society scoping where appropriate (read-only platform views, society approval).
+- `societies` table: super-admin full access; society admins read their own; residents/guards read minimal fields of their own.
+- `society_registration_requests`: anyone can INSERT (signup); only super-admin can SELECT/UPDATE/DELETE.
 
-4. **Helper function** `public.is_primary_resident(_user_id)` — `SELECT parent_user_id IS NULL FROM profiles WHERE user_id = _user_id`. Used in policies.
+## 2. Auth & registration flow
 
-## Account Creation Flow
+**New society signup** (`/register-society`)
+- Public form: society name, address (line + landmark + city + state + country + pin), admin email, password + confirm, admin display name, phone.
+- Submits to `society_registration_requests` (no auth user created yet).
 
-Primary resident, in their portal → **"Family & Tenants"** section:
+**Super-admin review** (`/super-admin`)
+- List pending requests with full details, approve/reject buttons.
+- Approve: creates `societies` row (status `active`), creates the auth user via an edge function (`approve-society`) using the service role, assigns `admin` role + `society_id`, marks request approved.
+- Reject: marks request rejected with reason.
 
-- Form: email, full name, child type (Family / Tenant)
-- Calls new edge function `create-child-account` (service role):
-  - Verifies caller is a primary resident (`has_role('resident')` AND `parent_user_id IS NULL`)
-  - Creates auth user with auto-generated temp password, `email_confirm: true`
-  - Inserts `user_roles(role='resident')`
-  - Inserts `profiles` with `parent_user_id = caller.id`, `child_type`, primary's `wing`/`flat_number`
-  - Returns temp password for primary to share with child
-- No `registration_requests` row, no admin approval
+**Resident/guard signup** (existing `Register.tsx` flow)
+- Now requires picking a society first (dropdown of active societies).
+- Existing approval flow continues, scoped to that society's admin.
 
-Child sign-in: same `/resident` login. Their portal hides write actions and the "Family & Tenants" section.
+## 3. Routing & UI
 
-## UI Changes
+**Public**
+- `/` — marketing landing page: hero, features, "Register your society" CTA, "Login" CTA, brief explainer.
+- `/register-society` — society registration form.
+- `/login` — unified login that detects role and routes to the right dashboard.
+- Keep `/admin-login`, `/guard-login`, `/resident-login` as direct routes.
 
-**`ResidentPortal.tsx`**
-- Detect `isChild = profile.parent_user_id !== null`
-- Sidebar items conditionally rendered:
-  - Hide for child: "Add Vehicle", "Request Vehicle Change", "Manage Flats"
-  - Show for child: "Guest Pass" (default), "My Vehicles" (read-only), "Entry/Exit Logs"
-- Profile page:
-  - Primary: existing fields + new **Family & Tenants** card listing children (name, email, type, added on) with **Add Child** button and **Remove** action
-  - Child: only `display_name` and `phone` editable; flat/wing shown read-only; show badge "Family" or "Tenant" and "Linked to: <primary name>"
+**Dashboards (society-scoped, unchanged UX but data is now filtered)**
+- `/admin` — society admin panel.
+- `/guard` — guard dashboard.
+- `/resident` — resident portal.
+- `/super-admin` — new: list societies, pending society requests, approve/reject, basic stats.
 
-**`AdminPanel`** — Optional: in Resident Registry, show a "Type" column (Primary / Family / Tenant) and the parent for children.
+**Branding inside a society dashboard**
+- Header shows the logged-in user's society name instead of hard-coded "Triumph Tower CHSL".
 
-## Edge Functions
+## 4. Edge functions
 
-- **New:** `supabase/functions/create-child-account/index.ts` — described above
-- **New:** `supabase/functions/delete-child-account/index.ts` — primary deletes own child (verifies parent_user_id matches caller); reuses delete-user logic
-- Existing `submit-visitor-request` and `resident-guest-passes` already work for any authenticated resident; no change needed beyond confirming child role passes.
+- `approve-society` — creates the auth user for the new society admin, links role + society_id (needs service role).
+- `register-resident-guard` (already exists in spirit) — updated to set `society_id` on created user.
 
-## Out of Scope
+## 5. QR codes & visitor flow
 
-- Email notifications (separate pending request — needs domain setup)
-- Changing primary resident transfer flow
-- Per-child granular permission toggles
+- Visitor request QR/URL now includes `society_id` so a scanned QR routes the visitor to the right society's form.
+- Guard scanner only acts on entries within their own society.
 
-## Files Touched
+## Out of scope (can be follow-ups)
 
-- `supabase/migrations/<new>.sql` — schema, trigger, RLS, helper fn
-- `supabase/functions/create-child-account/index.ts` (new)
-- `supabase/functions/delete-child-account/index.ts` (new)
-- `src/pages/ResidentPortal.tsx` — gating + Family & Tenants section
-- `src/components/UserRegistry.tsx` (admin) — show child relationship column
+- Custom subdomains per society (e.g. `triumph.portal.app`).
+- Per-society theming/logo upload.
+- Billing/subscriptions.
+- Cross-society analytics for super-admin beyond counts.
+
+## Technical notes
+
+- One migration handles: enum extension, new tables, column additions, backfill, NOT NULL, helper functions, full policy rewrite, GRANTs.
+- Will need to drop and recreate every existing policy that references the affected tables.
+- Existing `has_role(auth.uid(), 'admin')` checks across the app stay valid — they just become "admin of your own society" because of the added society_id RLS clause.
+- I'll need one input from you during implementation: **which email should be the platform super-admin?** (Can be `triumphtower2024@gmail.com` itself, or a separate one you create.)
