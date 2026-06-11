@@ -1,13 +1,15 @@
 import { createContext, useContext } from "react";
 import { Session, User } from "@supabase/supabase-js";
 
-export type AppRole = "guard" | "resident" | "admin" | "visitor";
+export type AppRole = "guard" | "resident" | "admin" | "visitor" | "super_admin";
 
 export interface AuthContextType {
   session: Session | null;
   user: User | null;
   role: AppRole | null;
   roles: AppRole[];
+  societyId: string | null;
+  societyName: string | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ error: string | null }>;
