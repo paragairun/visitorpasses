@@ -66,7 +66,7 @@ const AdminPanel = () => {
   const [vehiclesExpanded, setVehiclesExpanded] = useState(false);
   const [registrySearchQuery, setRegistrySearchQuery] = useState("");
   const { toast } = useToast();
-  const { signOut, societyId } = useAuth();
+  const { signOut, societyId, societyName } = useAuth();
   const navigate = useNavigate();
   const handleSignOut = async () => { await signOut(); navigate("/admin", { replace: true }); };
 
@@ -548,7 +548,7 @@ const AdminPanel = () => {
       <CardContent>
         <p className="text-sm text-muted-foreground mb-3 text-center">Visitors can scan this QR to open the entry form.</p>
         <div className="flex justify-center">
-          <QrGenerator value={`${window.location.origin}/visitor/form`} label="Visitor Form" size={400} />
+          <QrGenerator value={`${window.location.origin}/visitor/form?s=${societyId ?? ""}`} label="Visitor Form" size={400} />
         </div>
       </CardContent>
     </Card>
@@ -557,7 +557,7 @@ const AdminPanel = () => {
   return (
     <DashboardShell
       brandTitle="Admin Panel"
-      brandSubtitle="Triumph Tower CHSL"
+      brandSubtitle={societyName ?? "Your Society"}
       groupLabel="Management"
       items={NAV}
       activeId={activeView}

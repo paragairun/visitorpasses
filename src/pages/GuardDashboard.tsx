@@ -35,7 +35,7 @@ const GuardDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
-  const { signOut, user, societyId } = useAuth();
+  const { signOut, user, societyId, societyName } = useAuth();
   const navigate = useNavigate();
 
   const loadDashboardData = useCallback(async (showLoader = false) => {
@@ -272,7 +272,7 @@ const GuardDashboard = () => {
   return (
     <DashboardShell
       brandTitle="Guard Dashboard"
-      brandSubtitle={useAuth().societyName ?? "Your Society"}
+      brandSubtitle={societyName ?? "Your Society"}
       groupLabel="Operations"
       items={NAV}
       activeId={activeView}
