@@ -110,9 +110,10 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await adminClient
       .from("profiles")
-      .select("display_name, wing, flat_number, phone, parent_user_id, child_type")
+      .select("display_name, wing, flat_number, phone, parent_user_id, child_type, society_id")
       .eq("user_id", user.id)
       .maybeSingle();
+    const societyId = profile?.society_id;
 
     // Children inherit flats from their parent (primary resident)
     const flatsOwnerId = profile?.parent_user_id ?? user.id;
@@ -216,6 +217,7 @@ Deno.serve(async (req) => {
         purpose: purpose || null,
         flat_number: flatLabel,
         status: "guest_pass",
+        society_id: societyId,
       })
       .select("id, visitor_name, phone, vehicle_number, purpose, status, created_at")
       .single();
