@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { appUrl } from "@/lib/app-url";
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 const SuperAdminLogin = () => {
@@ -45,7 +46,7 @@ const SuperAdminLogin = () => {
     }
     setSendingReset(true);
     const { error } = await supabase.auth.resetPasswordForEmail(forgotEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: appUrl("/reset-password"),
     });
     setSendingReset(false);
     if (error) {
