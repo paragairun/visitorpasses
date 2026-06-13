@@ -1,33 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Home -->
   <url>
-    <loc>https://gatepasspro.lovable.app/</loc>
+    <loc>https://visitorpasses.in/</loc>
+    <lastmod>2026-06-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>1.0</priority>
   </url>
+
+  <!-- Auth -->
   <url>
-    <loc>https://gatepasspro.lovable.app/guard</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://gatepasspro.lovable.app/resident</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://gatepasspro.lovable.app/admin</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://gatepasspro.lovable.app/visitor/form</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://gatepasspro.lovable.app/register</loc>
+    <loc>https://visitorpasses.in/register</loc>
+    <lastmod>2026-06-13</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.5</priority>
   </url>
+
+  <!-- Guard dashboard -->
+  <url>
+    <loc>https://visitorpasses.in/guard</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Guard — QR auto-scanner -->
+  <url>
+    <loc>https://visitorpasses.in/guard/scanner</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Guard — Entry log -->
+  <url>
+    <loc>https://visitorpasses.in/guard/entry-log</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Guard — Exit log -->
+  <url>
+    <loc>https://visitorpasses.in/guard/exit-log</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Resident / Member dashboard -->
+  <url>
+    <loc>https://visitorpasses.in/resident</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Visitor pass form (public-facing) -->
+  <url>
+    <loc>https://visitorpasses.in/visitor/form</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Admin dashboard -->
+  <url>
+    <loc>https://visitorpasses.in/admin</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Admin — Vehicle management -->
+  <url>
+    <loc>https://visitorpasses.in/admin/vehicles</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Admin — Analytics -->
+  <url>
+    <loc>https://visitorpasses.in/admin/analytics</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Admin — Residents / Members -->
+  <url>
+    <loc>https://visitorpasses.in/admin/members</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Admin — Blacklist -->
+  <url>
+    <loc>https://visitorpasses.in/admin/blacklist</loc>
+    <lastmod>2026-06-13</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
 </urlset>
