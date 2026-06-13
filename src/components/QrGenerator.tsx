@@ -92,27 +92,13 @@ const QrGenerator = ({ value, label, size = 400, societyName, shareText, showSha
       const qw = qrCanvas.width;
       const qh = qrCanvas.height;
 
-      // Draw centered TT (no border) on QR
-      const qctx = qrCanvas.getContext("2d")!;
-      const cx = qw / 2;
-      const cy = qh / 2;
-      const clear = Math.round(qw * 0.13);
-      qctx.fillStyle = BG;
-      qctx.fillRect(cx - clear, cy - clear, clear * 2, clear * 2);
-      qctx.fillStyle = FG;
-      qctx.font = `700 ${Math.round(clear * 1.3)}px "Philosopher", serif`;
-      qctx.textAlign = "center";
-      qctx.textBaseline = "middle";
-      qctx.fillText("TT", cx, cy + 2);
-
       // Compose final canvas
       const padX = 60;
-      const minHeaderH = 130;
-      const maxHeaderH = 220;
+      const headerH = 130;
       const footerH = 100;
       const W = qw + padX * 2;
 
-      // Figure out header text layout (wrap + auto-size) before sizing the canvas
+      // Figure out header text layout (wrap + auto-size) to fit within the fixed header box
       const headerMaxWidth = W - padX * 2;
       const headerFont = '"Philosopher", serif';
       const measureCanvas = document.createElement("canvas");
@@ -121,13 +107,12 @@ const QrGenerator = ({ value, label, size = 400, societyName, shareText, showSha
         tempCtx,
         headerText,
         headerMaxWidth,
-        maxHeaderH - 40,
+        headerH - 30,
         56,
-        24,
+        16,
         headerFont,
       );
       const headerTextHeight = headerLines.length * headerLineHeight;
-      const headerH = Math.max(minHeaderH, Math.round(headerTextHeight + 60));
 
       const H = qh + headerH + footerH;
       canvas.width = W;
@@ -156,7 +141,6 @@ const QrGenerator = ({ value, label, size = 400, societyName, shareText, showSha
       ctx.stroke();
 
       // QR
-
       ctx.drawImage(qrCanvas, padX, headerH);
 
       // Footer line 1: continuous solid lines spanning QR width with EXCLUSIVE centered
