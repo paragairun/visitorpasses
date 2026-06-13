@@ -8,7 +8,8 @@ interface QrGeneratorProps {
   value: string;
   label: string;
   size?: number;
-  wing?: string;
+  /** Society name to display as the QR header. Falls back to a generic label if not provided. */
+  societyName?: string | null;
   /** Optional caption/text used when sharing via Web Share / WhatsApp / Telegram. */
   shareText?: string;
   /** Show the Share button (defaults to true). */
@@ -23,13 +24,56 @@ const BG = GOLD;
 const FG = DARK;
 const TEXT = "#000000";
 
-const MANDLIK_WINGS = new Set(["A", "B", "C", "D", "E", "F"]);
-const headerForWing = (wing?: string) =>
-  wing && MANDLIK_WINGS.has(wing.trim().toUpperCase()) ? "MANDLIK NAGAR" : "TRIUMPH TOWER";
+/**
+ * Wraps `text` to fit within `maxWidth`, shrinking the font size as needed.
+ * Returns the lines to render and the font size that fits.
+ */
+const fitHeaderText = (
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxHeight: number,
+  maxFontSize: number,
+  minFontSize: number,
+  fontFamily: string,
+) => {
+  const words = text.trim().split(/\s+/).filter(Boolean);
 
-const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = true, fileBaseName }: QrGeneratorProps) => {
+  const wrapAtSize = (fontSize: number) => {
+    ctx.font = `700 ${fontSize}px ${fontFamily}`;
+    const lines: string[] = [];
+    let current = "";
+    for (const word of words) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (ctx.measureText(candidate).width <= maxWidth || !current) {
+        current = candidate;
+      } else {
+        lines.push(current);
+        current = word;
+      }
+    }
+    if (current) lines.push(current);
+    return lines;
+  };
+
+  for (let fontSize = maxFontSize; fontSize >= minFontSize; fontSize -= 2) {
+    const lines = wrapAtSize(fontSize);
+    const lineHeight = fontSize * 1.2;
+    const totalHeight = lines.length * lineHeight;
+    const widestLine = Math.max(...lines.map((l) => ctx.measureText(l).width));
+    if (totalHeight <= maxHeight && widestLine <= maxWidth) {
+      return { lines, fontSize, lineHeight };
+    }
+  }
+
+  // Fall back to the minimum size even if it overflows slightly
+  const lines = wrapAtSize(minFontSize);
+  return { lines, fontSize: minFontSize, lineHeight: minFontSize * 1.2 };
+};
+
+const QrGenerator = ({ value, label, size = 400, societyName, shareText, showShare = true, fileBaseName }: QrGeneratorProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const headerText = headerForWing(wing);
+  const headerText = (societyName?.trim() || "VISITOR PASS").toUpperCase();
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,9 +107,28 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
 
       // Compose final canvas
       const padX = 60;
-      const headerH = 130;
+      const minHeaderH = 130;
+      const maxHeaderH = 220;
       const footerH = 100;
       const W = qw + padX * 2;
+
+      // Figure out header text layout (wrap + auto-size) before sizing the canvas
+      const headerMaxWidth = W - padX * 2;
+      const headerFont = '"Philosopher", serif';
+      const measureCanvas = document.createElement("canvas");
+      const tempCtx = measureCanvas.getContext("2d")!;
+      const { lines: headerLines, fontSize: headerFontSize, lineHeight: headerLineHeight } = fitHeaderText(
+        tempCtx,
+        headerText,
+        headerMaxWidth,
+        maxHeaderH - 40,
+        56,
+        24,
+        headerFont,
+      );
+      const headerTextHeight = headerLines.length * headerLineHeight;
+      const headerH = Math.max(minHeaderH, Math.round(headerTextHeight + 60));
+
       const H = qh + headerH + footerH;
       canvas.width = W;
       canvas.height = H;
@@ -75,10 +138,14 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
 
       // Header
       ctx.fillStyle = TEXT;
-      ctx.font = `700 56px "Philosopher", serif`;
+      ctx.font = `700 ${headerFontSize}px ${headerFont}`;
       ctx.textAlign = "center";
       ctx.textBaseline = "alphabetic";
-      ctx.fillText(headerText, W / 2, 80);
+      const headerBlockTop = (headerH - headerTextHeight) / 2;
+      headerLines.forEach((line, i) => {
+        const baselineY = headerBlockTop + headerLineHeight * (i + 1) - headerLineHeight * 0.25;
+        ctx.fillText(line, W / 2, baselineY);
+      });
 
       // Divider
       ctx.strokeStyle = TEXT;
@@ -89,6 +156,7 @@ const QrGenerator = ({ value, label, size = 400, wing, shareText, showShare = tr
       ctx.stroke();
 
       // QR
+
       ctx.drawImage(qrCanvas, padX, headerH);
 
       // Footer line 1: continuous solid lines spanning QR width with EXCLUSIVE centered
