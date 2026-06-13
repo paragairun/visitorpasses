@@ -432,7 +432,7 @@ const AdminPanel = () => {
         </Button>
         {justRegisteredQr && (
           <div className="flex justify-center pt-4">
-            <QrGenerator value={justRegisteredQr} label={`Vehicle QR: ${justRegisteredQr}`} size={400} wing={justRegisteredWing} fileBaseName={justRegisteredName ?? undefined} />
+            <QrGenerator value={justRegisteredQr} label={`Vehicle QR: ${justRegisteredQr}`} size={400} societyName={societyName} fileBaseName={justRegisteredName ?? undefined} />
           </div>
         )}
       </CardContent>
@@ -523,7 +523,7 @@ const AdminPanel = () => {
               </div>
               {showQrFor === v.qr_code && (
                 <div className="flex justify-center py-2">
-                  <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${v.wing}-${v.flat_number}`} size={400} wing={v.wing} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
+                  <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${v.wing}-${v.flat_number}`} size={400} societyName={societyName} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
                 </div>
               )}
             </div>
@@ -548,7 +548,7 @@ const AdminPanel = () => {
       <CardContent>
         <p className="text-sm text-muted-foreground mb-3 text-center">Visitors can scan this QR to open the entry form.</p>
         <div className="flex justify-center">
-          <QrGenerator value={`${window.location.origin}/visitor/form?s=${societyId ?? ""}`} label="Visitor Form" size={400} />
+          <QrGenerator value={`${window.location.origin}/visitor/form?s=${societyId ?? ""}`} label="Visitor Form" size={400} societyName={societyName} />
         </div>
       </CardContent>
     </Card>

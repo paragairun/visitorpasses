@@ -82,7 +82,7 @@ const ResidentPortal = () => {
   const [issuedChildCred, setIssuedChildCred] = useState<{ email: string; password: string } | null>(null);
   const [removeChildTarget, setRemoveChildTarget] = useState<ChildAccount | null>(null);
   const { toast } = useToast();
-  const { signOut, user, societyId } = useAuth();
+  const { signOut, user, societyId, societyName } = useAuth();
   const navigate = useNavigate();
 
   const activeFlat = useMemo(() => flats.find((f) => f.id === activeFlatId) ?? flats[0], [flats, activeFlatId]);
@@ -375,6 +375,7 @@ const ResidentPortal = () => {
           {showQr && resident && (
             <div className="flex justify-center">
               <QrGenerator value={showQr.qr_payload} label={`${showQr.visitor_name} • ${activeFlat?.flat_label ?? resident.flat_label}`} size={400}
+                societyName={societyName}
                 shareText={`Hi ${showQr.visitor_name}, here is your gate entry QR for ${activeFlat?.flat_label ?? resident.flat_label}. Show this to the security guard at the gate.`}
                 fileBaseName={`${activeFlat?.flat_label ?? resident.flat_label}-${showQr.vehicle_number || showQr.visitor_name}`} />
             </div>
@@ -438,7 +439,7 @@ const ResidentPortal = () => {
                   </div>
                   {showVehicleQr === v.qr_code && (
                     <div className="flex justify-center py-2">
-                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${v.wing}-${v.flat_number}`} size={400} wing={v.wing} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
+                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${v.wing}-${v.flat_number}`} size={400} societyName={societyName} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
                     </div>
                   )}
                 </div>
