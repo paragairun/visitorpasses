@@ -75,6 +75,15 @@ Deno.serve(async (req) => {
     }).select("id").single();
     if (socErr || !society) return json({ error: socErr?.message ?? "Could not create society" }, 400);
 
+    // Persist the submitted structure (towers/wings/flat ranges) as locked, super-admin-only editable
+    const { error: structErr } = await adminClient.from("society_structure").insert({
+      society_id: society.id,
+      structure: reqRow.society_structure ?? [],
+      locked: true,
+    });
+    if (structErr) return json({ error: structErr.message }, 400);
+
+
     // Check if user already exists
     let userId: string | null = null;
     {
