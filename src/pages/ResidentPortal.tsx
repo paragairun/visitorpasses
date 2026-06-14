@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/StatusBadge";
 import QrGenerator from "@/components/QrGenerator";
+import FlatPicker from "@/components/FlatPicker";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -582,20 +583,17 @@ const ResidentPortal = () => {
               </div>
             ))}
           </div>
-          <div className="grid gap-3 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="new-wing">Wing</Label>
-              <Input id="new-wing" placeholder="A" value={newFlat.wing} onChange={(e) => setNewFlat((p) => ({ ...p, wing: e.target.value.toUpperCase() }))} className="touch-target" />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="new-flat">Flat Number</Label>
-              <Input id="new-flat" placeholder="1201" value={newFlat.flat_number} onChange={(e) => setNewFlat((p) => ({ ...p, flat_number: e.target.value.toUpperCase() }))} className="touch-target" />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={() => void addFlat()} disabled={addingFlat} className="touch-target gap-2 w-full">
-                <Plus className="h-4 w-4" /> {addingFlat ? "Adding..." : "Add Flat"}
-              </Button>
-            </div>
+          <div className="grid gap-3 md:grid-cols-[1fr_auto] items-end">
+            <FlatPicker
+              societyId={societyId}
+              wing={newFlat.wing}
+              flatNumber={newFlat.flat_number}
+              onChange={(wing, flat_number) => setNewFlat({ wing, flat_number })}
+              disabled={addingFlat}
+            />
+            <Button onClick={() => void addFlat()} disabled={addingFlat} className="touch-target gap-2">
+              <Plus className="h-4 w-4" /> {addingFlat ? "Adding..." : "Add Flat"}
+            </Button>
           </div>
         </div>
         <div className="pt-2 border-t border-border space-y-3">

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Building2, Check, X, LogOut, ShieldCheck, ClipboardList } from "lucide-react";
+import { Building2, Check, X, LogOut, ShieldCheck, ClipboardList, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,19 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import StatusBadge from "@/components/StatusBadge";
+import SocietyStructureBuilder, {
+  TowerStructure, emptyTower, normalizeTowers, toEditableTowers, NormalizedTower,
+} from "@/components/SocietyStructureBuilder";
+
+interface WingRange {
+  wing: string;
+  flat_from: number;
+  flat_to: number;
+}
+interface TowerRange {
+  tower_name: string;
+  wings: WingRange[];
+}
 
 interface SocietyRow {
   id: string; name: string; city: string; state: string; status: string; created_at: string;
@@ -20,6 +33,7 @@ interface RegRow {
   city: string; state: string; country: string; pin_code: string;
   admin_email: string; admin_display_name: string; admin_phone: string | null;
   status: string; rejection_reason: string | null; created_at: string;
+  society_structure: TowerRange[] | null;
 }
 
 const SuperAdminDashboard = () => {
@@ -33,6 +47,13 @@ const SuperAdminDashboard = () => {
   const [working, setWorking] = useState<string | null>(null);
   const [rejecting, setRejecting] = useState<RegRow | null>(null);
   const [rejectReason, setRejectReason] = useState("");
+
+  // Structure editor (super-admin only, for approved societies)
+  const [editingSociety, setEditingSociety] = useState<SocietyRow | null>(null);
+  const [editingTowers, setEditingTowers] = useState<TowerStructure[]>([emptyTower()]);
+  const [structureLoading, setStructureLoading] = useState(false);
+  const [structureSaving, setStructureSaving] = useState(false);
+
 
   const load = useCallback(async () => {
     const [{ data: socs }, { data: reqs }] = await Promise.all([
@@ -81,6 +102,44 @@ const SuperAdminDashboard = () => {
     toast({ title: "Request rejected" });
     setRejecting(null); setRejectReason("");
     await load();
+  };
+
+  const openStructureEditor = async (society: SocietyRow) => {
+    setEditingSociety(society);
+    setEditingTowers([emptyTower()]);
+    setStructureLoading(true);
+    const { data, error } = await supabase
+      .from("society_structure")
+      .select("structure")
+      .eq("society_id", society.id)
+      .maybeSingle();
+    setStructureLoading(false);
+    if (error) {
+      toast({ title: "Could not load structure", description: error.message, variant: "destructive" });
+      return;
+    }
+    const structure = (data?.structure ?? []) as NormalizedTower[];
+    setEditingTowers(toEditableTowers(structure));
+  };
+
+  const saveStructure = async () => {
+    if (!editingSociety) return;
+    const result = normalizeTowers(editingTowers);
+    if ("error" in result) {
+      toast({ title: result.error, variant: "destructive" });
+      return;
+    }
+    setStructureSaving(true);
+    const { error } = await supabase
+      .from("society_structure")
+      .upsert({ society_id: editingSociety.id, structure: result.towers, locked: true }, { onConflict: "society_id" });
+    setStructureSaving(false);
+    if (error) {
+      toast({ title: "Could not save structure", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Society structure updated" });
+    setEditingSociety(null);
   };
 
   if (loading || !isSuper) {
@@ -140,6 +199,19 @@ const SuperAdminDashboard = () => {
                       {r.admin_phone && ` • ${r.admin_phone}`}
                     </p>
                     <p className="text-xs text-muted-foreground mt-1">{new Date(r.created_at).toLocaleString()}</p>
+                    {r.society_structure && r.society_structure.length > 0 && (
+                      <div className="mt-2 text-sm">
+                        <span className="font-semibold text-foreground">Structure:</span>
+                        <ul className="mt-1 space-y-0.5">
+                          {r.society_structure.map((tower, ti) => (
+                            <li key={ti} className="text-muted-foreground">
+                              <span className="text-foreground font-medium">{tower.tower_name}</span>:{" "}
+                              {tower.wings.map((w) => `Wing ${w.wing} (${w.flat_from}\u2013${w.flat_to})`).join(", ")}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2 shrink-0">
                     <Button size="sm" onClick={() => void approve(r)} disabled={working === r.id} className="gap-1 bg-success hover:bg-success/80">
@@ -166,7 +238,12 @@ const SuperAdminDashboard = () => {
                   <p className="font-semibold text-foreground">{s.name}</p>
                   <p className="text-xs text-muted-foreground">{s.city}, {s.state}</p>
                 </div>
-                <StatusBadge status={s.status === "active" ? "approved" : s.status === "suspended" ? "rejected" : "pending"} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={s.status === "active" ? "approved" : s.status === "suspended" ? "rejected" : "pending"} />
+                  <Button size="sm" variant="outline" onClick={() => void openStructureEditor(s)} className="gap-1">
+                    <Settings2 className="h-4 w-4" /> Structure
+                  </Button>
+                </div>
               </div>
             ))}
           </CardContent>
@@ -197,6 +274,30 @@ const SuperAdminDashboard = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setRejecting(null)}>Cancel</Button>
             <Button variant="destructive" onClick={() => void reject()} disabled={working !== null}>Reject</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!editingSociety} onOpenChange={(o) => !o && setEditingSociety(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit structure — {editingSociety?.name}</DialogTitle>
+            <DialogDescription>
+              Towers, wings and flat number ranges for this society. Only the platform team can edit this once a society is approved.
+            </DialogDescription>
+          </DialogHeader>
+          {structureLoading ? (
+            <div className="py-8 flex justify-center">
+              <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            <SocietyStructureBuilder towers={editingTowers} onChange={setEditingTowers} disabled={structureSaving} />
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingSociety(null)} disabled={structureSaving}>Cancel</Button>
+            <Button onClick={() => void saveStructure()} disabled={structureSaving || structureLoading}>
+              {structureSaving ? "Saving..." : "Save structure"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

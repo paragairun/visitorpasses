@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import SocietyStructureBuilder, { TowerStructure, emptyTower, normalizeTowers } from "@/components/SocietyStructureBuilder";
 
 const SocietyRegister = () => {
   const navigate = useNavigate();
@@ -30,6 +31,8 @@ const SocietyRegister = () => {
 
   const update = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((p) => ({ ...p, [k]: e.target.value }));
+
+  const [towers, setTowers] = useState<TowerStructure[]>([emptyTower()]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,6 +66,14 @@ const SocietyRegister = () => {
       return;
     }
 
+    // Validate + normalize society structure
+    const structureResult = normalizeTowers(towers);
+    if ("error" in structureResult) {
+      toast({ title: structureResult.error, variant: "destructive" });
+      return;
+    }
+    const normalizedTowers = structureResult.towers;
+
     setSaving(true);
     const { error } = await supabase.from("society_registration_requests").insert({
       society_name: form.society_name.trim(),
@@ -72,6 +83,7 @@ const SocietyRegister = () => {
       state: form.state.trim(),
       country: form.country.trim(),
       pin_code: form.pin_code.trim(),
+      society_structure: normalizedTowers,
       admin_display_name: form.admin_display_name.trim(),
       admin_email: email,
       admin_phone: form.admin_phone.trim() || null,
@@ -154,6 +166,19 @@ const SocietyRegister = () => {
                     <Input value={form.pin_code} onChange={update("pin_code")} />
                   </div>
                 </div>
+              </section>
+
+              <section className="space-y-3 pt-2 border-t border-border">
+                <div>
+                  <h3 className="font-semibold text-foreground">Society structure</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Add each building/tower in your society, its wings, and the flat number range for each wing
+                    (e.g. Wing A, flats 101 to 412). This helps residents and the admin pick the right flat later.
+                    <strong className="block mt-1">This cannot be changed after approval except by the platform team.</strong>
+                  </p>
+                </div>
+
+                <SocietyStructureBuilder towers={towers} onChange={setTowers} disabled={saving} />
               </section>
 
               <section className="space-y-3 pt-2 border-t border-border">
