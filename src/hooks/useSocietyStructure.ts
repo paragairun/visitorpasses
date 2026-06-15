@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { NormalizedTower } from "@/components/SocietyStructureBuilder";
+import { NormalizedTower, generateFlatNumbers } from "@/components/SocietyStructureBuilder";
 
 /**
  * Loads the approved structure (towers -> wings -> flat number ranges) for a society.
@@ -35,15 +35,11 @@ export const useSocietyStructure = (societyId: string | null | undefined) => {
     return () => { active = false; };
   }, [societyId]);
 
-  /** Generate the list of flat numbers for a given wing, based on its range. */
+  /** Generate the list of flat numbers for a given wing, based on its range/floor settings. */
   const flatsForWing = (wing: string): string[] => {
     for (const tower of structure) {
       const w = tower.wings.find((x) => x.wing === wing);
-      if (w) {
-        const flats: string[] = [];
-        for (let n = w.flat_from; n <= w.flat_to; n++) flats.push(String(n));
-        return flats;
-      }
+      if (w) return generateFlatNumbers(w);
     }
     return [];
   };
