@@ -35,8 +35,9 @@ const GuardDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const { toast } = useToast();
-  const { signOut, user, societyId, societyName } = useAuth();
+  const { signOut, user, societyId, societyName, societySlug } = useAuth();
   const navigate = useNavigate();
+  const guardLoginPath = societySlug ? `/${societySlug}/guard` : "/guard";
 
   const loadDashboardData = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
@@ -62,7 +63,7 @@ const GuardDashboard = () => {
 
   const handleSignOut = async () => {
     await signOut();
-    navigate("/guard", { replace: true });
+    navigate(guardLoginPath, { replace: true });
   };
 
   const handleGuestPassScan = async (rawQr: string) => {

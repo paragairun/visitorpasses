@@ -45,7 +45,6 @@ const NAV: NavItem[] = [
 ];
 
 const AdminPanel = () => {
-  useInactivityLogout("/admin");
   const [activeView, setActiveView] = useState("stats");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
@@ -66,9 +65,11 @@ const AdminPanel = () => {
   const [vehiclesExpanded, setVehiclesExpanded] = useState(false);
   const [registrySearchQuery, setRegistrySearchQuery] = useState("");
   const { toast } = useToast();
-  const { signOut, societyId, societyName } = useAuth();
+  const { signOut, societyId, societyName, societySlug } = useAuth();
   const navigate = useNavigate();
-  const handleSignOut = async () => { await signOut(); navigate("/admin", { replace: true }); };
+  const adminLoginPath = societySlug ? `/${societySlug}/admin` : "/admin";
+  useInactivityLogout(adminLoginPath);
+  const handleSignOut = async () => { await signOut(); navigate(adminLoginPath, { replace: true }); };
 
   const fetchAdminData = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
@@ -548,7 +549,7 @@ const AdminPanel = () => {
       <CardContent>
         <p className="text-sm text-muted-foreground mb-3 text-center">Visitors can scan this QR to open the entry form.</p>
         <div className="flex justify-center">
-          <QrGenerator value={`${window.location.origin}/visitor/form?s=${societyId ?? ""}`} label="Visitor Form" size={400} societyName={societyName} />
+          <QrGenerator value={societySlug ? `${window.location.origin}/${societySlug}/visitor/form` : `${window.location.origin}/visitor/form?s=${societyId ?? ""}`} label="Visitor Form" size={400} societyName={societyName} />
         </div>
       </CardContent>
     </Card>

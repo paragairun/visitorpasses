@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, useParams, Link } from "react-router-dom";
 import { Car, Send, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,14 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
-interface SocietyOption { id: string; name: string; }
+interface SocietyOption { id: string; name: string; slug: string; }
 
 const VisitorForm = () => {
   const [searchParams] = useSearchParams();
-  const urlSociety = searchParams.get("s") || "";
+  const { societySlug } = useParams<{ societySlug?: string }>();
+  const urlSocietyId = searchParams.get("s") || "";
 
   const [societies, setSocieties] = useState<SocietyOption[]>([]);
-  const [societyId, setSocietyId] = useState<string>(urlSociety);
+  const [societyId, setSocietyId] = useState<string>(urlSocietyId);
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [form, setForm] = useState({
@@ -27,11 +28,19 @@ const VisitorForm = () => {
   useEffect(() => {
     void supabase
       .from("societies")
-      .select("id, name")
+      .select("id, name, slug")
       .eq("status", "active")
       .order("name")
-      .then(({ data }) => setSocieties((data ?? []) as SocietyOption[]));
-  }, []);
+      .then(({ data }) => {
+        const list = (data ?? []) as SocietyOption[];
+        setSocieties(list);
+        // If arrived via slug URL, resolve the society ID from the slug
+        if (societySlug && !urlSocietyId) {
+          const match = list.find((s) => s.slug === societySlug);
+          if (match) setSocietyId(match.id);
+        }
+      });
+  }, [societySlug, urlSocietyId]);
 
   const society = societies.find((s) => s.id === societyId);
 

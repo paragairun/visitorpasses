@@ -52,7 +52,6 @@ const CHILD_NAV: NavItem[] = [
 ];
 
 const ResidentPortal = () => {
-  useInactivityLogout("/resident");
   const [activeView, setActiveView] = useState("guest");
   const [form, setForm] = useState(emptyForm);
   const [guestPasses, setGuestPasses] = useState<GuestPass[]>([]);
@@ -83,8 +82,10 @@ const ResidentPortal = () => {
   const [issuedChildCred, setIssuedChildCred] = useState<{ email: string; password: string } | null>(null);
   const [removeChildTarget, setRemoveChildTarget] = useState<ChildAccount | null>(null);
   const { toast } = useToast();
-  const { signOut, user, societyId, societyName } = useAuth();
+  const { signOut, user, societyId, societyName, societySlug } = useAuth();
   const navigate = useNavigate();
+  const residentLoginPath = societySlug ? `/${societySlug}/resident` : "/resident";
+  useInactivityLogout(residentLoginPath);
 
   const activeFlat = useMemo(() => flats.find((f) => f.id === activeFlatId) ?? flats[0], [flats, activeFlatId]);
   const NAV = isChild ? CHILD_NAV : PRIMARY_NAV;
@@ -243,7 +244,7 @@ const ResidentPortal = () => {
     await refreshFlats();
   };
 
-  const handleSignOut = async () => { await signOut(); navigate("/resident", { replace: true }); };
+  const handleSignOut = async () => { await signOut(); navigate(residentLoginPath, { replace: true }); };
 
   const generateGuestPass = async () => {
     if (!form.visitor_name.trim() || !form.phone.trim() || !form.vehicle_number.trim()) {
