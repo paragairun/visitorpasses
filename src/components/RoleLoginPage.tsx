@@ -27,11 +27,13 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
-  const { signIn, user, roles } = useAuth();
+  const { signIn, user, roles, societySlug } = useAuth();
   const { toast } = useToast();
 
+  const resolvedDashboardPath = societySlug ? `/${societySlug}/${roleKey}/dashboard` : dashboardPath;
+
   if (user && roles.includes(roleKey)) {
-    return <Navigate to={dashboardPath} replace />;
+    return <Navigate to={resolvedDashboardPath} replace />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
