@@ -9,52 +9,31 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Resident sign up -->
-  <url>
-    <loc>https://visitorpasses.in/register</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
-  </url>
-
-  <!-- Society registration -->
+  <!-- Society registration (public) -->
   <url>
     <loc>https://visitorpasses.in/register-society</loc>
     <lastmod>2026-06-15</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- Guard login -->
-  <url>
-    <loc>https://visitorpasses.in/guard</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- Resident login -->
-  <url>
-    <loc>https://visitorpasses.in/resident</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- Admin login -->
-  <url>
-    <loc>https://visitorpasses.in/admin</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
-
-  <!-- Visitor pass form (public-facing, scanned via QR) -->
-  <url>
-    <loc>https://visitorpasses.in/visitor/form</loc>
-    <lastmod>2026-06-15</lastmod>
-    <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <!-- Super admin login -->
+  <url>
+    <loc>https://visitorpasses.in/super-admin/login</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!--
+    Society-specific pages follow the pattern /{society-slug}/...
+    e.g. https://visitorpasses.in/mandlik-nagar/guard
+         https://visitorpasses.in/mandlik-nagar/resident
+         https://visitorpasses.in/mandlik-nagar/admin
+         https://visitorpasses.in/mandlik-nagar/visitor/form
+
+    These are dynamically generated per society and not listed individually here.
+    Each society's admin should share their slug-based URLs with guards, residents, and visitors.
+  -->
 
 </urlset>
