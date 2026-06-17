@@ -63,6 +63,21 @@ Deno.serve(async (req) => {
     }
 
     // Approve: create society, create auth user, assign admin role, profile, mark approved
+    // Generate a URL-safe slug from the society name
+    const generateSlug = (name: string): string => {
+      return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    };
+
+    // Ensure slug uniqueness by checking existing slugs
+    let slug = generateSlug(reqRow.society_name);
+    const { data: existingSlugs } = await adminClient.from("societies").select("slug").like("slug", `${slug}%`);
+    const takenSlugs = new Set((existingSlugs ?? []).map((r: { slug: string }) => r.slug));
+    if (takenSlugs.has(slug)) {
+      let counter = 1;
+      while (takenSlugs.has(`${slug}-${counter}`)) counter++;
+      slug = `${slug}-${counter}`;
+    }
+
     const { data: society, error: socErr } = await adminClient.from("societies").insert({
       name: reqRow.society_name,
       address_line: reqRow.address_line,
@@ -71,8 +86,9 @@ Deno.serve(async (req) => {
       state: reqRow.state,
       country: reqRow.country,
       pin_code: reqRow.pin_code,
+      slug,
       status: "active",
-    }).select("id").single();
+    }).select("id, slug").single();
     if (socErr || !society) return json({ error: socErr?.message ?? "Could not create society" }, 400);
 
     // Persist the submitted structure (towers/wings/flat ranges) as locked, super-admin-only editable
@@ -138,7 +154,7 @@ Deno.serve(async (req) => {
       admin_password: "",
     }).eq("id", request_id);
 
-    return json({ success: true, action: "approved", society_id: society.id, admin_email: reqRow.admin_email });
+    return json({ success: true, action: "approved", society_id: society.id, society_slug: society.slug, admin_email: reqRow.admin_email });
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : "Unexpected error" }, 500);
   }
