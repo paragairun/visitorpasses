@@ -13,6 +13,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [societyId, setSocietyId] = useState<string | null>(null);
   const [societyName, setSocietyName] = useState<string | null>(null);
+  const [societySlug, setSocietySlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const latestRoleRequestFor = useRef<string | null>(null);
 
@@ -26,16 +27,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const nextSocietyId = profileData?.society_id ?? null;
 
     let nextSocietyName: string | null = null;
+    let nextSocietySlug: string | null = null;
     if (nextSocietyId) {
       const { data: soc } = await supabase
         .from("societies")
-        .select("name")
+        .select("name, slug")
         .eq("id", nextSocietyId)
         .maybeSingle();
       nextSocietyName = soc?.name ?? null;
+      nextSocietySlug = soc?.slug ?? null;
     }
 
-    return { nextRoles, nextSocietyId, nextSocietyName };
+    return { nextRoles, nextSocietyId, nextSocietyName, nextSocietySlug };
   };
 
   const currentUserIdRef = useRef<string | null>(null);
@@ -57,17 +60,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setRoles([]);
       setSocietyId(null);
       setSocietyName(null);
+      setSocietySlug(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    void fetchRolesAndSociety(nextUserId).then(({ nextRoles, nextSocietyId, nextSocietyName }) => {
+    void fetchRolesAndSociety(nextUserId).then(({ nextRoles, nextSocietyId, nextSocietyName, nextSocietySlug }) => {
       if (latestRoleRequestFor.current === nextUserId) {
         setRoles(nextRoles);
         setRole(nextRoles[0] ?? null);
         setSocietyId(nextSocietyId);
         setSocietyName(nextSocietyName);
+        setSocietySlug(nextSocietySlug);
         setLoading(false);
       }
     });
@@ -115,12 +120,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setRoles([]);
     setSocietyId(null);
     setSocietyName(null);
+    setSocietySlug(null);
     setLoading(false);
   };
 
   return (
     <AuthContext.Provider
-      value={{ session, user, role, roles, societyId, societyName, loading, signIn, signUp, signOut }}
+      value={{ session, user, role, roles, societyId, societyName, societySlug, loading, signIn, signUp, signOut }}
     >
       {children}
     </AuthContext.Provider>
