@@ -25,6 +25,12 @@ const ProtectedRoute = ({ children, requiredRole, loginPath }: ProtectedRoutePro
     return <Navigate to={loginPath} replace />;
   }
 
+  // Super-admins have no society and should never land on society dashboards —
+  // redirect them to their own dashboard silently.
+  if (roles.includes("super_admin")) {
+    return <Navigate to="/super-admin" replace />;
+  }
+
   if (!roles.includes(requiredRole)) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 text-center">

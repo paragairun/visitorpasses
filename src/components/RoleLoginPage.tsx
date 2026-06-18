@@ -32,6 +32,11 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
 
   const resolvedDashboardPath = societySlug ? `/${societySlug}/${roleKey}/dashboard` : dashboardPath;
 
+  // Super-admin should never be on a society login page — redirect to their dashboard
+  if (user && roles.includes("super_admin")) {
+    return <Navigate to="/super-admin" replace />;
+  }
+
   if (user && roles.includes(roleKey)) {
     return <Navigate to={resolvedDashboardPath} replace />;
   }
