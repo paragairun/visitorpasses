@@ -1,5 +1,6 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -22,12 +23,33 @@ import Index from "./pages/Index";
 
 const queryClient = new QueryClient();
 
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+
+/** Fires a GA4 page_view on every React Router navigation. */
+const GAPageTracker = () => {
+  const location = useLocation();
+  useEffect(() => {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "page_view", {
+        page_path: location.pathname + location.search,
+        page_location: window.location.href,
+      });
+    }
+  }, [location]);
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <GAPageTracker />
         <AuthProvider>
           <main>
           <Routes>
