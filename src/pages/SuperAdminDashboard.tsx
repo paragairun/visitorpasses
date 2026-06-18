@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Navigate } from "react-router-dom";
 import { Building2, Check, X, LogOut, ShieldCheck, ClipboardList, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,14 +65,8 @@ const SuperAdminDashboard = () => {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) { navigate("/super-admin/login", { replace: true }); return; }
-    if (!loading && user && !isSuper) {
-      toast({ title: "Super-admin access required", variant: "destructive" });
-      navigate("/", { replace: true });
-      return;
-    }
     if (user && isSuper) void load();
-  }, [user, loading, isSuper, navigate, toast, load]);
+  }, [user, isSuper, load]);
 
   const approve = async (r: RegRow) => {
     setWorking(r.id);
@@ -142,7 +136,15 @@ const SuperAdminDashboard = () => {
     setEditingSociety(null);
   };
 
-  if (loading || !isSuper) {
+  // Redirect immediately (no spinner flash) when auth is resolved and user isn't super-admin
+  if (!loading && !user) {
+    return <Navigate to="/super-admin/login" replace />;
+  }
+  if (!loading && user && !isSuper) {
+    return <Navigate to="/" replace />;
+  }
+
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
