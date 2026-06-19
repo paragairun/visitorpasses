@@ -50,11 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setSession(nextSession);
     setUser(nextSession?.user ?? null);
 
-    if (sameUser) return;
-
-    currentUserIdRef.current = nextUserId;
-    latestRoleRequestFor.current = nextUserId;
-
+    // Always clear loading for unauthenticated state, even if userId hasn't changed
     if (!nextUserId) {
       setRole(null);
       setRoles([]);
@@ -64,6 +60,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
       return;
     }
+
+    if (sameUser) return;
+
+    currentUserIdRef.current = nextUserId;
+    latestRoleRequestFor.current = nextUserId;
 
     setLoading(true);
     void fetchRolesAndSociety(nextUserId).then(({ nextRoles, nextSocietyId, nextSocietyName, nextSocietySlug }) => {
