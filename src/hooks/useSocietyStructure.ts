@@ -1,21 +1,18 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { NormalizedTower, generateFlatNumbers } from "@/components/SocietyStructureBuilder";
+import { NormalizedTower, NormalizedStructure, generateFlatNumbers } from "@/components/SocietyStructureBuilder";
 
 /**
  * Loads the approved structure (towers -> wings -> flat number ranges) for a society.
- * Returns an empty array if the society has no structure defined yet (e.g. legacy societies),
- * in which case consuming components should fall back to free-text inputs.
+ * Returns empty state if the society has no structure defined yet (legacy societies),
+ * in which case consuming components fall back to free-text inputs.
  */
 export const useSocietyStructure = (societyId: string | null | undefined) => {
-  const [structure, setStructure] = useState<NormalizedTower[]>([]);
+  const [towers, setTowers] = useState<NormalizedTower[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!societyId) {
-      setStructure([]);
-      return;
-    }
+    if (!societyId) { setTowers([]); return; }
     let active = true;
     setLoading(true);
     void supabase
@@ -26,18 +23,21 @@ export const useSocietyStructure = (societyId: string | null | undefined) => {
       .then(({ data, error }) => {
         if (!active) return;
         setLoading(false);
-        if (error || !data?.structure) {
-          setStructure([]);
-          return;
+        if (error || !data?.structure) { setTowers([]); return; }
+        // Handle both old shape (plain array) and new shape ({ floor_wise, towers })
+        const raw = data.structure as NormalizedStructure | NormalizedTower[];
+        if (Array.isArray(raw)) {
+          setTowers(raw as NormalizedTower[]);
+        } else {
+          setTowers((raw as NormalizedStructure).towers ?? []);
         }
-        setStructure((data.structure ?? []) as NormalizedTower[]);
       });
     return () => { active = false; };
   }, [societyId]);
 
   /** Returns the tower name for a given wing, or undefined if not found. */
   const towerForWing = (wing: string): string | undefined =>
-    structure.find((t) => t.wings.some((w) => w.wing === wing))?.tower_name;
+    towers.find((t) => t.wings.some((w) => w.wing === wing))?.tower_name;
 
   /**
    * Formats a flat address including tower name when available.
@@ -51,7 +51,7 @@ export const useSocietyStructure = (societyId: string | null | undefined) => {
 
   /** Generate the list of flat numbers for a given wing, based on its range/floor settings. */
   const flatsForWing = (wing: string): string[] => {
-    for (const tower of structure) {
+    for (const tower of towers) {
       const w = tower.wings.find((x) => x.wing === wing);
       if (w) return generateFlatNumbers(w);
     }
@@ -59,9 +59,17 @@ export const useSocietyStructure = (societyId: string | null | undefined) => {
   };
 
   /** All wings across all towers, with their parent tower name. */
-  const allWings = structure.flatMap((tower) =>
+  const allWings = towers.flatMap((tower) =>
     tower.wings.map((w) => ({ tower_name: tower.tower_name, wing: w.wing }))
   );
 
-  return { structure, loading, hasStructure: structure.length > 0, allWings, flatsForWing, towerForWing, formatFlat };
+  return {
+    structure: towers, // keep 'structure' alias for FlatPicker compatibility
+    loading,
+    hasStructure: towers.length > 0,
+    allWings,
+    flatsForWing,
+    towerForWing,
+    formatFlat,
+  };
 };
