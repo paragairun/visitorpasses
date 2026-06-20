@@ -3,6 +3,8 @@ import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -17,6 +19,8 @@ const normalize = (v: string) =>
   v.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 const VehicleSearch = () => {
+  const { societyId } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[] | null>(null);
   const [searching, setSearching] = useState(false);
@@ -80,7 +84,7 @@ const VehicleSearch = () => {
               <div key={i} className="flex items-center justify-between p-3 rounded-lg bg-secondary/50 border border-border">
                 <div>
                   <p className="font-bold text-foreground">{r.vehicle_number}</p>
-                  <p className="text-xs text-muted-foreground">{r.wing}-{r.flat_number}</p>
+                  <p className="text-xs text-muted-foreground">{formatFlat(r.wing, r.flat_number)}</p>
                 </div>
                 <Badge variant={r.type === "resident" ? "default" : "secondary"}>
                   {r.type === "resident" ? "Resident" : "Guest"}

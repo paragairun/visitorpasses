@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 
 interface AccessLog {
   id: string;
@@ -25,7 +27,11 @@ interface AccessLog {
   } | null;
 }
 
-const AccessLogsViewer = () => {
+interface AccessLogsViewerProps {}
+
+const AccessLogsViewer = (_: AccessLogsViewerProps) => {
+  const { societyId } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -132,7 +138,7 @@ const AccessLogsViewer = () => {
                     {log.vehicles?.vehicle_number ?? "Unknown Vehicle"}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {log.vehicles?.owner_name} • {log.vehicles?.wing}-{log.vehicles?.flat_number} • {log.vehicles?.vehicle_type}
+                    {log.vehicles?.owner_name} • {formatFlat(log.vehicles?.wing ?? "", log.vehicles?.flat_number ?? "")} • {log.vehicles?.vehicle_type}
                   </p>
                   <p className="text-xs text-muted-foreground mt-0.5">
                     {new Date(log.timestamp).toLocaleString()}

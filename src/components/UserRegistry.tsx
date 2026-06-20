@@ -7,6 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,6 +41,8 @@ const roleColor = (role: string) => {
 };
 
 const UserRegistry = () => {
+  const { societyId } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
   const [users, setUsers] = useState<UserRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -179,7 +183,7 @@ const UserRegistry = () => {
                     <p className="font-bold text-foreground">{u.display_name ?? u.email ?? "Unnamed"}</p>
                     <Badge className={roleColor(u.role)}>{u.role}</Badge>
                     {u.wing && u.flat_number && (
-                      <span className="text-xs text-muted-foreground">{u.wing}-{u.flat_number}</span>
+                      <span className="text-xs text-muted-foreground">{formatFlat(u.wing, u.flat_number)}</span>
                     )}
                   </div>
                   {u.display_name && u.email && (

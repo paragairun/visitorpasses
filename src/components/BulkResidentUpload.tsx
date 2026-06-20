@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 
 
 interface ParsedResident {
@@ -24,6 +25,7 @@ const BulkResidentUpload = () => {
   const [progress, setProgress] = useState({ done: 0, total: 0 });
   const { toast } = useToast();
   const { societyId } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
 
   const parseCSV = (text: string): { parsed: ParsedResident[]; errs: string[] } => {
     const lines = text.trim().split(/\r?\n/);
@@ -220,8 +222,7 @@ const BulkResidentUpload = () => {
                   <tr>
                     <th className="text-left p-2">Name</th>
                     <th className="text-left p-2">Email</th>
-                    <th className="text-left p-2">Wing</th>
-                    <th className="text-left p-2">Flat</th>
+                    <th className="text-left p-2">Location</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -229,8 +230,7 @@ const BulkResidentUpload = () => {
                     <tr key={i} className="border-t border-border/50">
                       <td className="p-2">{r.display_name}</td>
                       <td className="p-2 font-mono text-xs">{r.email}</td>
-                      <td className="p-2">{r.wing}</td>
-                      <td className="p-2">{r.flat_number}</td>
+                      <td className="p-2">{formatFlat(r.wing, r.flat_number)}</td>
                     </tr>
                   ))}
                 </tbody>

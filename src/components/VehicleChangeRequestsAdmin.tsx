@@ -20,6 +20,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 
 type ChangeRequest = Tables<"vehicle_change_requests">;
 
@@ -30,6 +31,7 @@ interface Props {
 const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
   const { toast } = useToast();
   const { societyId } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
   const [requests, setRequests] = useState<ChangeRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<ChangeRequest | null>(null);
@@ -93,7 +95,7 @@ const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
         setBusy(false);
         toast({
           title: "Duplicate vehicle",
-          description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${dup.wing}-${dup.flat_number}).`,
+          description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${formatFlat(dup.wing, dup.flat_number)}).`,
           variant: "destructive",
         });
         return;
@@ -211,7 +213,7 @@ const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
                   <p className="font-bold text-foreground">{r.vehicle_number}</p>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {r.owner_name} • {r.wing}-{r.flat_number} • {r.vehicle_type}
+                  {r.owner_name} • {formatFlat(r.wing, r.flat_number)} • {r.vehicle_type}
                 </p>
                 <p className="text-xs text-muted-foreground">{new Date(r.created_at).toLocaleString()}</p>
               </div>
@@ -231,7 +233,7 @@ const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-xs uppercase text-muted-foreground">{r.request_type}</span>
                   <span className="font-medium truncate">{r.vehicle_number}</span>
-                  <span className="text-xs text-muted-foreground truncate">{r.wing}-{r.flat_number}</span>
+                  <span className="text-xs text-muted-foreground truncate">{formatFlat(r.wing, r.flat_number)}</span>
                 </div>
                 <StatusBadge status={r.status as "approved" | "rejected"} />
               </div>

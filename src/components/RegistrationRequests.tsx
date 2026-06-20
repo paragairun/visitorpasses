@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 import { UserCheck, UserX, Clock, Loader2, Trash2 } from "lucide-react";
 
 interface RegistrationRequest {
@@ -18,6 +20,8 @@ interface RegistrationRequest {
 }
 
 const RegistrationRequests = () => {
+  const { societyId } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
   const [requests, setRequests] = useState<RegistrationRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
@@ -198,7 +202,7 @@ const RegistrationRequests = () => {
                 </Badge>
                 {req.flat_number && (
                   <span className="text-xs text-muted-foreground">
-                    {req.wing}-{req.flat_number}
+                    {req.wing && req.flat_number ? formatFlat(req.wing, req.flat_number) : (req.flat_number ?? "")}
                   </span>
                 )}
               </div>

@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 
 interface ParsedRow {
   owner_name: string;
@@ -24,6 +25,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
   const [uploading, setUploading] = useState(false);
   const { toast } = useToast();
   const { societyId } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
 
   const parseCSV = (text: string): { parsed: ParsedRow[]; errs: string[] } => {
     const lines = text.trim().split(/\r?\n/);
@@ -186,8 +188,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
                   <tr>
                     <th className="text-left p-2">Owner</th>
                     <th className="text-left p-2">Vehicle</th>
-                    <th className="text-left p-2">Wing</th>
-                    <th className="text-left p-2">Flat</th>
+                    <th className="text-left p-2">Location</th>
                     <th className="text-left p-2">Type</th>
                   </tr>
                 </thead>
@@ -196,8 +197,7 @@ const CsvUpload = ({ onComplete }: { onComplete: () => void }) => {
                     <tr key={i} className="border-t border-border/50">
                       <td className="p-2">{r.owner_name}</td>
                       <td className="p-2 font-mono">{r.vehicle_number}</td>
-                      <td className="p-2">{r.wing}</td>
-                      <td className="p-2">{r.flat_number}</td>
+                      <td className="p-2">{formatFlat(r.wing, r.flat_number)}</td>
                       <td className="p-2">{r.vehicle_type}</td>
                     </tr>
                   ))}
