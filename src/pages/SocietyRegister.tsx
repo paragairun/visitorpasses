@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import SocietyStructureBuilder, { TowerStructure, emptyTower, normalizeTowers } from "@/components/SocietyStructureBuilder";
+import SocietyStructureBuilder, { TowerStructure, emptyTower, normalizeStructure } from "@/components/SocietyStructureBuilder";
 
 const SocietyRegister = () => {
   const navigate = useNavigate();
@@ -33,6 +33,8 @@ const SocietyRegister = () => {
     setForm((p) => ({ ...p, [k]: e.target.value }));
 
   const [towers, setTowers] = useState<TowerStructure[]>([emptyTower()]);
+  const [floorWise, setFloorWise] = useState(false);
+  const [flatsPerFloor, setFlatsPerFloor] = useState("");
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,12 +69,12 @@ const SocietyRegister = () => {
     }
 
     // Validate + normalize society structure
-    const structureResult = normalizeTowers(towers);
+    const structureResult = normalizeStructure(towers, floorWise, flatsPerFloor);
     if ("error" in structureResult) {
       toast({ title: structureResult.error, variant: "destructive" });
       return;
     }
-    const normalizedTowers = structureResult.towers;
+    const normalizedTowers = structureResult.structure;
 
     setSaving(true);
     const { error } = await supabase.from("society_registration_requests").insert({
@@ -178,7 +180,15 @@ const SocietyRegister = () => {
                   </p>
                 </div>
 
-                <SocietyStructureBuilder towers={towers} onChange={setTowers} disabled={saving} />
+                <SocietyStructureBuilder
+                  towers={towers}
+                  floorWise={floorWise}
+                  flatsPerFloor={flatsPerFloor}
+                  onChangeTowers={setTowers}
+                  onChangeFloorWise={setFloorWise}
+                  onChangeFlatsPerFloor={setFlatsPerFloor}
+                  disabled={saving}
+                />
               </section>
 
               <section className="space-y-3 pt-2 border-t border-border">

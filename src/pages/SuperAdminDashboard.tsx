@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import StatusBadge from "@/components/StatusBadge";
 import SocietyStructureBuilder, {
-  TowerStructure, emptyTower, normalizeTowers, toEditableTowers, NormalizedTower,
+  TowerStructure, emptyTower, normalizeStructure, toEditableState, NormalizedStructure,
 } from "@/components/SocietyStructureBuilder";
 
 interface WingRange {
@@ -51,6 +51,8 @@ const SuperAdminDashboard = () => {
   // Structure editor (super-admin only, for approved societies)
   const [editingSociety, setEditingSociety] = useState<SocietyRow | null>(null);
   const [editingTowers, setEditingTowers] = useState<TowerStructure[]>([emptyTower()]);
+  const [editingFloorWise, setEditingFloorWise] = useState(false);
+  const [editingFlatsPerFloor, setEditingFlatsPerFloor] = useState("");
   const [structureLoading, setStructureLoading] = useState(false);
   const [structureSaving, setStructureSaving] = useState(false);
 
@@ -101,6 +103,8 @@ const SuperAdminDashboard = () => {
   const openStructureEditor = async (society: SocietyRow) => {
     setEditingSociety(society);
     setEditingTowers([emptyTower()]);
+    setEditingFloorWise(false);
+    setEditingFlatsPerFloor("");
     setStructureLoading(true);
     const { data, error } = await supabase
       .from("society_structure")
@@ -112,13 +116,16 @@ const SuperAdminDashboard = () => {
       toast({ title: "Could not load structure", description: error.message, variant: "destructive" });
       return;
     }
-    const structure = (data?.structure ?? []) as NormalizedTower[];
-    setEditingTowers(toEditableTowers(structure));
+    const normalized = (data?.structure ?? { floor_wise: false, towers: [] }) as NormalizedStructure;
+    const { towers, floorWise, flatsPerFloor } = toEditableState(normalized);
+    setEditingTowers(towers);
+    setEditingFloorWise(floorWise);
+    setEditingFlatsPerFloor(flatsPerFloor);
   };
 
   const saveStructure = async () => {
     if (!editingSociety) return;
-    const result = normalizeTowers(editingTowers);
+    const result = normalizeStructure(editingTowers, editingFloorWise, editingFlatsPerFloor);
     if ("error" in result) {
       toast({ title: result.error, variant: "destructive" });
       return;
@@ -126,7 +133,7 @@ const SuperAdminDashboard = () => {
     setStructureSaving(true);
     const { error } = await supabase
       .from("society_structure")
-      .upsert({ society_id: editingSociety.id, structure: result.towers, locked: true }, { onConflict: "society_id" });
+      .upsert({ society_id: editingSociety.id, structure: result.structure, locked: true }, { onConflict: "society_id" });
     setStructureSaving(false);
     if (error) {
       toast({ title: "Could not save structure", description: error.message, variant: "destructive" });
@@ -293,7 +300,15 @@ const SuperAdminDashboard = () => {
               <div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            <SocietyStructureBuilder towers={editingTowers} onChange={setEditingTowers} disabled={structureSaving} />
+            <SocietyStructureBuilder
+              towers={editingTowers}
+              floorWise={editingFloorWise}
+              flatsPerFloor={editingFlatsPerFloor}
+              onChangeTowers={setEditingTowers}
+              onChangeFloorWise={setEditingFloorWise}
+              onChangeFlatsPerFloor={setEditingFlatsPerFloor}
+              disabled={structureSaving}
+            />
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEditingSociety(null)} disabled={structureSaving}>Cancel</Button>
