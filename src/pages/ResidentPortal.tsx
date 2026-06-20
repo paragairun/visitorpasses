@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import StatusBadge from "@/components/StatusBadge";
 import QrGenerator from "@/components/QrGenerator";
 import FlatPicker from "@/components/FlatPicker";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -86,6 +87,7 @@ const ResidentPortal = () => {
   const navigate = useNavigate();
   const residentLoginPath = societySlug ? `/${societySlug}/resident` : "/resident";
   useInactivityLogout(residentLoginPath);
+  const { formatFlat } = useSocietyStructure(societyId);
 
   const activeFlat = useMemo(() => flats.find((f) => f.id === activeFlatId) ?? flats[0], [flats, activeFlatId]);
   const NAV = isChild ? CHILD_NAV : PRIMARY_NAV;
@@ -426,7 +428,7 @@ const ResidentPortal = () => {
                   <div className="flex items-center gap-3 justify-between p-3 rounded-lg bg-secondary/50 border border-border">
                     <div className="flex-1 min-w-0">
                       <p className="font-bold text-foreground">{v.vehicle_number}</p>
-                      <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
+                      <p className="text-sm text-muted-foreground">{v.owner_name} • {formatFlat(v.wing, v.flat_number)} • {v.vehicle_type}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button variant="outline" size="sm" onClick={() => setShowVehicleQr(showVehicleQr === v.qr_code ? null : v.qr_code)} className="touch-target gap-1">
@@ -441,7 +443,7 @@ const ResidentPortal = () => {
                   </div>
                   {showVehicleQr === v.qr_code && (
                     <div className="flex justify-center py-2">
-                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${v.wing}-${v.flat_number}`} size={400} societyName={societyName} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
+                      <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${formatFlat(v.wing, v.flat_number)}`} size={400} societyName={societyName} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
                     </div>
                   )}
                 </div>
@@ -500,7 +502,7 @@ const ResidentPortal = () => {
                 <span className="text-xs uppercase font-bold text-muted-foreground">{r.request_type}</span>
                 <p className="font-medium text-foreground">{r.vehicle_number}</p>
               </div>
-              <p className="text-xs text-muted-foreground">{r.owner_name} • {r.wing}-{r.flat_number} • {new Date(r.created_at).toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">{r.owner_name} • {formatFlat(r.wing, r.flat_number)} • {new Date(r.created_at).toLocaleString()}</p>
               {r.notes && <p className="text-xs text-muted-foreground italic">Admin note: {r.notes}</p>}
             </div>
             <StatusBadge status={r.status as "pending" | "approved" | "rejected"} />

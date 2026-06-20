@@ -23,6 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
 
@@ -70,6 +71,7 @@ const AdminPanel = () => {
   const adminLoginPath = societySlug ? `/${societySlug}/admin` : "/admin";
   useInactivityLogout(adminLoginPath);
   const handleSignOut = async () => { await signOut(); navigate(adminLoginPath, { replace: true }); };
+  const { formatFlat } = useSocietyStructure(societyId);
 
   const fetchAdminData = useCallback(async (showLoader = false) => {
     if (showLoader) setLoading(true);
@@ -189,7 +191,7 @@ const AdminPanel = () => {
     const dup = (existing ?? []).find((v) => v.vehicle_number.toUpperCase().replace(/[^A-Z0-9]/g, "") === normalized);
     if (dup) {
       setSavingVehicle(false);
-      toast({ title: "Duplicate vehicle", description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${dup.wing}-${dup.flat_number}).`, variant: "destructive" });
+      toast({ title: "Duplicate vehicle", description: `${dup.vehicle_number} is already registered to ${dup.owner_name} (${formatFlat(dup.wing, dup.flat_number)}).`, variant: "destructive" });
       return;
     }
     if (!societyId) { setSavingVehicle(false); toast({ title: "Society not loaded", variant: "destructive" }); return; }
@@ -322,7 +324,7 @@ const AdminPanel = () => {
               <div className="min-w-0">
                 <p className="font-medium text-foreground text-sm truncate">{e.vehicle_number} • {e.owner_name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {e.entry_type} {e.wing && `• ${e.wing}-${e.flat_number}`} • {new Date(e.entry_time).toLocaleString()}
+                  {e.entry_type} {e.wing && `• ${formatFlat(e.wing, e.flat_number)}`} • {new Date(e.entry_time).toLocaleString()}
                 </p>
               </div>
               <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${e.exit_time ? "bg-muted text-muted-foreground" : "bg-success/15 text-success"}`}>
@@ -513,7 +515,7 @@ const AdminPanel = () => {
                 <Checkbox checked={selectedIds.has(v.id)} onCheckedChange={() => toggleSelect(v.id)} className="shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="font-bold text-foreground">{v.vehicle_number}</p>
-                  <p className="text-sm text-muted-foreground">{v.owner_name} • {v.wing}-{v.flat_number} • {v.vehicle_type}</p>
+                  <p className="text-sm text-muted-foreground">{v.owner_name} • {formatFlat(v.wing, v.flat_number)} • {v.vehicle_type}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => {
                   if (showQrFor === v.qr_code) { setShowQrFor(null); setShowQrWing(undefined); }
@@ -524,7 +526,7 @@ const AdminPanel = () => {
               </div>
               {showQrFor === v.qr_code && (
                 <div className="flex justify-center py-2">
-                  <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${v.wing}-${v.flat_number}`} size={400} societyName={societyName} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
+                  <QrGenerator value={v.qr_code} label={`${v.vehicle_number} \u2022 ${formatFlat(v.wing, v.flat_number)}`} size={400} societyName={societyName} fileBaseName={`${v.wing}-${v.flat_number}-${v.vehicle_type}-${v.vehicle_number}`} />
                 </div>
               )}
             </div>
