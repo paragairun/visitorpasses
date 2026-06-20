@@ -35,6 +35,20 @@ export const useSocietyStructure = (societyId: string | null | undefined) => {
     return () => { active = false; };
   }, [societyId]);
 
+  /** Returns the tower name for a given wing, or undefined if not found. */
+  const towerForWing = (wing: string): string | undefined =>
+    structure.find((t) => t.wings.some((w) => w.wing === wing))?.tower_name;
+
+  /**
+   * Formats a flat address including tower name when available.
+   * e.g. "Tower 1 • Wing A • 101"  or  "A-101" fallback
+   */
+  const formatFlat = (wing: string, flatNumber: string): string => {
+    const tower = towerForWing(wing);
+    if (tower) return `${tower} • Wing ${wing} • ${flatNumber}`;
+    return `${wing}-${flatNumber}`;
+  };
+
   /** Generate the list of flat numbers for a given wing, based on its range/floor settings. */
   const flatsForWing = (wing: string): string[] => {
     for (const tower of structure) {
@@ -49,5 +63,5 @@ export const useSocietyStructure = (societyId: string | null | undefined) => {
     tower.wings.map((w) => ({ tower_name: tower.tower_name, wing: w.wing }))
   );
 
-  return { structure, loading, hasStructure: structure.length > 0, allWings, flatsForWing };
+  return { structure, loading, hasStructure: structure.length > 0, allWings, flatsForWing, towerForWing, formatFlat };
 };
