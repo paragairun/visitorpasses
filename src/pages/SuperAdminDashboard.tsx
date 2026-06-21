@@ -127,6 +127,8 @@ const SuperAdminDashboard = () => {
     setDeletingSociety(null);
     await load();
   };
+
+  const openStructureEditor = async (society: SocietyRow) => {
     setEditingSociety(society);
     setEditingTowers([emptyTower()]);
     setEditingFloorWise(false);
