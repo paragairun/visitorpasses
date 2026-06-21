@@ -337,7 +337,7 @@ const SuperAdminDashboard = () => {
         </DialogContent>
       </Dialog>
 
-
+      <Dialog open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject "{rejecting?.society_name}"?</DialogTitle>
