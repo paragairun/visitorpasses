@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +27,24 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
-  const { signIn, user, roles, societySlug } = useAuth();
+  const { signIn, signOut, user, roles, societySlug } = useAuth();
+  const { societySlug: urlSlug } = useParams<{ societySlug?: string }>();
   const { toast } = useToast();
+
+  // Must be accessed via /:societySlug/role — bare /admin, /guard, /resident are blocked
+  if (!urlSlug) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 text-center">
+        <div className="space-y-3 max-w-sm">
+          <p className="text-2xl font-bold text-destructive">Access Denied</p>
+          <p className="text-muted-foreground text-sm">
+            Please use your society's unique login URL to sign in.
+            Contact your society admin for the correct link.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   const resolvedDashboardPath = societySlug ? `/${societySlug}/${roleKey}/dashboard` : dashboardPath;
 
@@ -38,6 +54,24 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   }
 
   if (user && roles.includes(roleKey)) {
+    // Verify the user belongs to the society in the URL
+    if (societySlug && urlSlug && societySlug !== urlSlug) {
+      return (
+        <div className="min-h-screen flex items-center justify-center p-6 text-center">
+          <div className="space-y-3 max-w-sm">
+            <p className="text-2xl font-bold text-destructive">Wrong Society</p>
+            <p className="text-muted-foreground text-sm">
+              This account does not belong to this society.
+              Please use your society's correct login URL.
+            </p>
+            <button
+              className="text-sm text-primary underline"
+              onClick={() => void signOut()}
+            >Sign out</button>
+          </div>
+        </div>
+      );
+    }
     return <Navigate to={resolvedDashboardPath} replace />;
   }
 
@@ -55,7 +89,12 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
 
     if (error) {
       toast({ title: "Login Failed", description: error, variant: "destructive" });
+      return;
     }
+
+    // societySlug will be populated by AuthContext after signIn resolves.
+    // The post-login redirect check below (roles.includes(roleKey)) handles mismatched society —
+    // if their slug doesn't match urlSlug, we show an error on the next render cycle via the check below.
   };
 
   const handleForgotPassword = async () => {
