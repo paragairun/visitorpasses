@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate, Navigate } from "react-router-dom";
-import { Building2, Check, X, LogOut, ShieldCheck, ClipboardList, Settings2 } from "lucide-react";
+import { Building2, Check, X, LogOut, ShieldCheck, ClipboardList, Settings2, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -27,6 +27,7 @@ interface TowerRange {
 
 interface SocietyRow {
   id: string; name: string; city: string; state: string; status: string; created_at: string;
+  slug: string; admin_email: string | null;
 }
 interface RegRow {
   id: string; society_name: string; address_line: string; landmark: string | null;
@@ -59,11 +60,21 @@ const SuperAdminDashboard = () => {
 
   const load = useCallback(async () => {
     const [{ data: socs }, { data: reqs }] = await Promise.all([
-      supabase.from("societies").select("id, name, city, state, status, created_at").order("created_at", { ascending: false }),
+      supabase.from("societies").select("id, name, city, state, status, created_at, slug").order("created_at", { ascending: false }),
       supabase.from("society_registration_requests").select("*").order("created_at", { ascending: false }),
     ]);
-    setSocieties((socs ?? []) as SocietyRow[]);
-    setRequests((reqs ?? []) as RegRow[]);
+
+    // Join admin_email from approved registration requests by society name match
+    const approvedReqs = (reqs ?? []) as RegRow[];
+    const enrichedSocs = ((socs ?? []) as Omit<SocietyRow, "admin_email">[]).map((s) => {
+      const req = approvedReqs.find(
+        (r) => r.society_name.trim().toLowerCase() === s.name.trim().toLowerCase() && r.status === "approved"
+      );
+      return { ...s, admin_email: req?.admin_email ?? null } as SocietyRow;
+    });
+
+    setSocieties(enrichedSocs);
+    setRequests(approvedReqs);
   }, []);
 
   useEffect(() => {
@@ -100,7 +111,22 @@ const SuperAdminDashboard = () => {
     await load();
   };
 
-  const openStructureEditor = async (society: SocietyRow) => {
+  const [deletingSociety, setDeletingSociety] = useState<SocietyRow | null>(null);
+
+  const deleteSociety = async () => {
+    if (!deletingSociety) return;
+    setWorking(deletingSociety.id);
+    // Delete cascades via FK: society_structure, profiles, user_roles etc.
+    const { error } = await supabase.from("societies").delete().eq("id", deletingSociety.id);
+    setWorking(null);
+    if (error) {
+      toast({ title: "Delete failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `Society "${deletingSociety.name}" deleted` });
+    setDeletingSociety(null);
+    await load();
+  };
     setEditingSociety(society);
     setEditingTowers([emptyTower()]);
     setEditingFloorWise(false);
@@ -242,16 +268,34 @@ const SuperAdminDashboard = () => {
           </CardHeader>
           <CardContent className="space-y-2">
             {societies.map((s) => (
-              <div key={s.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/40 border border-border">
-                <div>
-                  <p className="font-semibold text-foreground">{s.name}</p>
-                  <p className="text-xs text-muted-foreground">{s.city}, {s.state}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <StatusBadge status={s.status === "active" ? "approved" : s.status === "suspended" ? "rejected" : "pending"} />
-                  <Button size="sm" variant="outline" onClick={() => void openStructureEditor(s)} className="gap-1">
-                    <Settings2 className="h-4 w-4" /> Structure
-                  </Button>
+              <div key={s.id} className="rounded-lg bg-secondary/40 border border-border p-3 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-semibold text-foreground">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">{s.city}, {s.state}</p>
+                    {s.admin_email && (
+                      <p className="text-xs text-muted-foreground mt-0.5">Admin: {s.admin_email}</p>
+                    )}
+                    {s.slug && (
+                      <a
+                        href={`https://visitorpasses.in/${s.slug}/admin`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-primary hover:underline inline-flex items-center gap-1 mt-0.5"
+                      >
+                        visitorpasses.in/{s.slug}/admin <ExternalLink className="h-3 w-3" />
+                      </a>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <StatusBadge status={s.status === "active" ? "approved" : s.status === "suspended" ? "rejected" : "pending"} />
+                    <Button size="sm" variant="outline" onClick={() => void openStructureEditor(s)} className="gap-1">
+                      <Settings2 className="h-4 w-4" /> Structure
+                    </Button>
+                    <Button size="sm" variant="destructive" onClick={() => setDeletingSociety(s)} className="gap-1">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -273,7 +317,25 @@ const SuperAdminDashboard = () => {
         )}
       </main>
 
-      <Dialog open={!!rejecting} onOpenChange={(o) => !o && setRejecting(null)}>
+      <Dialog open={!!deletingSociety} onOpenChange={(o) => !o && setDeletingSociety(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete "{deletingSociety?.name}"?</DialogTitle>
+            <DialogDescription>
+              This permanently deletes the society, all its residents, guards, vehicles, and access logs.
+              This cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeletingSociety(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => void deleteSociety()} disabled={working !== null}>
+              Delete permanently
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject "{rejecting?.society_name}"?</DialogTitle>
