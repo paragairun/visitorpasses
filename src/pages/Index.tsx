@@ -36,7 +36,7 @@ const Index = () => (
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <Button asChild variant="outline" size="sm">
-            <Link to="/admin">Login</Link>
+            <Link to="/login">Login</Link>
           </Button>
           <Button asChild size="sm" className="hidden sm:inline-flex">
             <Link to="/register-society">Register Society</Link>
@@ -61,7 +61,7 @@ const Index = () => (
             <Link to="/register-society">Register Your Society <ArrowRight className="h-4 w-4" /></Link>
           </Button>
           <Button asChild size="lg" variant="outline" className="text-base">
-            <Link to="/admin">I already have an account</Link>
+            <Link to="/login">I already have an account</Link>
           </Button>
         </div>
       </div>
@@ -112,7 +112,7 @@ const Index = () => (
     <section className="max-w-5xl mx-auto px-4 py-16">
       <h2 className="text-3xl font-bold text-foreground text-center mb-12">Choose your portal</h2>
       <div className="grid sm:grid-cols-3 gap-4">
-        <Link to="/admin" className="group">
+        <Link to="/login" className="group">
           <Card className="h-full transition-all hover:border-warning/50 hover:shadow-lg hover:-translate-y-1">
             <CardContent className="p-6 text-center">
               <div className="mx-auto h-14 w-14 rounded-xl bg-warning/15 text-warning flex items-center justify-center mb-4">
@@ -123,7 +123,7 @@ const Index = () => (
             </CardContent>
           </Card>
         </Link>
-        <Link to="/guard" className="group">
+        <Link to="/login" className="group">
           <Card className="h-full transition-all hover:border-primary/50 hover:shadow-lg hover:-translate-y-1">
             <CardContent className="p-6 text-center">
               <div className="mx-auto h-14 w-14 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-4">
@@ -134,7 +134,7 @@ const Index = () => (
             </CardContent>
           </Card>
         </Link>
-        <Link to="/resident" className="group">
+        <Link to="/login" className="group">
           <Card className="h-full transition-all hover:border-success/50 hover:shadow-lg hover:-translate-y-1">
             <CardContent className="p-6 text-center">
               <div className="mx-auto h-14 w-14 rounded-xl bg-success/15 text-success flex items-center justify-center mb-4">
