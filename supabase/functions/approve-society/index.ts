@@ -92,13 +92,17 @@ Deno.serve(async (req) => {
     if (socErr || !society) return json({ error: socErr?.message ?? "Could not create society" }, 400);
 
     // Persist the submitted structure (towers/wings/flat ranges) as locked, super-admin-only editable
-    const { error: structErr } = await adminClient.from("society_structure").insert({
-      society_id: society.id,
-      structure: reqRow.society_structure ?? [],
-      locked: true,
-    });
-    if (structErr) return json({ error: structErr.message }, 400);
-
+    // Non-blocking — if the table doesn't exist yet (pending migration), approval still succeeds
+    try {
+      const { error: structErr } = await adminClient.from("society_structure").insert({
+        society_id: society.id,
+        structure: reqRow.society_structure ?? [],
+        locked: true,
+      });
+      if (structErr) console.error("society_structure insert failed:", structErr.message);
+    } catch (e) {
+      console.error("society_structure insert exception:", e);
+    }
 
     // Check if user already exists
     let userId: string | null = null;
@@ -151,8 +155,14 @@ Deno.serve(async (req) => {
       reviewed_by: caller.id,
       reviewed_at: new Date().toISOString(),
       created_society_id: society.id,
-      admin_password: "",
     }).eq("id", request_id);
+
+    // Clear stored password separately (non-blocking, column may not exist in older schemas)
+    try {
+      await adminClient.from("society_registration_requests")
+        .update({ admin_password: "" })
+        .eq("id", request_id);
+    } catch (_) { /* ignore */ }
 
     return json({ success: true, action: "approved", society_id: society.id, society_slug: society.slug, admin_email: reqRow.admin_email });
   } catch (err) {
