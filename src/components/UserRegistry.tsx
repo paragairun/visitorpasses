@@ -96,7 +96,7 @@ const UserRegistry = () => {
     let success = 0;
     let failed = 0;
     for (const userId of selected) {
-      const { error } = await supabase.functions.invoke("delete-user", { body: { user_id: userId } });
+      const { error } = await supabase.functions.invoke("delete-user", { body: { user_id: userId, society_id: societyId } });
       if (error) failed++; else success++;
     }
     setDeleting(false);
