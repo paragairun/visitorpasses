@@ -66,39 +66,6 @@ const GuardDashboard = () => {
     navigate(guardLoginPath, { replace: true });
   };
 
-// In handleScan, ADD THIS BLOCK at the very top (before the existing
-// handleGuestPassScan call):
-
-if (result.startsWith("STF-") || result.startsWith("HLP-")) {
-  if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
-  const category = result.startsWith("STF-") ? "society_staff" : "house_help";
-  const table = category === "society_staff" ? "staff_members" : "house_helps";
-  const { data: member } = await supabase
-    .from(table).select("id, name, staff_type, help_type")
-    .eq("qr_code", result).maybeSingle();
-  if (!member) {
-    setScanResult("❌ Unknown ID card. Not registered.");
-    toast({ title: "Unknown ID card", variant: "destructive" });
-    setTimeout(() => setScanResult(null), 5000);
-    return;
-  }
-  const { data: lastLog } = await supabase
-    .from("staff_logs").select("action_type")
-    .eq("staff_id", member.id)
-    .order("timestamp", { ascending: false }).limit(1).maybeSingle();
-  const action = lastLog?.action_type === "entry" ? "exit" : "entry";
-  await supabase.from("staff_logs").insert({
-    society_id: societyId, category, staff_id: member.id,
-    action_type: action, logged_by: user?.id ?? null,
-  });
-  const role = member.staff_type ?? member.help_type ?? "";
-  setScanResult(`${action === "entry" ? "✅ Entry" : "🚪 Exit"} — ${member.name} (${role})`);
-  toast({ title: `${action === "entry" ? "Entry" : "Exit"} logged`, description: `${member.name} — ${role}` });
-  setTimeout(() => setScanResult(null), 5000);
-  return;
-}
-
-  
   const handleGuestPassScan = async (rawQr: string) => {
     const guestPass = decodeGuestPass(rawQr);
     if (!guestPass) return false;
@@ -148,8 +115,43 @@ if (result.startsWith("STF-") || result.startsWith("HLP-")) {
 
   const handleScan = async (result: string) => {
     setScanning(false);
+
+    // Staff / house help QR codes (STF- or HLP- prefix)
+    if (result.startsWith("STF-") || result.startsWith("HLP-")) {
+      if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
+      const category = result.startsWith("STF-") ? "society_staff" : "house_help";
+      const table = category === "society_staff" ? "staff_members" : "house_helps";
+      const { data: member } = await supabase
+        .from(table).select("id, name, staff_type, help_type")
+        .eq("qr_code", result).maybeSingle();
+      if (!member) {
+        setScanResult("❌ Unknown ID card. Not registered.");
+        toast({ title: "Unknown ID card", variant: "destructive" });
+        setTimeout(() => setScanResult(null), 5000);
+        return;
+      }
+      const { data: lastLog } = await supabase
+        .from("staff_logs").select("action_type")
+        .eq("staff_id", member.id)
+        .order("timestamp", { ascending: false }).limit(1).maybeSingle();
+      const action = lastLog?.action_type === "entry" ? "exit" : "entry";
+      await supabase.from("staff_logs").insert({
+        society_id: societyId, category, staff_id: member.id,
+        action_type: action, logged_by: user?.id ?? null,
+      });
+      const role = (member as { staff_type?: string; help_type?: string }).staff_type
+        ?? (member as { staff_type?: string; help_type?: string }).help_type ?? "";
+      setScanResult(`${action === "entry" ? "✅ Entry" : "🚪 Exit"} — ${member.name} (${role})`);
+      toast({ title: `${action === "entry" ? "Entry" : "Exit"} logged`, description: `${member.name} — ${role}` });
+      setTimeout(() => setScanResult(null), 5000);
+      return;
+    }
+
+    // Guest pass QR
     const handledGuestPass = await handleGuestPassScan(result);
     if (handledGuestPass) { setTimeout(() => setScanResult(null), 5000); return; }
+
+    // Vehicle QR
     const vehicle = vehicles.find((v) => v.qr_code === result);
     if (vehicle) {
       if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
@@ -220,7 +222,7 @@ if (result.startsWith("STF-") || result.startsWith("HLP-")) {
       <Card className="border-primary/30 bg-gradient-to-br from-primary/10 to-transparent">
         <CardContent className="p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between">
           <div>
-            <p className="text-sm text-muted-foreground">Scan a vehicle or guest QR</p>
+            <p className="text-sm text-muted-foreground">Scan a vehicle, staff or guest QR</p>
             <p className="text-base font-semibold text-foreground">Tap to start scanning</p>
           </div>
           <Button size="lg" onClick={() => setScanning(true)} className="gap-2 text-base font-bold animate-pulse-glow">
