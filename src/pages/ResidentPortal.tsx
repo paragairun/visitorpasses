@@ -20,6 +20,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
+// Add these imports:
+import HouseHelpsManager from "@/components/HouseHelpsManager";
+import StaffAttendanceLog from "@/components/StaffAttendanceLog";
 
 interface GuestPass {
   id: string; visitor_name: string; phone: string; vehicle_number: string;
@@ -43,6 +46,9 @@ const PRIMARY_NAV: NavItem[] = [
   { id: "requests", title: "My Requests", icon: ClipboardCheck },
   { id: "history", title: "Visit History", icon: ClipboardList },
   { id: "profile", title: "My Profile", icon: User },
+  // Add these two nav items to the PRIMARY_NAV array (after existing items):
+  { id: "helps", label: "House Helps", icon: Users },
+  { id: "help-attendance", label: "Help Attendance", icon: ClipboardList },
 ];
 
 const CHILD_NAV: NavItem[] = [
@@ -682,6 +688,14 @@ const ResidentPortal = () => {
       {activeView === "requests" && !isChild && renderRequests()}
       {activeView === "history" && renderHistory()}
       {activeView === "profile" && renderProfile()}
+      // Add these two view renders (after existing activeView checks):
+      {activeView === "helps" && <HouseHelpsManager residentFlats={flats} />}
+      {activeView === "help-attendance" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold">House Help Attendance</h2>
+          <StaffAttendanceLog filterCategory="house_help" showSummary={true} />
+        </div>
+      )}
       <AlertDialog open={!!removeTarget} onOpenChange={(o) => !o && setRemoveTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
