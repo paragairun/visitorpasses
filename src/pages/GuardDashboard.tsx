@@ -66,6 +66,39 @@ const GuardDashboard = () => {
     navigate(guardLoginPath, { replace: true });
   };
 
+// In handleScan, ADD THIS BLOCK at the very top (before the existing
+// handleGuestPassScan call):
+
+if (result.startsWith("STF-") || result.startsWith("HLP-")) {
+  if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
+  const category = result.startsWith("STF-") ? "society_staff" : "house_help";
+  const table = category === "society_staff" ? "staff_members" : "house_helps";
+  const { data: member } = await supabase
+    .from(table).select("id, name, staff_type, help_type")
+    .eq("qr_code", result).maybeSingle();
+  if (!member) {
+    setScanResult("❌ Unknown ID card. Not registered.");
+    toast({ title: "Unknown ID card", variant: "destructive" });
+    setTimeout(() => setScanResult(null), 5000);
+    return;
+  }
+  const { data: lastLog } = await supabase
+    .from("staff_logs").select("action_type")
+    .eq("staff_id", member.id)
+    .order("timestamp", { ascending: false }).limit(1).maybeSingle();
+  const action = lastLog?.action_type === "entry" ? "exit" : "entry";
+  await supabase.from("staff_logs").insert({
+    society_id: societyId, category, staff_id: member.id,
+    action_type: action, logged_by: user?.id ?? null,
+  });
+  const role = member.staff_type ?? member.help_type ?? "";
+  setScanResult(`${action === "entry" ? "✅ Entry" : "🚪 Exit"} — ${member.name} (${role})`);
+  toast({ title: `${action === "entry" ? "Entry" : "Exit"} logged`, description: `${member.name} — ${role}` });
+  setTimeout(() => setScanResult(null), 5000);
+  return;
+}
+
+  
   const handleGuestPassScan = async (rawQr: string) => {
     const guestPass = decodeGuestPass(rawQr);
     if (!guestPass) return false;
