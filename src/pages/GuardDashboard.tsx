@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScanLine, Check, X, LogOut, Car, Search, ClipboardList, Radio } from "lucide-react";
+import { ScanLine, Check, X, LogOut, Car, Search, ClipboardList, Radio, Package } from "lucide-react";
 import VehicleSearch from "@/components/VehicleSearch";
 import GateActivity from "@/components/GateActivity";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
 import { decodeGuestPass } from "@/lib/guest-pass";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
+import DeliveryManager from "@/components/DeliveryManager";
 
 type VisitorRequest = Tables<"visitor_requests">;
 type EntryLog = Tables<"entry_logs">;
@@ -23,6 +24,7 @@ const NAV: NavItem[] = [
   { id: "approvals", title: "Pending Approvals", icon: ClipboardList },
   { id: "live", title: "Live Inside", icon: Car },
   { id: "barriers", title: "Boom Barriers", icon: Radio },
+  { id: "delivery", title: "Deliveries", icon: Package },
 ];
 
 const GuardDashboard = () => {
@@ -320,6 +322,7 @@ const GuardDashboard = () => {
       {activeView === "live" && renderLive()}
       {activeView === "barriers" && <GateActivity />}
       {scanning && <QrScanner onScan={handleScan} onClose={() => setScanning(false)} />}
+      {activeView === "delivery" && <DeliveryManager />}
     </DashboardShell>
   );
 };
