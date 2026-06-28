@@ -1,0 +1,344 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Camera, Package, Search, LogOut, Clock, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useSocietyStructure } from "@/hooks/useSocietyStructure";
+import FlatPicker from "@/components/FlatPicker";
+
+const DELIVERY_TYPES = [
+  { value: "amazon", label: "Amazon" },
+  { value: "flipkart", label: "Flipkart" },
+  { value: "zomato", label: "Zomato" },
+  { value: "swiggy", label: "Swiggy" },
+  { value: "blinkit", label: "Blinkit" },
+  { value: "zepto", label: "Zepto" },
+  { value: "milk", label: "Milk Delivery" },
+  { value: "grocery", label: "Grocery" },
+  { value: "courier", label: "Courier / Parcel" },
+  { value: "other", label: "Other" },
+];
+
+const DELIVERY_ICONS: Record<string, string> = {
+  amazon: "📦", flipkart: "🛒", zomato: "🍕", swiggy: "🛵", blinkit: "⚡",
+  zepto: "🟣", milk: "🥛", grocery: "🛍️", courier: "📮", other: "📬",
+};
+
+interface DeliveryVisit {
+  id: string; mobile: string; photo_base64: string | null; delivery_type: string;
+  agent_name: string | null; wing: string; flat_number: string;
+  status: "pending_approval" | "approved" | "rejected" | "completed" | "expired";
+  entry_time: string; exit_time: string | null; expires_at: string;
+}
+
+const emptyForm = () => ({ mobile: "", agent_name: "", delivery_type: "", photo_base64: "", wing: "", flat_number: "" });
+
+const STATUS_DISPLAY: Record<string, { label: string; color: string }> = {
+  pending_approval: { label: "Awaiting approval", color: "text-warning" },
+  approved:         { label: "Approved — let in", color: "text-success" },
+  rejected:         { label: "Rejected by resident", color: "text-destructive" },
+  completed:        { label: "Exited", color: "text-muted-foreground" },
+  expired:          { label: "Expired", color: "text-muted-foreground" },
+};
+
+const DeliveryManager = () => {
+  const { societyId, user } = useAuth();
+  const { formatFlat } = useSocietyStructure(societyId);
+  const { toast } = useToast();
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const [visits, setVisits] = useState<DeliveryVisit[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm());
+  const [cameraOpen, setCameraOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [exitingId, setExitingId] = useState<string | null>(null);
+
+  const loadVisits = useCallback(async (expire = false) => {
+    if (!societyId) return;
+    // Auto-expire stale pending visits
+    if (expire) await supabase.rpc("expire_delivery_visits", { p_society_id: societyId });
+
+    const { data } = await supabase
+      .from("delivery_visits")
+      .select("*")
+      .eq("society_id", societyId)
+      .not("status", "in", '("completed","expired")')
+      .order("entry_time", { ascending: false });
+    setVisits((data ?? []) as DeliveryVisit[]);
+    setLoading(false);
+  }, [societyId]);
+
+  useEffect(() => {
+    void loadVisits(true);
+    const interval = window.setInterval(() => void loadVisits(true), 10000);
+    return () => window.clearInterval(interval);
+  }, [loadVisits]);
+
+  // Camera
+  const startCamera = async () => {
+    setCameraOpen(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+      if (videoRef.current) videoRef.current.srcObject = stream;
+    } catch {
+      toast({ title: "Camera not available", variant: "destructive" });
+      setCameraOpen(false);
+    }
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    const canvas = canvasRef.current;
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    canvas.getContext("2d")!.drawImage(videoRef.current, 0, 0);
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.7);
+    setForm((p) => ({ ...p, photo_base64: dataUrl }));
+    stopCamera();
+  };
+
+  const stopCamera = () => {
+    if (videoRef.current?.srcObject) {
+      (videoRef.current.srcObject as MediaStream).getTracks().forEach((t) => t.stop());
+      videoRef.current.srcObject = null;
+    }
+    setCameraOpen(false);
+  };
+
+  const handleSubmit = async () => {
+    if (!form.mobile.trim()) { toast({ title: "Enter mobile number", variant: "destructive" }); return; }
+    if (!form.delivery_type) { toast({ title: "Select delivery type", variant: "destructive" }); return; }
+    if (!form.wing || !form.flat_number) { toast({ title: "Select destination flat", variant: "destructive" }); return; }
+    if (!societyId) return;
+
+    setSaving(true);
+    const { error } = await supabase.from("delivery_visits").insert({
+      society_id: societyId,
+      mobile: form.mobile.trim(),
+      agent_name: form.agent_name.trim() || null,
+      delivery_type: form.delivery_type,
+      photo_base64: form.photo_base64 || null,
+      wing: form.wing,
+      flat_number: form.flat_number,
+      guard_id: user?.id ?? null,
+    });
+    setSaving(false);
+
+    if (error) { toast({ title: "Failed to register delivery", description: error.message, variant: "destructive" }); return; }
+
+    toast({ title: "Delivery registered", description: "Waiting for resident approval." });
+    setForm(emptyForm()); setShowForm(false);
+    await loadVisits(false);
+  };
+
+  const handleExit = async (id: string) => {
+    setExitingId(id);
+    const { error } = await supabase.from("delivery_visits")
+      .update({ status: "completed", exit_time: new Date().toISOString() })
+      .eq("id", id);
+    setExitingId(null);
+    if (error) { toast({ title: "Exit update failed", description: error.message, variant: "destructive" }); return; }
+    toast({ title: "Exit logged" });
+    await loadVisits(false);
+  };
+
+  const filtered = visits.filter((v) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return v.mobile.includes(q) || (v.agent_name ?? "").toLowerCase().includes(q) ||
+      v.flat_number.toLowerCase().includes(q) || v.wing.toLowerCase().includes(q) ||
+      v.delivery_type.toLowerCase().includes(q);
+  });
+
+  const pending = filtered.filter((v) => v.status === "pending_approval");
+  const approved = filtered.filter((v) => v.status === "approved");
+  const rejected = filtered.filter((v) => v.status === "rejected");
+
+  const VisitCard = ({ v }: { v: DeliveryVisit }) => {
+    const statusInfo = STATUS_DISPLAY[v.status];
+    const icon = DELIVERY_ICONS[v.delivery_type] ?? "📬";
+    const typeLabel = DELIVERY_TYPES.find((t) => t.value === v.delivery_type)?.label ?? v.delivery_type;
+    const timeStr = new Date(v.entry_time).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    const expiresIn = Math.max(0, Math.round((new Date(v.expires_at).getTime() - Date.now()) / 60000));
+
+    return (
+      <div className={`rounded-lg border p-3 space-y-2 ${v.status === "approved" ? "border-success/50 bg-success/5" : v.status === "rejected" ? "border-destructive/30 bg-destructive/5" : "border-border bg-secondary/30"}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2">
+            {v.photo_base64 ? (
+              <img src={v.photo_base64} alt="agent" className="h-12 w-12 rounded-lg object-cover" />
+            ) : (
+              <div className="h-12 w-12 rounded-lg bg-primary/20 flex items-center justify-center text-2xl">{icon}</div>
+            )}
+            <div>
+              <p className="font-semibold text-sm">{icon} {typeLabel}</p>
+              <p className="text-xs text-muted-foreground">{v.mobile}{v.agent_name ? ` • ${v.agent_name}` : ""}</p>
+              <p className="text-xs text-muted-foreground">{formatFlat(v.wing, v.flat_number)} • {timeStr}</p>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <p className={`text-xs font-medium ${statusInfo.color}`}>{statusInfo.label}</p>
+            {v.status === "pending_approval" && expiresIn > 0 && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end mt-0.5">
+                <Clock className="h-3 w-3" /> {expiresIn}m left
+              </p>
+            )}
+          </div>
+        </div>
+        {v.status === "approved" && (
+          <Button size="sm" variant="outline" className="w-full gap-1 border-success/50 text-success hover:bg-success hover:text-white"
+            onClick={() => void handleExit(v.id)} disabled={exitingId === v.id}>
+            <LogOut className="h-4 w-4" /> Mark Exit
+          </Button>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input className="pl-9" placeholder="Search by mobile, flat, type..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+        </div>
+        <Button onClick={() => void loadVisits(true)} variant="outline" size="icon" title="Refresh">
+          <RefreshCw className="h-4 w-4" />
+        </Button>
+        <Button onClick={() => setShowForm(true)} className="gap-1">
+          <Package className="h-4 w-4" /> Register Delivery
+        </Button>
+      </div>
+
+      {loading ? (
+        <div className="py-8 flex justify-center"><div className="h-6 w-6 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
+      ) : (
+        <div className="space-y-4">
+          {pending.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-warning flex items-center gap-1">
+                <Clock className="h-4 w-4" /> Awaiting Approval ({pending.length})
+              </p>
+              {pending.map((v) => <VisitCard key={v.id} v={v} />)}
+            </div>
+          )}
+          {approved.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-success flex items-center gap-1">
+                <CheckCircle className="h-4 w-4" /> Approved — Inside ({approved.length})
+              </p>
+              {approved.map((v) => <VisitCard key={v.id} v={v} />)}
+            </div>
+          )}
+          {rejected.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-destructive flex items-center gap-1">
+                <XCircle className="h-4 w-4" /> Rejected ({rejected.length})
+              </p>
+              {rejected.map((v) => <VisitCard key={v.id} v={v} />)}
+            </div>
+          )}
+          {filtered.length === 0 && (
+            <p className="text-sm text-muted-foreground text-center py-8">No active deliveries.</p>
+          )}
+        </div>
+      )}
+
+      {/* Registration dialog */}
+      <Dialog open={showForm} onOpenChange={(o) => { if (!o) { setForm(emptyForm()); stopCamera(); } setShowForm(o); }}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Register Delivery</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            {/* Photo */}
+            <div className="space-y-2">
+              <Label>Agent Photo (optional)</Label>
+              {form.photo_base64 ? (
+                <div className="flex items-center gap-3">
+                  <img src={form.photo_base64} alt="agent" className="h-20 w-20 rounded-lg object-cover border border-border" />
+                  <div className="space-y-1">
+                    <Button type="button" variant="outline" size="sm" onClick={() => void startCamera()}>Retake</Button>
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setForm((p) => ({ ...p, photo_base64: "" }))}>Remove</Button>
+                  </div>
+                </div>
+              ) : (
+                <Button type="button" variant="outline" className="gap-2 w-full" onClick={() => void startCamera()}>
+                  <Camera className="h-4 w-4" /> Take Photo
+                </Button>
+              )}
+            </div>
+
+            {/* Mobile */}
+            <div className="space-y-1">
+              <Label>Mobile Number *</Label>
+              <Input inputMode="tel" value={form.mobile} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value.replace(/\D/g, "").slice(0, 10) }))} placeholder="98765 43210" />
+            </div>
+
+            {/* Agent name */}
+            <div className="space-y-1">
+              <Label>Agent Name (optional)</Label>
+              <Input value={form.agent_name} onChange={(e) => setForm((p) => ({ ...p, agent_name: e.target.value }))} placeholder="Rajan, delivery agent, etc." />
+            </div>
+
+            {/* Delivery type */}
+            <div className="space-y-1">
+              <Label>Delivery Type *</Label>
+              <Select value={form.delivery_type} onValueChange={(v) => setForm((p) => ({ ...p, delivery_type: v }))}>
+                <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                <SelectContent>
+                  {DELIVERY_TYPES.map((t) => (
+                    <SelectItem key={t.value} value={t.value}>
+                      {DELIVERY_ICONS[t.value]} {t.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Flat picker */}
+            <div className="space-y-1">
+              <Label>Delivering to *</Label>
+              <FlatPicker
+                societyId={societyId}
+                wing={form.wing}
+                flatNumber={form.flat_number}
+                onChange={(wing, flat_number) => setForm((p) => ({ ...p, wing, flat_number }))}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setShowForm(false); setForm(emptyForm()); }}>Cancel</Button>
+            <Button onClick={() => void handleSubmit()} disabled={saving}>
+              {saving ? "Registering..." : "Register & Notify Resident"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Camera dialog */}
+      <Dialog open={cameraOpen} onOpenChange={(o) => { if (!o) stopCamera(); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Take Photo</DialogTitle></DialogHeader>
+          <video ref={videoRef} autoPlay playsInline className="w-full rounded-lg" />
+          <canvas ref={canvasRef} className="hidden" />
+          <DialogFooter>
+            <Button variant="outline" onClick={stopCamera}>Cancel</Button>
+            <Button onClick={capturePhoto} className="gap-1"><Camera className="h-4 w-4" /> Capture</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
+export default DeliveryManager;
