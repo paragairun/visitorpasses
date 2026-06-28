@@ -26,7 +26,6 @@ import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
-// Add these imports near the top (after existing imports):
 import SocietyStaffManager from "@/components/SocietyStaffManager";
 import StaffAttendanceLog from "@/components/StaffAttendanceLog";
 
@@ -46,8 +45,7 @@ const NAV: NavItem[] = [
   { id: "registry", title: "Vehicle Registry", icon: Car },
   { id: "visitor-qr", title: "Visitor Form QR", icon: LinkIcon },
   { id: "barriers", title: "Boom Barriers", icon: Radio },
-  // Add these two nav items to the NAV array (after existing items):
-{ id: "staff", title: "Staff", icon: Users },
+  { id: "staff", title: "Staff", icon: Users },
 { id: "staff-logs", title: "Staff Attendance", icon: ClipboardList },
 ];
 
@@ -584,7 +582,6 @@ const AdminPanel = () => {
       {activeView === "users" && <UserRegistry />}
       {activeView === "visitor-qr" && renderVisitorQr()}
       {activeView === "barriers" && <BarrierDevicesAdmin />}
-      // Add these two view renders (after existing activeView checks):
       {activeView === "staff" && <SocietyStaffManager />}
       {activeView === "staff-logs" && (
         <div className="space-y-4">
