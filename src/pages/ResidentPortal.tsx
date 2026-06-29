@@ -39,7 +39,6 @@ interface ChangeRequestRow { id: string; request_type: string; vehicle_number: s
 const emptyForm = { visitor_name: "", phone: "", vehicle_number: "", purpose: "" };
 const emptyVehicleRequest = { vehicle_number: "", vehicle_type: "car" };
 const emptyChildForm = { email: "", display_name: "", child_type: "family" as "family" | "tenant" };
-const [pendingDeliveries, setPendingDeliveries] = useState(0);
 
 const PRIMARY_NAV: NavItem[] = [
   { id: "guest", title: "Guest Pass", icon: QrCode },
@@ -47,9 +46,9 @@ const PRIMARY_NAV: NavItem[] = [
   { id: "requests", title: "My Requests", icon: ClipboardCheck },
   { id: "history", title: "Visit History", icon: ClipboardList },
   { id: "profile", title: "My Profile", icon: User },
-  { id: "helps", label: "House Helps", icon: Users },
-  { id: "help-attendance", label: "Help Attendance", icon: ClipboardList },
-  { id: "deliveries", label: "Deliveries", icon: Package, badge: pendingDeliveries },
+  { id: "helps", title: "House Helps", icon: Users },
+  { id: "help-attendance", title: "Help Attendance", icon: ClipboardList },
+  { id: "deliveries", title: "Deliveries", icon: Package },
 ];
 
 const CHILD_NAV: NavItem[] = [
@@ -89,6 +88,7 @@ const ResidentPortal = () => {
   const [addingChild, setAddingChild] = useState(false);
   const [issuedChildCred, setIssuedChildCred] = useState<{ email: string; password: string } | null>(null);
   const [removeChildTarget, setRemoveChildTarget] = useState<ChildAccount | null>(null);
+  const [pendingDeliveries, setPendingDeliveries] = useState(0);
   const { toast } = useToast();
   const { signOut, user, societyId, societyName, societySlug } = useAuth();
   const navigate = useNavigate();
@@ -97,7 +97,11 @@ const ResidentPortal = () => {
   const { formatFlat } = useSocietyStructure(societyId);
 
   const activeFlat = useMemo(() => flats.find((f) => f.id === activeFlatId) ?? flats[0], [flats, activeFlatId]);
-  const NAV = isChild ? CHILD_NAV : PRIMARY_NAV;
+  const NAV = isChild ? CHILD_NAV : PRIMARY_NAV.map((item) =>
+    item.id === "deliveries" && pendingDeliveries > 0
+      ? { ...item, title: `Deliveries (${pendingDeliveries})` }
+      : item
+  );
 
   const loadProfileAndChildren = useCallback(async () => {
     if (!user) return;
