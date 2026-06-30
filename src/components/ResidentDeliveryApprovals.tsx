@@ -26,22 +26,91 @@ interface ResidentDeliveryApprovalsProps {
   onPendingCountChange?: (count: number) => void;
 }
 
-/** Plays a short beep using Web Audio API — no file needed */
-const playAlert = () => {
-  try {
-    const ctx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.frequency.value = 880;
-    osc.type = "sine";
-    gain.gain.setValueAtTime(0.3, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.5);
-  } catch { /* Audio not available */ }
-};
+/**
+ * A continuously looping phone-ring sound built with Web Audio API (no audio file needed).
+ * Call .start() to begin ringing, .stop() to silence it. Safe to call start/stop repeatedly.
+ */
+class RingtonePlayer {
+  private ctx: AudioContext | null = null;
+  private timeoutId: number | null = null;
+  private playing = false;
+
+  private ensureContext() {
+    if (!this.ctx) {
+      const AudioCtor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      this.ctx = new AudioCtor();
+    }
+    if (this.ctx.state === "suspended") void this.ctx.resume();
+    return this.ctx;
+  }
+
+  /** Plays one "ring-ring... pause" cycle, classic phone ring pattern (~3.5s) */
+  private playCycle() {
+    if (!this.playing) return;
+    const ctx = this.ensureContext();
+    const now = ctx.currentTime;
+
+    // Two-tone "ring ring" (like a classic phone), twice, then a pause
+    const ringTone = (startAt: number, duration: number) => {
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc1.frequency.value = 480;
+      osc2.frequency.value = 620;
+      osc1.type = "sine";
+      osc2.type = "sine";
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0, startAt);
+      gain.gain.linearRampToValueAtTime(0.25, startAt + 0.05);
+      gain.gain.setValueAtTime(0.25, startAt + duration - 0.05);
+      gain.gain.linearRampToValueAtTime(0, startAt + duration);
+      osc1.start(startAt); osc2.start(startAt);
+      osc1.stop(startAt + duration); osc2.stop(startAt + duration);
+    };
+
+    // Standard ring cadence: 1s on, 0.4s off, 1s on, then 2s pause before next cycle
+    ringTone(now, 1.0);
+    ringTone(now + 1.4, 1.0);
+
+    this.timeoutId = window.setTimeout(() => this.playCycle(), 3500);
+  }
+
+  start() {
+    if (this.playing) return;
+    this.playing = true;
+    this.playCycle();
+  }
+
+  stop() {
+    this.playing = false;
+    if (this.timeoutId !== null) {
+      window.clearTimeout(this.timeoutId);
+      this.timeoutId = null;
+    }
+  }
+}
+
+const ringtone = new RingtonePlayer();
+
+// Browsers block audio until the user interacts with the page at least once.
+// This silently "warms up" the audio context on the first tap/click anywhere,
+// so the ringtone can play automatically once a delivery notification arrives.
+if (typeof document !== "undefined") {
+  const unlockAudio = () => {
+    try {
+      const AudioCtor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+      const ctx = new AudioCtor();
+      if (ctx.state === "suspended") void ctx.resume();
+      void ctx.close();
+    } catch { /* ignore */ }
+    document.removeEventListener("click", unlockAudio);
+    document.removeEventListener("touchstart", unlockAudio);
+  };
+  document.addEventListener("click", unlockAudio, { once: true });
+  document.addEventListener("touchstart", unlockAudio, { once: true });
+}
 
 const ResidentDeliveryApprovals = ({ onPendingCountChange }: ResidentDeliveryApprovalsProps) => {
   const { user, societyId } = useAuth();
@@ -51,6 +120,7 @@ const ResidentDeliveryApprovals = ({ onPendingCountChange }: ResidentDeliveryApp
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
   const prevPendingIds = useRef<Set<string>>(new Set());
+  const hasAlertedToast = useRef<Set<string>>(new Set());
 
   const fetchVisits = useCallback(async () => {
     if (!user || !societyId) return;
@@ -79,15 +149,21 @@ const ResidentDeliveryApprovals = ({ onPendingCountChange }: ResidentDeliveryApp
       .order("entry_time", { ascending: false });
 
     const newVisits = (data ?? []) as DeliveryVisit[];
-    const newPendingIds = new Set(newVisits.filter((v) => v.status === "pending_approval").map((v) => v.id));
+    const pendingVisits = newVisits.filter((v) => v.status === "pending_approval");
+    const newPendingIds = new Set(pendingVisits.map((v) => v.id));
 
-    // Sound alert for new pending visits
-    const hasNew = [...newPendingIds].some((id) => !prevPendingIds.current.has(id));
-    if (hasNew && prevPendingIds.current.size > 0) {
-      playAlert();
-      toast({ title: "🔔 New delivery at your gate!", description: "A delivery is waiting for your approval." });
-    }
+    // Toast once per delivery (first time we see it as pending); ringtone keeps going independently
+    pendingVisits.forEach((v) => {
+      if (!hasAlertedToast.current.has(v.id)) {
+        hasAlertedToast.current.add(v.id);
+        toast({ title: "🔔 New delivery at your gate!", description: "A delivery is waiting for your approval." });
+      }
+    });
     prevPendingIds.current = newPendingIds;
+
+    // Ring continuously while there is at least one pending approval; stop otherwise
+    if (newPendingIds.size > 0) ringtone.start();
+    else ringtone.stop();
 
     setVisits(newVisits);
     onPendingCountChange?.(newPendingIds.size);
@@ -97,7 +173,10 @@ const ResidentDeliveryApprovals = ({ onPendingCountChange }: ResidentDeliveryApp
   useEffect(() => {
     void fetchVisits();
     const interval = window.setInterval(() => void fetchVisits(), 10000);
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+      ringtone.stop(); // stop ringing if resident navigates away from this page
+    };
   }, [fetchVisits]);
 
   const handleDecision = async (visit: DeliveryVisit, approve: boolean) => {
