@@ -602,21 +602,21 @@ const ResidentPortal = () => {
                   {f.is_primary && <span className="text-xs text-muted-foreground">(primary)</span>}
                 </div>
                 <div className="flex items-center gap-1">
-+                  {!f.is_primary && (
-+                    <Button
-+                      variant="ghost"
-+                      size="sm"
-+                      onClick={() => void setPrimaryFlat(f.id)}
-+                      disabled={settingPrimaryId === f.id}
-+                      className="text-xs"
-+                    >
-+                      {settingPrimaryId === f.id ? "Setting..." : "Set as Primary"}
-+                    </Button>
-+                  )}
-+                  <Button variant="ghost" size="sm" onClick={() => void removeFlat(f.id)} disabled={!f.id} className="text-destructive hover:text-destructive">
-+                    <Trash2 className="h-4 w-4" />
-+                  </Button>
-+                </div>
+                  {!f.is_primary && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void setPrimaryFlat(f.id)}
+                      disabled={settingPrimaryId === f.id}
+                      className="text-xs"
+                    >
+                      {settingPrimaryId === f.id ? "Setting..." : "Set as Primary"}
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={() => void removeFlat(f.id)} disabled={!f.id} className="text-destructive hover:text-destructive">
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             ))}
           </div>
