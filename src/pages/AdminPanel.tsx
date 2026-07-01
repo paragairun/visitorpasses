@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download, User } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import BarrierDevicesAdmin from "@/components/BarrierDevicesAdmin";
 import CsvUpload from "@/components/CsvUpload";
@@ -28,6 +28,7 @@ import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
 import SocietyStaffManager from "@/components/SocietyStaffManager";
 import StaffAttendanceLog from "@/components/StaffAttendanceLog";
+import AdminProfile from "@/components/AdminProfile";
 
 type Vehicle = Tables<"vehicles">;
 type EntryLog = Tables<"entry_logs">;
@@ -46,7 +47,8 @@ const NAV: NavItem[] = [
   { id: "visitor-qr", title: "Visitor Form QR", icon: LinkIcon },
   { id: "barriers", title: "Boom Barriers", icon: Radio },
   { id: "staff", title: "Staff", icon: Users },
-{ id: "staff-logs", title: "Staff Attendance", icon: ClipboardList },
+  { id: "staff-logs", title: "Staff Attendance", icon: ClipboardList },
+  { id: "profile", title: "My Profile", icon: User },
 ];
 
 const AdminPanel = () => {
@@ -589,6 +591,7 @@ const AdminPanel = () => {
       <StaffAttendanceLog filterCategory="all" showSummary={true} />
         </div>
 )}
+      {activeView === "profile" && <AdminProfile />}
     </DashboardShell>
   );
 };
