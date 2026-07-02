@@ -121,11 +121,10 @@ const GuardDashboard = () => {
     // Staff / house help QR codes (STF- or HLP- prefix)
     if (result.startsWith("STF-") || result.startsWith("HLP-")) {
       if (!societyId) { toast({ title: "Society not loaded", variant: "destructive" }); return; }
-      const category = result.startsWith("STF-") ? "society_staff" : "house_help";
-      const table = category === "society_staff" ? "staff_members" : "house_helps";
-      const { data: member } = await supabase
-        .from(table).select("id, name, staff_type, help_type")
-        .eq("qr_code", result).maybeSingle();
+      const category = result.startsWith("STF-") ? "society_staff" as const : "house_help" as const;
+      const member = category === "society_staff"
+        ? await supabase.from("staff_members").select("id, name, staff_type").eq("qr_code", result).maybeSingle().then((r) => r.data ? { id: r.data.id, name: r.data.name, role: r.data.staff_type } : null)
+        : await supabase.from("house_helps").select("id, name, help_type").eq("qr_code", result).maybeSingle().then((r) => r.data ? { id: r.data.id, name: r.data.name, role: r.data.help_type } : null);
       if (!member) {
         setScanResult("❌ Unknown ID card. Not registered.");
         toast({ title: "Unknown ID card", variant: "destructive" });
@@ -141,10 +140,8 @@ const GuardDashboard = () => {
         society_id: societyId, category, staff_id: member.id,
         action_type: action, logged_by: user?.id ?? null,
       });
-      const role = (member as { staff_type?: string; help_type?: string }).staff_type
-        ?? (member as { staff_type?: string; help_type?: string }).help_type ?? "";
-      setScanResult(`${action === "entry" ? "✅ Entry" : "🚪 Exit"} — ${member.name} (${role})`);
-      toast({ title: `${action === "entry" ? "Entry" : "Exit"} logged`, description: `${member.name} — ${role}` });
+      setScanResult(`${action === "entry" ? "✅ Entry" : "🚪 Exit"} — ${member.name} (${member.role})`);
+      toast({ title: `${action === "entry" ? "Entry" : "Exit"} logged`, description: `${member.name} — ${member.role}` });
       setTimeout(() => setScanResult(null), 5000);
       return;
     }
