@@ -25,7 +25,7 @@ export const useSocietyStructure = (societyId: string | null | undefined) => {
         setLoading(false);
         if (error || !data?.structure) { setTowers([]); return; }
         // Handle both old shape (plain array) and new shape ({ floor_wise, towers })
-        const raw = data.structure as NormalizedStructure | NormalizedTower[];
+        const raw = data.structure as unknown as NormalizedStructure | NormalizedTower[];
         if (Array.isArray(raw)) {
           setTowers(raw as NormalizedTower[]);
         } else {
