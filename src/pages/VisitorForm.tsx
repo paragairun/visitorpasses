@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useParams, Link } from "react-router-dom";
-import { Car, Send, CheckCircle, AlertTriangle } from "lucide-react";
+import { Car, Send, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -112,7 +112,7 @@ const VisitorForm = () => {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            {!urlSociety && (
+            {!urlSocietyId && !societySlug && (
               <div className="space-y-2">
                 <Label>Society *</Label>
                 <Select value={societyId} onValueChange={setSocietyId}>

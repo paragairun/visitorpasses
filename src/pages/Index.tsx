@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { Shield, ScanLine, ClipboardList, Building2, QrCode, Lock, Users, ArrowRight, Check } from "lucide-react";
+import { Shield, ScanLine, ClipboardList, Building2, QrCode, Lock, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/ThemeToggle";

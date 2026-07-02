@@ -55,9 +55,7 @@ const AdminPanel = () => {
   const [activeView, setActiveView] = useState("stats");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
-  const [showQrWing, setShowQrWing] = useState<string | undefined>(undefined);
   const [justRegisteredQr, setJustRegisteredQr] = useState<string | null>(null);
-  const [justRegisteredWing, setJustRegisteredWing] = useState<string | undefined>(undefined);
   const [justRegisteredName, setJustRegisteredName] = useState<string | null>(null);
   const [newVehicle, setNewVehicle] = useState({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
   const [residents, setResidents] = useState<ResidentOption[]>([]);
@@ -216,7 +214,6 @@ const AdminPanel = () => {
       return;
     }
     setJustRegisteredQr(qr);
-    setJustRegisteredWing(newVehicle.wing);
     setJustRegisteredName(`${newVehicle.wing}-${newVehicle.flat_number.trim()}-${newVehicle.vehicle_type}-${newVehicle.vehicle_number.trim().toUpperCase()}`);
     setShowQrFor(null);
     setNewVehicle({ flat_number: "", wing: "A", vehicle_number: "", vehicle_type: "car", owner_name: "" });
@@ -524,8 +521,8 @@ const AdminPanel = () => {
                   <p className="text-sm text-muted-foreground">{v.owner_name} • {formatFlat(v.wing, v.flat_number)} • {v.vehicle_type}</p>
                 </div>
                 <Button variant="outline" size="sm" onClick={() => {
-                  if (showQrFor === v.qr_code) { setShowQrFor(null); setShowQrWing(undefined); }
-                  else { setShowQrFor(v.qr_code); setShowQrWing(v.wing); }
+                  if (showQrFor === v.qr_code) { setShowQrFor(null); }
+                  else { setShowQrFor(v.qr_code); }
                 }} className="gap-1">
                   <QrCode className="h-4 w-4" /> QR
                 </Button>
