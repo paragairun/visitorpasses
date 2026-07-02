@@ -368,6 +368,7 @@ export type Database = {
           landmark: string | null
           name: string
           pin_code: string
+          slug: string | null
           state: string
           status: string
           updated_at: string
@@ -381,6 +382,7 @@ export type Database = {
           landmark?: string | null
           name: string
           pin_code: string
+          slug?: string | null
           state: string
           status?: string
           updated_at?: string
@@ -394,6 +396,7 @@ export type Database = {
           landmark?: string | null
           name?: string
           pin_code?: string
+          slug?: string | null
           state?: string
           status?: string
           updated_at?: string
@@ -418,6 +421,7 @@ export type Database = {
           reviewed_at: string | null
           reviewed_by: string | null
           society_name: string
+          society_structure: Json
           state: string
           status: string
           updated_at: string
@@ -439,6 +443,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           society_name: string
+          society_structure?: Json
           state: string
           status?: string
           updated_at?: string
@@ -460,6 +465,7 @@ export type Database = {
           reviewed_at?: string | null
           reviewed_by?: string | null
           society_name?: string
+          society_structure?: Json
           state?: string
           status?: string
           updated_at?: string
@@ -468,6 +474,282 @@ export type Database = {
           {
             foreignKeyName: "society_registration_requests_created_society_id_fkey"
             columns: ["created_society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      society_structure: {
+        Row: {
+          created_at: string
+          id: string
+          locked: boolean
+          society_id: string
+          structure: Json
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          locked?: boolean
+          society_id: string
+          structure?: Json
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          locked?: boolean
+          society_id?: string
+          structure?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_structure_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: true
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      delivery_visits: {
+        Row: {
+          agent_name: string | null
+          approved_by: string | null
+          created_at: string
+          delivery_type: string
+          entry_time: string
+          exit_time: string | null
+          expires_at: string
+          flat_number: string
+          guard_id: string | null
+          id: string
+          mobile: string
+          photo_base64: string | null
+          rejection_note: string | null
+          society_id: string
+          status: Database["public"]["Enums"]["delivery_status"]
+          updated_at: string
+          wing: string
+        }
+        Insert: {
+          agent_name?: string | null
+          approved_by?: string | null
+          created_at?: string
+          delivery_type: string
+          entry_time?: string
+          exit_time?: string | null
+          expires_at?: string
+          flat_number: string
+          guard_id?: string | null
+          id?: string
+          mobile: string
+          photo_base64?: string | null
+          rejection_note?: string | null
+          society_id: string
+          status?: Database["public"]["Enums"]["delivery_status"]
+          updated_at?: string
+          wing: string
+        }
+        Update: {
+          agent_name?: string | null
+          approved_by?: string | null
+          created_at?: string
+          delivery_type?: string
+          entry_time?: string
+          exit_time?: string | null
+          expires_at?: string
+          flat_number?: string
+          guard_id?: string | null
+          id?: string
+          mobile?: string
+          photo_base64?: string | null
+          rejection_note?: string | null
+          society_id?: string
+          status?: Database["public"]["Enums"]["delivery_status"]
+          updated_at?: string
+          wing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_visits_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      house_help_flats: {
+        Row: {
+          created_at: string
+          flat_number: string
+          house_help_id: string
+          id: string
+          resident_id: string
+          wing: string
+        }
+        Insert: {
+          created_at?: string
+          flat_number: string
+          house_help_id: string
+          id?: string
+          resident_id: string
+          wing: string
+        }
+        Update: {
+          created_at?: string
+          flat_number?: string
+          house_help_id?: string
+          id?: string
+          resident_id?: string
+          wing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_help_flats_house_help_id_fkey"
+            columns: ["house_help_id"]
+            isOneToOne: false
+            referencedRelation: "house_helps"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      house_helps: {
+        Row: {
+          created_at: string
+          help_type: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          photo_base64: string | null
+          qr_code: string
+          society_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          help_type: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          photo_base64?: string | null
+          qr_code: string
+          society_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          help_type?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          photo_base64?: string | null
+          qr_code?: string
+          society_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "house_helps_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_logs: {
+        Row: {
+          action_type: string
+          category: Database["public"]["Enums"]["staff_category"]
+          created_at: string
+          id: string
+          logged_by: string | null
+          society_id: string
+          staff_id: string
+          timestamp: string
+        }
+        Insert: {
+          action_type: string
+          category: Database["public"]["Enums"]["staff_category"]
+          created_at?: string
+          id?: string
+          logged_by?: string | null
+          society_id: string
+          staff_id: string
+          timestamp?: string
+        }
+        Update: {
+          action_type?: string
+          category?: Database["public"]["Enums"]["staff_category"]
+          created_at?: string
+          id?: string
+          logged_by?: string | null
+          society_id?: string
+          staff_id?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_logs_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      staff_members: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          phone: string | null
+          photo_base64: string | null
+          qr_code: string
+          registered_by: string | null
+          society_id: string
+          staff_type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          phone?: string | null
+          photo_base64?: string | null
+          qr_code: string
+          registered_by?: string | null
+          society_id: string
+          staff_type: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          phone?: string | null
+          photo_base64?: string | null
+          qr_code?: string
+          registered_by?: string | null
+          society_id?: string
+          staff_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "staff_members_society_id_fkey"
+            columns: ["society_id"]
             isOneToOne: false
             referencedRelation: "societies"
             referencedColumns: ["id"]
@@ -668,6 +950,7 @@ export type Database = {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
       }
+      expire_delivery_visits: { Args: { p_society_id: string }; Returns: number }
       get_parent_user_id: { Args: { _user_id: string }; Returns: string }
       get_user_society_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
@@ -683,6 +966,8 @@ export type Database = {
     }
     Enums: {
       app_role: "guard" | "resident" | "admin" | "visitor" | "super_admin"
+      delivery_status: "pending_approval" | "approved" | "rejected" | "completed" | "expired"
+      staff_category: "society_staff" | "house_help"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -811,6 +1096,8 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["guard", "resident", "admin", "visitor", "super_admin"],
+      delivery_status: ["pending_approval", "approved", "rejected", "completed", "expired"],
+      staff_category: ["society_staff", "house_help"],
     },
   },
 } as const
