@@ -8,6 +8,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import StatusBadge from "@/components/StatusBadge";
@@ -65,7 +66,7 @@ const SuperAdminDashboard = () => {
     ]);
 
     // Join admin_email from approved registration requests by society name match
-    const approvedReqs = (reqs ?? []) as RegRow[];
+    const approvedReqs = (reqs ?? []) as unknown as RegRow[];
     const enrichedSocs = ((socs ?? []) as Omit<SocietyRow, "admin_email">[]).map((s) => {
       const req = approvedReqs.find(
         (r) => r.society_name.trim().toLowerCase() === s.name.trim().toLowerCase() && r.status === "approved"
@@ -144,7 +145,7 @@ const SuperAdminDashboard = () => {
       toast({ title: "Could not load structure", description: error.message, variant: "destructive" });
       return;
     }
-    const normalized = (data?.structure ?? { floor_wise: false, towers: [] }) as NormalizedStructure;
+    const normalized = (data?.structure ?? { floor_wise: false, towers: [] }) as unknown as NormalizedStructure;
     const { towers, floorWise, flatsPerFloor } = toEditableState(normalized);
     setEditingTowers(towers);
     setEditingFloorWise(floorWise);
@@ -161,7 +162,7 @@ const SuperAdminDashboard = () => {
     setStructureSaving(true);
     const { error } = await supabase
       .from("society_structure")
-      .upsert({ society_id: editingSociety.id, structure: result.structure, locked: true }, { onConflict: "society_id" });
+      .upsert({ society_id: editingSociety.id, structure: result.structure as unknown as Json, locked: true }, { onConflict: "society_id" });
     setStructureSaving(false);
     if (error) {
       toast({ title: "Could not save structure", description: error.message, variant: "destructive" });
