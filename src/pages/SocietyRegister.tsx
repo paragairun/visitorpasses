@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Json } from "@/integrations/supabase/types";
 import SocietyStructureBuilder, { TowerStructure, emptyTower, normalizeStructure } from "@/components/SocietyStructureBuilder";
 
 const SocietyRegister = () => {
@@ -85,7 +86,7 @@ const SocietyRegister = () => {
       state: form.state.trim(),
       country: form.country.trim(),
       pin_code: form.pin_code.trim(),
-      society_structure: normalizedTowers,
+      society_structure: normalizedTowers as unknown as Json,
       admin_display_name: form.admin_display_name.trim(),
       admin_email: email,
       admin_phone: form.admin_phone.trim() || null,
