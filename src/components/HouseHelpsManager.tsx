@@ -44,7 +44,7 @@ const HouseHelpsManager = ({ residentFlats }: { residentFlats: ResidentFlat[] })
     if (!linkData || linkData.length === 0) { setHelps([]); setLoading(false); return; }
     const helpIds = [...new Set(linkData.map((l: { house_help_id: string }) => l.house_help_id))];
     const { data: helpData } = await supabase.from("house_helps").select("*").in("id", helpIds).eq("society_id", societyId);
-    setHelps(((helpData ?? []) as HouseHelp[]).map((h) => ({
+    setHelps((helpData ?? []).map((h) => ({
       ...h,
       flats: linkData.filter((l: { house_help_id: string; wing: string; flat_number: string }) => l.house_help_id === h.id).map((l: { wing: string; flat_number: string }) => ({ wing: l.wing, flat_number: l.flat_number })),
     })));

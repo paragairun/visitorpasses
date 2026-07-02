@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import QRCode from "qrcode";
 import { Download, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 
 interface StaffIdCardProps {
   qrCode: string;
@@ -23,7 +22,6 @@ const QR_SIZE = 140;
 
 const StaffIdCard = ({ qrCode, name, role, category, photoBase64, societyName, flats, fileBaseName }: StaffIdCardProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     if (!canvasRef.current) return;
