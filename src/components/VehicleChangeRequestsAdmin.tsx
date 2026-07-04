@@ -3,6 +3,7 @@ import { ClipboardCheck, Check, X, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import VehicleNumberInput from "@/components/VehicleNumberInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
@@ -266,10 +267,10 @@ const VehicleChangeRequestsAdmin = ({ onChanged }: Props) => {
             </div>
             <div className="space-y-2">
               <Label>Vehicle Number</Label>
-              <Input
+              <VehicleNumberInput
                 value={form.vehicle_number}
                 disabled={editing?.request_type === "remove"}
-                onChange={(e) => setForm((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))}
+                onChange={(v) => setForm((p) => ({ ...p, vehicle_number: v }))}
               />
             </div>
             <div className="space-y-2">
