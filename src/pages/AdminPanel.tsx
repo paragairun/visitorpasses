@@ -10,6 +10,7 @@ import VehicleChangeRequestsAdmin from "@/components/VehicleChangeRequestsAdmin"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import VehicleNumberInput from "@/components/VehicleNumberInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -393,7 +394,7 @@ const AdminPanel = () => {
           </div>
           <div className="space-y-2">
             <Label>Vehicle Number *</Label>
-            <Input placeholder="MH02AB1234" value={newVehicle.vehicle_number} onChange={(e) => setNewVehicle((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
+            <VehicleNumberInput value={newVehicle.vehicle_number} onChange={(v) => setNewVehicle((p) => ({ ...p, vehicle_number: v }))} />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label>Flat *</Label>

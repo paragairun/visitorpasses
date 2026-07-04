@@ -3,6 +3,7 @@ import { Car, ClipboardList, QrCode, Plus, Trash2, ClipboardCheck, User, Home, S
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import VehicleNumberInput from "@/components/VehicleNumberInput";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
@@ -373,7 +374,7 @@ const ResidentPortal = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="guest-vehicle">Vehicle Number *</Label>
-              <Input id="guest-vehicle" placeholder="e.g. MH02AB1234" value={form.vehicle_number} onChange={(e) => setForm((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
+              <VehicleNumberInput value={form.vehicle_number} onChange={(v) => setForm((p) => ({ ...p, vehicle_number: v }))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="guest-purpose">Purpose of Visit</Label>
@@ -482,7 +483,7 @@ const ResidentPortal = () => {
             <div className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="req-vnum">Vehicle Number *</Label>
-                <Input id="req-vnum" placeholder="MH02AB1234" value={vehicleReqForm.vehicle_number} onChange={(e) => setVehicleReqForm((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
+                <VehicleNumberInput value={vehicleReqForm.vehicle_number} onChange={(v) => setVehicleReqForm((p) => ({ ...p, vehicle_number: v }))} />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="req-vtype">Type</Label>

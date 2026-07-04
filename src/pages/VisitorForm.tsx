@@ -3,6 +3,7 @@ import { useSearchParams, useParams, Link } from "react-router-dom";
 import { Car, Send, CheckCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import VehicleNumberInput from "@/components/VehicleNumberInput";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -135,7 +136,7 @@ const VisitorForm = () => {
             </div>
             <div className="space-y-2">
               <Label htmlFor="vehicle">Vehicle Number *</Label>
-              <Input id="vehicle" placeholder="e.g. MH02AB1234" value={form.vehicle_number} onChange={(e) => setForm((p) => ({ ...p, vehicle_number: e.target.value.toUpperCase() }))} className="touch-target" />
+              <VehicleNumberInput value={form.vehicle_number} onChange={(v) => setForm((p) => ({ ...p, vehicle_number: v }))} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="flat">Flat Number (Wing-Flat) *</Label>
