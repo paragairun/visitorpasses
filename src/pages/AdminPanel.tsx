@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download, User } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download, User, Wallet } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import BarrierDevicesAdmin from "@/components/BarrierDevicesAdmin";
 import CsvUpload from "@/components/CsvUpload";
@@ -30,6 +30,7 @@ import DashboardShell, { NavItem } from "@/components/DashboardShell";
 import SocietyStaffManager from "@/components/SocietyStaffManager";
 import StaffAttendanceLog from "@/components/StaffAttendanceLog";
 import AdminProfile from "@/components/AdminProfile";
+import MaintenanceBillingSetup from "@/components/MaintenanceBillingSetup";
 
 type Vehicle = Tables<"vehicles">;
 type EntryLog = Tables<"entry_logs">;
@@ -49,6 +50,7 @@ const NAV: NavItem[] = [
   { id: "barriers", title: "Boom Barriers", icon: Radio },
   { id: "staff", title: "Staff", icon: Users },
   { id: "staff-logs", title: "Staff Attendance", icon: ClipboardList },
+  { id: "billing-setup", title: "Maintenance Billing", icon: Wallet },
   { id: "profile", title: "My Profile", icon: User },
 ];
 
@@ -589,6 +591,7 @@ const AdminPanel = () => {
       <StaffAttendanceLog filterCategory="all" showSummary={true} />
         </div>
 )}
+      {activeView === "billing-setup" && <MaintenanceBillingSetup />}
       {activeView === "profile" && <AdminProfile />}
     </DashboardShell>
   );
