@@ -358,6 +358,253 @@ export type Database = {
           },
         ]
       }
+      flats: {
+        Row: {
+          area_sqft: number
+          created_at: string
+          flat_number: string
+          flat_type: string | null
+          id: string
+          is_active: boolean
+          society_id: string
+          updated_at: string
+          wing: string
+        }
+        Insert: {
+          area_sqft: number
+          created_at?: string
+          flat_number: string
+          flat_type?: string | null
+          id?: string
+          is_active?: boolean
+          society_id: string
+          updated_at?: string
+          wing: string
+        }
+        Update: {
+          area_sqft?: number
+          created_at?: string
+          flat_number?: string
+          flat_type?: string | null
+          id?: string
+          is_active?: boolean
+          society_id?: string
+          updated_at?: string
+          wing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "flats_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_bill_line_items: {
+        Row: {
+          amount: number
+          bill_id: string
+          charge_head_id: string | null
+          created_at: string
+          description: string
+          id: string
+        }
+        Insert: {
+          amount: number
+          bill_id: string
+          charge_head_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+        }
+        Update: {
+          amount?: number
+          bill_id?: string
+          charge_head_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_bill_line_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_bill_line_items_charge_head_id_fkey"
+            columns: ["charge_head_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_charge_heads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_bills: {
+        Row: {
+          amount_paid: number
+          billing_period_end: string
+          billing_period_start: string
+          created_at: string
+          due_date: string
+          flat_id: string
+          flat_number: string
+          generated_by: string | null
+          id: string
+          society_id: string
+          status: Database["public"]["Enums"]["bill_status"]
+          total_amount: number
+          updated_at: string
+          wing: string
+        }
+        Insert: {
+          amount_paid?: number
+          billing_period_end: string
+          billing_period_start: string
+          created_at?: string
+          due_date: string
+          flat_id: string
+          flat_number: string
+          generated_by?: string | null
+          id?: string
+          society_id: string
+          status?: Database["public"]["Enums"]["bill_status"]
+          total_amount: number
+          updated_at?: string
+          wing: string
+        }
+        Update: {
+          amount_paid?: number
+          billing_period_end?: string
+          billing_period_start?: string
+          created_at?: string
+          due_date?: string
+          flat_id?: string
+          flat_number?: string
+          generated_by?: string | null
+          id?: string
+          society_id?: string
+          status?: Database["public"]["Enums"]["bill_status"]
+          total_amount?: number
+          updated_at?: string
+          wing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_bills_flat_id_fkey"
+            columns: ["flat_id"]
+            isOneToOne: false
+            referencedRelation: "flats"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_bills_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_charge_heads: {
+        Row: {
+          calculation_type: Database["public"]["Enums"]["charge_calculation_type"]
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          rate: number
+          society_id: string
+          updated_at: string
+        }
+        Insert: {
+          calculation_type: Database["public"]["Enums"]["charge_calculation_type"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          rate: number
+          society_id: string
+          updated_at?: string
+        }
+        Update: {
+          calculation_type?: Database["public"]["Enums"]["charge_calculation_type"]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          rate?: number
+          society_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_charge_heads_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      maintenance_payments: {
+        Row: {
+          amount: number
+          bill_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          payment_date: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          recorded_by: string | null
+          reference_number: string | null
+          society_id: string
+        }
+        Insert: {
+          amount: number
+          bill_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          recorded_by?: string | null
+          reference_number?: string | null
+          society_id: string
+        }
+        Update: {
+          amount?: number
+          bill_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          payment_date?: string
+          payment_method?: Database["public"]["Enums"]["payment_method"]
+          recorded_by?: string | null
+          reference_number?: string | null
+          society_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "maintenance_payments_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "maintenance_bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "maintenance_payments_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       societies: {
         Row: {
           address_line: string
@@ -402,6 +649,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      society_billing_settings: {
+        Row: {
+          billing_frequency_months: number
+          created_at: string
+          due_days: number
+          late_fee_fixed: number
+          late_fee_percent: number
+          society_id: string
+          updated_at: string
+        }
+        Insert: {
+          billing_frequency_months?: number
+          created_at?: string
+          due_days?: number
+          late_fee_fixed?: number
+          late_fee_percent?: number
+          society_id: string
+          updated_at?: string
+        }
+        Update: {
+          billing_frequency_months?: number
+          created_at?: string
+          due_days?: number
+          late_fee_fixed?: number
+          late_fee_percent?: number
+          society_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "society_billing_settings_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: true
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       society_registration_requests: {
         Row: {
@@ -966,7 +1251,10 @@ export type Database = {
     }
     Enums: {
       app_role: "guard" | "resident" | "admin" | "visitor" | "super_admin"
+      bill_status: "unpaid" | "partial" | "paid" | "overdue"
+      charge_calculation_type: "per_sqft" | "fixed"
       delivery_status: "pending_approval" | "approved" | "rejected" | "completed" | "expired"
+      payment_method: "cash" | "upi" | "cheque" | "bank_transfer" | "other"
       staff_category: "society_staff" | "house_help"
     }
     CompositeTypes: {
@@ -1096,7 +1384,10 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["guard", "resident", "admin", "visitor", "super_admin"],
+      bill_status: ["unpaid", "partial", "paid", "overdue"],
+      charge_calculation_type: ["per_sqft", "fixed"],
       delivery_status: ["pending_approval", "approved", "rejected", "completed", "expired"],
+      payment_method: ["cash", "upi", "cheque", "bank_transfer", "other"],
       staff_category: ["society_staff", "house_help"],
     },
   },
