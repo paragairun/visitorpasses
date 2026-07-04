@@ -141,7 +141,8 @@ CREATE POLICY "Residents view their own bills" ON public.maintenance_bills
     AND society_id = public.get_user_society_id(auth.uid())
     AND EXISTS (
       SELECT 1 FROM public.resident_flats rf
-      WHERE rf.user_id = auth.uid() AND rf.wing = maintenance_bills.wing AND rf.flat_number = maintenance_bills.flat_number
+      WHERE (rf.user_id = auth.uid() OR rf.user_id = public.get_parent_user_id(auth.uid()))
+        AND rf.wing = maintenance_bills.wing AND rf.flat_number = maintenance_bills.flat_number
     )
   );
 
@@ -175,7 +176,8 @@ CREATE POLICY "Residents view their bill line items" ON public.maintenance_bill_
     AND EXISTS (
       SELECT 1 FROM public.maintenance_bills b
       JOIN public.resident_flats rf ON rf.wing = b.wing AND rf.flat_number = b.flat_number
-      WHERE b.id = maintenance_bill_line_items.bill_id AND rf.user_id = auth.uid()
+      WHERE b.id = maintenance_bill_line_items.bill_id
+        AND (rf.user_id = auth.uid() OR rf.user_id = public.get_parent_user_id(auth.uid()))
     )
   );
 
@@ -209,7 +211,8 @@ CREATE POLICY "Residents view their own payments" ON public.maintenance_payments
     AND EXISTS (
       SELECT 1 FROM public.maintenance_bills b
       JOIN public.resident_flats rf ON rf.wing = b.wing AND rf.flat_number = b.flat_number
-      WHERE b.id = maintenance_payments.bill_id AND rf.user_id = auth.uid()
+      WHERE b.id = maintenance_payments.bill_id
+        AND (rf.user_id = auth.uid() OR rf.user_id = public.get_parent_user_id(auth.uid()))
     )
   );
 
