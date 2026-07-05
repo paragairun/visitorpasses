@@ -23,6 +23,7 @@ import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
 import HouseHelpsManager from "@/components/HouseHelpsManager";
 import MyDues from "@/components/MyDues";
+import ResidentHome from "@/components/ResidentHome";
 import StaffAttendanceLog from "@/components/StaffAttendanceLog";
 import ResidentDeliveryApprovals from "@/components/ResidentDeliveryApprovals";
 
@@ -43,6 +44,7 @@ const emptyVehicleRequest = { vehicle_number: "", vehicle_type: "car" };
 const emptyChildForm = { email: "", display_name: "", child_type: "family" as "family" | "tenant" };
 
 const PRIMARY_NAV: NavItem[] = [
+  { id: "home", title: "Home", icon: Home },
   { id: "guest", title: "Guest Pass", icon: QrCode },
   { id: "vehicles", title: "My Vehicles", icon: Car },
   { id: "requests", title: "My Requests", icon: ClipboardCheck },
@@ -55,6 +57,7 @@ const PRIMARY_NAV: NavItem[] = [
 ];
 
 const CHILD_NAV: NavItem[] = [
+  { id: "home", title: "Home", icon: Home },
   { id: "guest", title: "Guest Pass", icon: QrCode },
   { id: "vehicles", title: "Flat Vehicles", icon: Car },
   { id: "history", title: "Visit History", icon: ClipboardList },
@@ -63,7 +66,7 @@ const CHILD_NAV: NavItem[] = [
 ];
 
 const ResidentPortal = () => {
-  const [activeView, setActiveView] = useState("guest");
+  const [activeView, setActiveView] = useState("home");
   const [form, setForm] = useState(emptyForm);
   const [guestPasses, setGuestPasses] = useState<GuestPass[]>([]);
   const [visitLogs, setVisitLogs] = useState<VisitLog[]>([]);
@@ -715,6 +718,17 @@ const ResidentPortal = () => {
       onSelect={setActiveView}
       onSignOut={handleSignOut}
     >
+      {activeView === "home" && (
+        <ResidentHome
+          displayName={profileForm.display_name}
+          societyName={societyName ?? ""}
+          flats={flats}
+          formatFlat={formatFlat}
+          pendingDeliveries={pendingDeliveries}
+          visitLogs={visitLogs}
+          onNavigate={setActiveView}
+        />
+      )}
       {activeView === "guest" && renderGuest()}
       {activeView === "vehicles" && renderVehicles()}
       {activeView === "requests" && !isChild && renderRequests()}

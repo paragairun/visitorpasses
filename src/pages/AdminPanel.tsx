@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download, User, Wallet } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download, User, Wallet, Home } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import BarrierDevicesAdmin from "@/components/BarrierDevicesAdmin";
 import CsvUpload from "@/components/CsvUpload";
@@ -31,12 +31,14 @@ import SocietyStaffManager from "@/components/SocietyStaffManager";
 import StaffAttendanceLog from "@/components/StaffAttendanceLog";
 import AdminProfile from "@/components/AdminProfile";
 import MaintenanceBillingSetup from "@/components/MaintenanceBillingSetup";
+import AdminHome from "@/components/AdminHome";
 
 type Vehicle = Tables<"vehicles">;
 type EntryLog = Tables<"entry_logs">;
 type ResidentOption = { user_id: string; display_name: string; flats: { wing: string; flat_number: string }[] };
 
 const NAV: NavItem[] = [
+  { id: "home", title: "Home", icon: Home },
   { id: "stats", title: "Statistics", icon: BarChart3 },
   { id: "register", title: "Register Vehicle", icon: Plus },
   { id: "bulk-vehicles", title: "Bulk Vehicle Upload", icon: Upload },
@@ -55,7 +57,7 @@ const NAV: NavItem[] = [
 ];
 
 const AdminPanel = () => {
-  const [activeView, setActiveView] = useState("stats");
+  const [activeView, setActiveView] = useState("home");
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showQrFor, setShowQrFor] = useState<string | null>(null);
   const [justRegisteredQr, setJustRegisteredQr] = useState<string | null>(null);
@@ -573,6 +575,9 @@ const AdminPanel = () => {
       onSelect={setActiveView}
       onSignOut={handleSignOut}
     >
+      {activeView === "home" && (
+        <AdminHome societyName={societyName ?? ""} stats={stats} recentEntries={recentEntries} onNavigate={setActiveView} />
+      )}
       {activeView === "stats" && renderStats()}
       {activeView === "register" && renderRegister()}
       {activeView === "registry" && renderRegistry()}
