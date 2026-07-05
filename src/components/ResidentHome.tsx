@@ -4,7 +4,6 @@ import {
   Sparkles, ArrowRight, LogIn, LogOut,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ResidentFlat { id: string; wing: string; flat_number: string; flat_label: string; }
@@ -32,7 +31,6 @@ const TILES = [
 ];
 
 const ResidentHome = ({ displayName, societyName, flats, formatFlat, pendingDeliveries, visitLogs, onNavigate }: ResidentHomeProps) => {
-  const { toast } = useToast();
   const [outstanding, setOutstanding] = useState<number | null>(null);
 
   useEffect(() => {
@@ -110,18 +108,15 @@ const ResidentHome = ({ displayName, societyName, flats, formatFlat, pendingDeli
             );
           })}
 
-          {/* Amenities -- dummy placeholder, feature not built yet */}
+          {/* Amenities -- now live */}
           <button
-            onClick={() => toast({ title: "Coming soon", description: "Amenity booking is on its way!" })}
-            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-dashed border-border bg-muted/30 hover:bg-muted/50 transition-colors relative touch-target"
+            onClick={() => onNavigate("amenities")}
+            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors relative touch-target"
           >
-            <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold border border-border">
-              SOON
-            </span>
-            <span className="h-11 w-11 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
+            <span className="h-11 w-11 rounded-full flex items-center justify-center bg-warning/10 text-warning">
               <Sparkles className="h-5 w-5" />
             </span>
-            <span className="text-xs font-medium text-center leading-tight text-muted-foreground">Amenities</span>
+            <span className="text-xs font-medium text-center leading-tight">Amenities</span>
           </button>
         </div>
       </div>

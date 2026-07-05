@@ -4,7 +4,6 @@ import {
   Sparkles, ArrowRight, LogIn, LogOut, Activity,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import type { Tables } from "@/integrations/supabase/types";
@@ -36,8 +35,8 @@ const TILES = [
 
 const AdminHome = ({ societyName, stats, recentEntries, onNavigate }: AdminHomeProps) => {
   const { societyId } = useAuth();
-  const { toast } = useToast();
   const [outstanding, setOutstanding] = useState<number | null>(null);
+  const [pendingAmenities, setPendingAmenities] = useState(0);
 
   useEffect(() => {
     if (!societyId) return;
@@ -52,6 +51,12 @@ const AdminHome = ({ societyName, stats, recentEntries, onNavigate }: AdminHomeP
         if (!data) { setOutstanding(null); return; }
         setOutstanding(data.reduce((sum, b) => sum + Math.max(0, b.total_amount - b.amount_paid), 0));
       });
+    void supabase
+      .from("amenity_bookings")
+      .select("id", { count: "exact", head: true })
+      .eq("society_id", societyId)
+      .eq("status", "pending_approval")
+      .then(({ count }) => { if (active) setPendingAmenities(count ?? 0); });
     return () => { active = false; };
   }, [societyId]);
 
@@ -115,18 +120,20 @@ const AdminHome = ({ societyName, stats, recentEntries, onNavigate }: AdminHomeP
             );
           })}
 
-          {/* Amenities -- dummy placeholder, feature not built yet */}
+          {/* Amenities -- now live: jump straight to bookings needing review */}
           <button
-            onClick={() => toast({ title: "Coming soon", description: "Amenity booking & management is on its way!" })}
-            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-dashed border-border bg-muted/30 hover:bg-muted/50 transition-colors relative touch-target"
+            onClick={() => onNavigate("amenities-bookings")}
+            className="flex flex-col items-center gap-2 p-3 rounded-xl border border-border bg-card hover:bg-secondary/50 transition-colors relative touch-target"
           >
-            <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground text-[10px] font-semibold border border-border">
-              SOON
-            </span>
-            <span className="h-11 w-11 rounded-full flex items-center justify-center bg-muted text-muted-foreground">
+            {pendingAmenities > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 h-5 min-w-5 px-1 rounded-full bg-destructive text-destructive-foreground text-xs font-semibold flex items-center justify-center">
+                {pendingAmenities}
+              </span>
+            )}
+            <span className="h-11 w-11 rounded-full flex items-center justify-center bg-warning/10 text-warning">
               <Sparkles className="h-5 w-5" />
             </span>
-            <span className="text-xs font-medium text-center leading-tight text-muted-foreground">Amenities</span>
+            <span className="text-xs font-medium text-center leading-tight">Amenities</span>
           </button>
         </div>
       </div>
