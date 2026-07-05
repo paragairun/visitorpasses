@@ -18,6 +18,7 @@ interface GuardHomeProps {
   liveInside: number;
   onNavigate: (view: string) => void;
   onStartScan: () => void;
+  onRegisterDelivery: () => void;
 }
 
 const TILES = [
@@ -28,7 +29,7 @@ const TILES = [
   { id: "delivery", title: "Deliveries", icon: Package, tint: "bg-success/10 text-success" },
 ];
 
-const GuardHome = ({ societyName, pendingApprovals, liveInside, onNavigate, onStartScan }: GuardHomeProps) => {
+const GuardHome = ({ societyName, pendingApprovals, liveInside, onNavigate, onStartScan, onRegisterDelivery }: GuardHomeProps) => {
   const { societyId } = useAuth();
   const { toast } = useToast();
   const [recentEntries, setRecentEntries] = useState<EntryLog[]>([]);
@@ -64,6 +65,19 @@ const GuardHome = ({ societyName, pendingApprovals, liveInside, onNavigate, onSt
           </div>
           <Button size="lg" onClick={onStartScan} className="gap-2 text-base font-bold">
             <ScanLine className="h-5 w-5" /> Scan QR
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Register Delivery -- second-most-used action for a guard, one tap to the form */}
+      <Card className="border-success/30 bg-gradient-to-br from-success/10 to-transparent">
+        <CardContent className="p-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-3 justify-between">
+          <div>
+            <p className="text-sm text-muted-foreground">Delivery agent at the gate?</p>
+            <p className="text-base font-semibold text-foreground">Register a delivery</p>
+          </div>
+          <Button size="lg" variant="outline" onClick={onRegisterDelivery} className="gap-2 text-base font-bold border-success/50 text-success hover:bg-success hover:text-success-foreground">
+            <Package className="h-5 w-5" /> Register Delivery
           </Button>
         </CardContent>
       </Card>

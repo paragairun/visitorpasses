@@ -46,7 +46,14 @@ const STATUS_DISPLAY: Record<string, { label: string; color: string }> = {
   expired:          { label: "Expired", color: "text-muted-foreground" },
 };
 
-const DeliveryManager = () => {
+interface DeliveryManagerProps {
+  /** Bump this number (e.g. from a parent's state) to open the registration
+   * form immediately -- lets other screens (like a Home dashboard) jump
+   * straight to registering a delivery instead of landing on the list. */
+  autoOpenTrigger?: number;
+}
+
+const DeliveryManager = ({ autoOpenTrigger }: DeliveryManagerProps = {}) => {
   const { societyId, user } = useAuth();
   const { formatFlat } = useSocietyStructure(societyId);
   const { toast } = useToast();
@@ -61,6 +68,10 @@ const DeliveryManager = () => {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [exitingId, setExitingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (autoOpenTrigger) setShowForm(true);
+  }, [autoOpenTrigger]);
 
   const loadVisits = useCallback(async (expire = false) => {
     if (!societyId) return;
