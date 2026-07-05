@@ -68,12 +68,12 @@ const App = () => (
             <Route path="/guard" element={<GuardLogin />} />
             <Route path="/:societySlug/guard" element={<GuardLogin />} />
             <Route path="/guard/dashboard" element={
-              <ProtectedRoute requiredRole="guard" loginPath="/guard">
+              <ProtectedRoute requiredRole="guard" loginPathBase="guard">
                 <GuardDashboard />
               </ProtectedRoute>
             } />
             <Route path="/:societySlug/guard/dashboard" element={
-              <ProtectedRoute requiredRole="guard" loginPath="/guard">
+              <ProtectedRoute requiredRole="guard" loginPathBase="guard">
                 <GuardDashboard />
               </ProtectedRoute>
             } />
@@ -86,12 +86,12 @@ const App = () => (
             <Route path="/resident" element={<ResidentLogin />} />
             <Route path="/:societySlug/resident" element={<ResidentLogin />} />
             <Route path="/resident/dashboard" element={
-              <ProtectedRoute requiredRole="resident" loginPath="/resident">
+              <ProtectedRoute requiredRole="resident" loginPathBase="resident">
                 <ResidentPortal />
               </ProtectedRoute>
             } />
             <Route path="/:societySlug/resident/dashboard" element={
-              <ProtectedRoute requiredRole="resident" loginPath="/resident">
+              <ProtectedRoute requiredRole="resident" loginPathBase="resident">
                 <ResidentPortal />
               </ProtectedRoute>
             } />
@@ -100,12 +100,12 @@ const App = () => (
             <Route path="/admin" element={<AdminLogin />} />
             <Route path="/:societySlug/admin" element={<AdminLogin />} />
             <Route path="/admin/dashboard" element={
-              <ProtectedRoute requiredRole="admin" loginPath="/admin">
+              <ProtectedRoute requiredRole="admin" loginPathBase="admin">
                 <AdminPanel />
               </ProtectedRoute>
             } />
             <Route path="/:societySlug/admin/dashboard" element={
-              <ProtectedRoute requiredRole="admin" loginPath="/admin">
+              <ProtectedRoute requiredRole="admin" loginPathBase="admin">
                 <AdminPanel />
               </ProtectedRoute>
             } />
