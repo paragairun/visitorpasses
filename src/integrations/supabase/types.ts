@@ -14,6 +14,134 @@ export type Database = {
   }
   public: {
     Tables: {
+      amenities: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          max_booking_hours: number
+          name: string
+          operating_hours_end: string
+          operating_hours_start: string
+          requires_approval: boolean
+          society_id: string
+          updated_at: string
+          usage_limit_count: number | null
+          usage_limit_period: Database["public"]["Enums"]["usage_limit_period"] | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_booking_hours?: number
+          name: string
+          operating_hours_end?: string
+          operating_hours_start?: string
+          requires_approval?: boolean
+          society_id: string
+          updated_at?: string
+          usage_limit_count?: number | null
+          usage_limit_period?: Database["public"]["Enums"]["usage_limit_period"] | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          max_booking_hours?: number
+          name?: string
+          operating_hours_end?: string
+          operating_hours_start?: string
+          requires_approval?: boolean
+          society_id?: string
+          updated_at?: string
+          usage_limit_count?: number | null
+          usage_limit_period?: Database["public"]["Enums"]["usage_limit_period"] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenities_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      amenity_bookings: {
+        Row: {
+          amenity_id: string
+          booked_by: string
+          booking_date: string
+          created_at: string
+          end_time: string
+          flat_number: string
+          id: string
+          notes: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          society_id: string
+          start_time: string
+          status: Database["public"]["Enums"]["amenity_booking_status"]
+          updated_at: string
+          wing: string
+        }
+        Insert: {
+          amenity_id: string
+          booked_by: string
+          booking_date: string
+          created_at?: string
+          end_time: string
+          flat_number: string
+          id?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          society_id: string
+          start_time: string
+          status?: Database["public"]["Enums"]["amenity_booking_status"]
+          updated_at?: string
+          wing: string
+        }
+        Update: {
+          amenity_id?: string
+          booked_by?: string
+          booking_date?: string
+          created_at?: string
+          end_time?: string
+          flat_number?: string
+          id?: string
+          notes?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          society_id?: string
+          start_time?: string
+          status?: Database["public"]["Enums"]["amenity_booking_status"]
+          updated_at?: string
+          wing?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "amenity_bookings_amenity_id_fkey"
+            columns: ["amenity_id"]
+            isOneToOne: false
+            referencedRelation: "amenities"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "amenity_bookings_society_id_fkey"
+            columns: ["society_id"]
+            isOneToOne: false
+            referencedRelation: "societies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       access_logs: {
         Row: {
           action_type: string
@@ -1231,6 +1359,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      complete_past_amenity_bookings: { Args: { p_society_id: string }; Returns: number }
       email_has_role: {
         Args: { _email: string; _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
@@ -1250,12 +1379,14 @@ export type Database = {
       set_primary_flat: { Args: { _flat_id: string }; Returns: undefined }
     }
     Enums: {
+      amenity_booking_status: "pending_approval" | "approved" | "rejected" | "cancelled" | "completed"
       app_role: "guard" | "resident" | "admin" | "visitor" | "super_admin"
       bill_status: "unpaid" | "partial" | "paid" | "overdue"
       charge_calculation_type: "per_sqft" | "fixed"
       delivery_status: "pending_approval" | "approved" | "rejected" | "completed" | "expired"
       payment_method: "cash" | "upi" | "cheque" | "bank_transfer" | "other"
       staff_category: "society_staff" | "house_help"
+      usage_limit_period: "day" | "week" | "month"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1383,12 +1514,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      amenity_booking_status: ["pending_approval", "approved", "rejected", "cancelled", "completed"],
       app_role: ["guard", "resident", "admin", "visitor", "super_admin"],
       bill_status: ["unpaid", "partial", "paid", "overdue"],
       charge_calculation_type: ["per_sqft", "fixed"],
       delivery_status: ["pending_approval", "approved", "rejected", "completed", "expired"],
       payment_method: ["cash", "upi", "cheque", "bank_transfer", "other"],
       staff_category: ["society_staff", "house_help"],
+      usage_limit_period: ["day", "week", "month"],
     },
   },
 } as const
