@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { ScanLine, Check, X, LogOut, Car, Search, ClipboardList, Radio, Package } from "lucide-react";
+import { ScanLine, Check, X, LogOut, Car, Search, ClipboardList, Radio, Package, Home } from "lucide-react";
 import VehicleSearch from "@/components/VehicleSearch";
 import GateActivity from "@/components/GateActivity";
+import GuardHome from "@/components/GuardHome";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +21,7 @@ type EntryLog = Tables<"entry_logs">;
 type Vehicle = Tables<"vehicles">;
 
 const NAV: NavItem[] = [
+  { id: "home", title: "Home", icon: Home },
   { id: "scan", title: "Search & Scan", icon: Search },
   { id: "approvals", title: "Pending Approvals", icon: ClipboardList },
   { id: "live", title: "Live Inside", icon: Car },
@@ -28,7 +30,7 @@ const NAV: NavItem[] = [
 ];
 
 const GuardDashboard = () => {
-  const [activeView, setActiveView] = useState("scan");
+  const [activeView, setActiveView] = useState("home");
   const [scanning, setScanning] = useState(false);
   const [visitors, setVisitors] = useState<VisitorRequest[]>([]);
   const [liveVehicles, setLiveVehicles] = useState<EntryLog[]>([]);
@@ -314,6 +316,15 @@ const GuardDashboard = () => {
       onSelect={setActiveView}
       onSignOut={handleSignOut}
     >
+      {activeView === "home" && (
+        <GuardHome
+          societyName={societyName ?? "Your Society"}
+          pendingApprovals={pendingVisitors.length}
+          liveInside={liveVehicles.length}
+          onNavigate={setActiveView}
+          onStartScan={() => setScanning(true)}
+        />
+      )}
       {activeView === "scan" && renderScan()}
       {activeView === "approvals" && renderApprovals()}
       {activeView === "live" && renderLive()}
