@@ -32,6 +32,7 @@ const NAV: NavItem[] = [
 const GuardDashboard = () => {
   const [activeView, setActiveView] = useState("home");
   const [scanning, setScanning] = useState(false);
+  const [deliveryFormTrigger, setDeliveryFormTrigger] = useState(0);
   const [visitors, setVisitors] = useState<VisitorRequest[]>([]);
   const [liveVehicles, setLiveVehicles] = useState<EntryLog[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -323,6 +324,7 @@ const GuardDashboard = () => {
           liveInside={liveVehicles.length}
           onNavigate={setActiveView}
           onStartScan={() => setScanning(true)}
+          onRegisterDelivery={() => { setDeliveryFormTrigger((t) => t + 1); setActiveView("delivery"); }}
         />
       )}
       {activeView === "scan" && renderScan()}
@@ -330,7 +332,7 @@ const GuardDashboard = () => {
       {activeView === "live" && renderLive()}
       {activeView === "barriers" && <GateActivity />}
       {scanning && <QrScanner onScan={handleScan} onClose={() => setScanning(false)} />}
-      {activeView === "delivery" && <DeliveryManager />}
+      {activeView === "delivery" && <DeliveryManager autoOpenTrigger={deliveryFormTrigger} />}
     </DashboardShell>
   );
 };
