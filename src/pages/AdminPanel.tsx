@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download, User, Wallet, Home } from "lucide-react";
+import { Plus, QrCode, Car, BarChart3, Trash2, ChevronDown, ChevronUp, Link as LinkIcon, Users, ClipboardList, Upload, UserPlus, ClipboardCheck, FileSpreadsheet, Activity, TrendingUp, Check, ChevronsUpDown, Search, Radio, Download, User, Wallet, Home, Sparkles, Calendar } from "lucide-react";
 import RegistrationRequests from "@/components/RegistrationRequests";
 import BarrierDevicesAdmin from "@/components/BarrierDevicesAdmin";
 import CsvUpload from "@/components/CsvUpload";
@@ -31,6 +31,8 @@ import SocietyStaffManager from "@/components/SocietyStaffManager";
 import StaffAttendanceLog from "@/components/StaffAttendanceLog";
 import AdminProfile from "@/components/AdminProfile";
 import MaintenanceBillingSetup from "@/components/MaintenanceBillingSetup";
+import AmenitiesSetup from "@/components/AmenitiesSetup";
+import AmenityBookingsAdmin from "@/components/AmenityBookingsAdmin";
 import AdminHome from "@/components/AdminHome";
 
 type Vehicle = Tables<"vehicles">;
@@ -53,6 +55,8 @@ const NAV: NavItem[] = [
   { id: "staff", title: "Staff", icon: Users },
   { id: "staff-logs", title: "Staff Attendance", icon: ClipboardList },
   { id: "billing-setup", title: "Maintenance Billing", icon: Wallet },
+  { id: "amenities-setup", title: "Amenities Setup", icon: Sparkles },
+  { id: "amenities-bookings", title: "Amenity Bookings", icon: Calendar },
   { id: "profile", title: "My Profile", icon: User },
 ];
 
@@ -597,6 +601,8 @@ const AdminPanel = () => {
         </div>
 )}
       {activeView === "billing-setup" && <MaintenanceBillingSetup />}
+      {activeView === "amenities-setup" && <AmenitiesSetup />}
+      {activeView === "amenities-bookings" && <AmenityBookingsAdmin />}
       {activeView === "profile" && <AdminProfile />}
     </DashboardShell>
   );

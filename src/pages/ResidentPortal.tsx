@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Car, ClipboardList, QrCode, Plus, Trash2, ClipboardCheck, User, Home, Save, Users, Copy, Package, Wallet } from "lucide-react";
+import { Car, ClipboardList, QrCode, Plus, Trash2, ClipboardCheck, User, Home, Save, Users, Copy, Package, Wallet, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -24,6 +24,7 @@ import DashboardShell, { NavItem } from "@/components/DashboardShell";
 import HouseHelpsManager from "@/components/HouseHelpsManager";
 import MyDues from "@/components/MyDues";
 import ResidentHome from "@/components/ResidentHome";
+import AmenityBooking from "@/components/AmenityBooking";
 import StaffAttendanceLog from "@/components/StaffAttendanceLog";
 import ResidentDeliveryApprovals from "@/components/ResidentDeliveryApprovals";
 
@@ -50,6 +51,7 @@ const PRIMARY_NAV: NavItem[] = [
   { id: "requests", title: "My Requests", icon: ClipboardCheck },
   { id: "history", title: "Visit History", icon: ClipboardList },
   { id: "dues", title: "My Dues", icon: Wallet },
+  { id: "amenities", title: "Amenities", icon: Sparkles },
   { id: "profile", title: "My Profile", icon: User },
   { id: "helps", title: "House Helps", icon: Users },
   { id: "help-attendance", title: "Help Attendance", icon: ClipboardList },
@@ -62,6 +64,7 @@ const CHILD_NAV: NavItem[] = [
   { id: "vehicles", title: "Flat Vehicles", icon: Car },
   { id: "history", title: "Visit History", icon: ClipboardList },
   { id: "dues", title: "My Dues", icon: Wallet },
+  { id: "amenities", title: "Amenities", icon: Sparkles },
   { id: "profile", title: "My Profile", icon: User },
 ];
 
@@ -736,6 +739,7 @@ const ResidentPortal = () => {
       {activeView === "profile" && renderProfile()}
       {activeView === "helps" && <HouseHelpsManager residentFlats={flats} />}
       {activeView === "dues" && <MyDues residentFlats={flats} formatFlat={formatFlat} />}
+      {activeView === "amenities" && <AmenityBooking residentFlats={flats} />}
       {activeView === "help-attendance" && (
         <div className="space-y-4">
           <h2 className="text-lg font-semibold">House Help Attendance</h2>
