@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 type AppRole = "guard" | "resident" | "admin" | "visitor";
@@ -7,11 +7,17 @@ type AppRole = "guard" | "resident" | "admin" | "visitor";
 interface ProtectedRouteProps {
   children: ReactNode;
   requiredRole: AppRole;
-  loginPath: string;
+  /** e.g. "resident" -- the actual redirect path is built as "/:societySlug/resident"
+   * or just "/resident" depending on which route pattern actually matched, so a
+   * direct/refreshed hit on a society-scoped dashboard sends an unauthenticated
+   * visitor back to that SAME society's login page, not a slug-less legacy one. */
+  loginPathBase: string;
 }
 
-const ProtectedRoute = ({ children, requiredRole, loginPath }: ProtectedRouteProps) => {
+const ProtectedRoute = ({ children, requiredRole, loginPathBase }: ProtectedRouteProps) => {
   const { user, roles, loading } = useAuth();
+  const { societySlug } = useParams();
+  const loginPath = societySlug ? `/${societySlug}/${loginPathBase}` : `/${loginPathBase}`;
 
   if (loading) {
     return (
