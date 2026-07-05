@@ -30,6 +30,26 @@
       gtag('js', new Date());
       gtag('config', 'G-N0WMB8B2W7');
     </script>
+
+    <!--
+      Pairs with public/404.html -- decodes the redirected path back into a
+      real URL via history.replaceState, before React Router mounts, so a
+      direct load or refresh on a deep link (e.g. /some-society/guard/dashboard)
+      lands on the correct page instead of GitHub Pages' 404.
+      See: https://github.com/rafgraph/spa-github-pages
+    -->
+    <script>
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function (s) {
+            return s.replace(/~and~/g, '&');
+          }).join('?');
+          window.history.replaceState(null, null,
+            l.pathname.slice(0, -1) + decoded + l.hash
+          );
+        }
+      }(window.location));
+    </script>
   </head>
   <body>
     <div id="root"></div>
