@@ -84,8 +84,8 @@ const HeroMockup = () => (
     </div>
     <div className="p-4 space-y-3">
       <div>
-        <p className="text-sm font-semibold text-foreground">Good morning, Parag</p>
-        <p className="text-xs text-muted-foreground">Triumph Towers CHSL · G-201</p>
+        <p className="text-sm font-semibold text-foreground">Good morning, Rahul</p>
+        <p className="text-xs text-muted-foreground">Shree Laxmi CHSL · A-101</p>
       </div>
       <div className="rounded-lg border-l-4 border-l-primary bg-secondary/40 p-3 flex items-center justify-between">
         <div>
