@@ -286,6 +286,31 @@ const Index = () => (
       </div>
     </section>
 
+<section className="max-w-5xl mx-auto px-4 py-16">
+  <h2 className="text-2xl font-bold text-foreground mb-2">From the desk of VisitorPasses</h2>
+  <p className="text-muted-foreground mb-8">Practical insights on society management and security.</p>
+  <Link to="/article/digital-vs-paper-society-management" className="group block rounded-2xl border border-border bg-card hover:border-primary/40 transition-colors p-6 sm:p-8">
+    <div className="flex items-start gap-4">
+      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+        <FileText className="h-6 w-6 text-primary" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Society Management</p>
+        <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
+          Why Your Housing Society Needs to Move Beyond the Paper Register
+        </h3>
+        <p className="text-sm text-muted-foreground leading-relaxed">
+          What the paper register is actually costing your society in time, safety, and resident frustration —
+          and why going digital is simpler than you think.
+        </p>
+        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+          Read article <ArrowRight className="h-3 w-3" />
+        </p>
+      </div>
+    </div>
+  </Link>
+</section>
+    
     <footer className="border-t border-border py-8 text-center">
       <p className="text-xs text-muted-foreground">
         © {new Date().getFullYear()} VisitorPasses — Complete society management
