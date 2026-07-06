@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Shield, ScanLine, ClipboardList, Building2, QrCode, Users, ArrowRight,
-  Car, Package, Wallet, Sparkles, IdCard,
+  Car, Package, Wallet, Sparkles, IdCard, FileText,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
