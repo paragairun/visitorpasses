@@ -21,6 +21,7 @@ import SuperAdminLogin from "./pages/SuperAdminLogin";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
+import Article from "./pages/Article";
 
 const queryClient = new QueryClient();
 
@@ -59,6 +60,8 @@ const App = () => (
             <Route path="/register-society" element={<SocietyRegister />} />
             <Route path="/login" element={<LoginPortal />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/login" element={<LoginPortal />} />
+            <Route path="/article/digital-vs-paper-society-management" element={<Article />} />
 
             {/* Super admin */}
             <Route path="/super-admin/login" element={<SuperAdminLogin />} />
