@@ -300,7 +300,7 @@ const Article = () => (
         <div className="rounded-2xl border border-primary/30 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent p-6 sm:p-8 space-y-4">
           <h2 className="text-xl font-bold text-foreground">Get Your Society on VisitorPasses</h2>
           <p className="text-muted-foreground leading-relaxed">
-            Free to start. No hardware. No app to install. Your society gets its own dedicated URL —
+            Free to use. No hardware. No app to install. Your society gets its own dedicated URL —
             <span className="font-mono text-foreground text-sm"> visitorpasses.in/your-society-name</span> —
             and a complete platform for everything that happens in your society, every day.
             Live in under 10 minutes.
