@@ -38,8 +38,11 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Needed for QR scanning at the gate (vehicles, guests, staff, deliveries)
-         via the web app's camera access (html5-qrcode / getUserMedia). -->
+    <!-- Needed for QR scanning (guest passes, vehicle/staff QR codes) via the
+         web app's camera access (html5-qrcode / getUserMedia). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Required on Android 13+ (API 33) for push notifications to actually
+         show up -- separate from Firebase/FCM setup itself. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>

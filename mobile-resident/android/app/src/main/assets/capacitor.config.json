@@ -1,9 +1,9 @@
 {
-	"appId": "in.visitorpasses.guard",
-	"appName": "VisitorPasses Guard",
+	"appId": "in.visitorpasses.resident",
+	"appName": "VisitorPasses Resident",
 	"webDir": "www",
 	"server": {
-		"url": "https://visitorpasses.in/guard",
+		"url": "https://visitorpasses.in/resident",
 		"cleartext": false
 	}
 }
