@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { UserPlus, CheckCircle } from "lucide-react";
+import FlatPicker from "@/components/FlatPicker";
 
 const ROLE_LABELS: Record<string, string> = {
   guard: "Security Guard",
@@ -196,28 +197,12 @@ const Register = () => {
             </div>
 
             {showFlatFields && (
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2">
-                  <Label>Wing *</Label>
-                  <Select value={form.wing} onValueChange={(v) => setForm((p) => ({ ...p, wing: v }))}>
-                    <SelectTrigger className="touch-target"><SelectValue placeholder="Wing" /></SelectTrigger>
-                    <SelectContent>
-                      {["A", "B", "C", "D", "E", "F", "G", "H"].map((w) => (
-                        <SelectItem key={w} value={w}>Wing {w}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Flat Number *</Label>
-                  <Input
-                    placeholder="101"
-                    value={form.flat_number}
-                    onChange={(e) => setForm((p) => ({ ...p, flat_number: e.target.value }))}
-                    className="touch-target"
-                  />
-                </div>
-              </div>
+              <FlatPicker
+                societyId={form.society_id || null}
+                wing={form.wing}
+                flatNumber={form.flat_number}
+                onChange={(wing, flat_number) => setForm((p) => ({ ...p, wing, flat_number }))}
+              />
             )}
 
             <div className="space-y-2">
