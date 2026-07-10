@@ -1,0 +1,85 @@
+name: Build Mobile APKs
+
+# Builds .apk files for the resident and guard Capacitor shell apps in the
+# cloud, since building an Android app normally requires the Android SDK and
+# Gradle installed locally (which this project doesn't assume you have).
+# Both apps are thin native wrappers that load the live site
+# (visitorpasses.in/resident and /guard) -- ordinary web app changes show up
+# automatically with no rebuild needed. Only rebuild when the native shell
+# itself changes (icon, permissions, app name, etc).
+#
+# Run manually from the Actions tab ("Run workflow"), or it runs automatically
+# whenever files under mobile-resident/ or mobile-guard/ change.
+#
+# Output: each run produces two downloadable .apk files under the run's
+# "Artifacts" section at the bottom of the workflow run page. These are debug
+# (unsigned) builds -- fine for installing directly on your own/guards'/
+# residents' phones via "install from unknown sources", but NOT set up for
+# Play Store distribution (that needs a signed release build, a separate,
+# later step if you ever want it).
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'mobile-resident/**'
+      - 'mobile-guard/**'
+      - '.github/workflows/build-mobile-apks.yml'
+
+jobs:
+  build-resident:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: mobile-resident
+        run: npm install
+
+      - name: Build debug APK
+        working-directory: mobile-resident/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: visitorpasses-resident-debug-apk
+          path: mobile-resident/android/app/build/outputs/apk/debug/app-debug.apk
+
+  build-guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: mobile-guard
+        run: npm install
+
+      - name: Build debug APK
+        working-directory: mobile-guard/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: visitorpasses-guard-debug-apk
+          path: mobile-guard/android/app/build/outputs/apk/debug/app-debug.apk
