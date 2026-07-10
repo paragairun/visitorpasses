@@ -41,6 +41,10 @@ jobs:
         working-directory: mobile-resident
         run: npm install
 
+      - name: Sync Capacitor config into native project
+        working-directory: mobile-resident
+        run: npx cap sync android
+
       - name: Decode release keystore
         working-directory: mobile-resident/android/app
         run: echo "${{ secrets.RESIDENT_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
@@ -77,6 +81,10 @@ jobs:
       - name: Install dependencies
         working-directory: mobile-guard
         run: npm install
+
+      - name: Sync Capacitor config into native project
+        working-directory: mobile-guard
+        run: npx cap sync android
 
       - name: Decode release keystore
         working-directory: mobile-guard/android/app

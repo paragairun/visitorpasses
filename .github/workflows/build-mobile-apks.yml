@@ -44,6 +44,10 @@ jobs:
         working-directory: mobile-resident
         run: npm install
 
+      - name: Sync Capacitor config into native project
+        working-directory: mobile-resident
+        run: npx cap sync android
+
       - name: Build debug APK
         working-directory: mobile-resident/android
         run: |
@@ -71,6 +75,10 @@ jobs:
       - name: Install dependencies
         working-directory: mobile-guard
         run: npm install
+
+      - name: Sync Capacitor config into native project
+        working-directory: mobile-guard
+        run: npx cap sync android
 
       - name: Build debug APK
         working-directory: mobile-guard/android
