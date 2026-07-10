@@ -104,7 +104,6 @@ const Register = () => {
   };
 
   const showFlatFields = validRole === "resident";
-  const loginPath = validRole ? `/${validRole}` : "/";
 
   if (!validRole) {
     return (
@@ -116,7 +115,7 @@ const Register = () => {
               Please use the register link from your role's login page.
             </p>
             <Button variant="outline" asChild className="mt-4">
-              <Link to="/">Back to Login</Link>
+              <Link to="/login">Back to Login</Link>
             </Button>
           </CardContent>
         </Card>
@@ -136,7 +135,7 @@ const Register = () => {
               You will receive access once approved.
             </p>
             <Button variant="outline" asChild className="mt-4">
-              <Link to={loginPath}>Back to Login</Link>
+              <Link to="/login">Back to Login</Link>
             </Button>
           </CardContent>
         </Card>
@@ -248,7 +247,7 @@ const Register = () => {
 
             <p className="text-center text-sm text-muted-foreground">
               Already have access?{" "}
-              <Link to={loginPath} className="text-primary hover:underline">Sign in</Link>
+              <Link to="/login" className="text-primary hover:underline">Sign in</Link>
             </p>
           </form>
         </CardContent>
