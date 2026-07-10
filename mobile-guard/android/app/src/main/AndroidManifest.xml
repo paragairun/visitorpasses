@@ -42,4 +42,7 @@
          via the web app's camera access (html5-qrcode / getUserMedia). -->
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <!-- Required on Android 13+ (API 33) for push notifications to actually
+         show up -- separate from Firebase/FCM setup itself. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 </manifest>
