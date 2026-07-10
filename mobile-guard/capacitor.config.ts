@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   // is only needed if the native shell itself changes (icon, permissions,
   // app name), not for ordinary web app updates.
   server: {
-    url: 'https://visitorpasses.in/guard',
+    url: 'https://visitorpasses.in/login?role=guard',
     cleartext: false,
   },
 };
