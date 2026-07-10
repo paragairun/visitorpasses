@@ -21,6 +21,7 @@ import SuperAdminLogin from "./pages/SuperAdminLogin";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 import Index from "./pages/Index";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Article from "./pages/Article";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const App = () => (
           <main>
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/register" element={<Register />} />
             <Route path="/register-society" element={<SocietyRegister />} />
             <Route path="/login" element={<LoginPortal />} />
