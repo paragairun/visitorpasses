@@ -313,7 +313,7 @@ const Index = () => (
     
     <footer className="border-t border-border py-8 text-center">
       <p className="text-xs text-muted-foreground">
-        © {new Date().getFullYear()} VisitorPasses — Complete society management
+        © {new Date().getFullYear()} VisitorPasses — made with love by parag.airun@gmail.com
       </p>
     </footer>
   </div>
