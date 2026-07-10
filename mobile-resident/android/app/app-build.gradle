@@ -15,6 +15,14 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            // Populated from GitHub Actions secrets at build time -- never
+            // committed to the repo, unlike the shared debug keystore.
+            storeFile file(System.getenv("SIGNING_KEYSTORE_PATH") ?: "release.keystore")
+            storePassword System.getenv("SIGNING_STORE_PASSWORD")
+            keyAlias System.getenv("SIGNING_KEY_ALIAS")
+            keyPassword System.getenv("SIGNING_KEY_PASSWORD")
+        }
     }
     defaultConfig {
         applicationId "in.visitorpasses.resident"
@@ -34,6 +42,7 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
