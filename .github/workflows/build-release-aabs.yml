@@ -1,0 +1,100 @@
+name: Build Release AABs (Play Store)
+
+# Builds signed .aab (Android App Bundle) files -- the format Google Play
+# requires for new app submissions. Unlike the debug .apk workflow, this
+# signs with your real, private release keystores, which live ONLY as
+# GitHub encrypted secrets, never committed to the repo.
+#
+# One-time setup required before this works -- add these repo secrets
+# (Settings -> Secrets and variables -> Actions -> New repository secret):
+#
+#   RESIDENT_KEYSTORE_BASE64   (contents of resident-release.keystore.base64.txt)
+#   RESIDENT_STORE_PASSWORD
+#   RESIDENT_KEY_ALIAS          -> visitorpasses-resident
+#   RESIDENT_KEY_PASSWORD       (same as store password for these keystores)
+#
+#   GUARD_KEYSTORE_BASE64      (contents of guard-release.keystore.base64.txt)
+#   GUARD_STORE_PASSWORD
+#   GUARD_KEY_ALIAS             -> visitorpasses-guard
+#   GUARD_KEY_PASSWORD
+#
+# Output: each run produces two .aab files under the run's Artifacts section,
+# ready to upload directly to Play Console.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-resident-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: mobile-resident
+        run: npm install
+
+      - name: Decode release keystore
+        working-directory: mobile-resident/android/app
+        run: echo "${{ secrets.RESIDENT_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+
+      - name: Build release AAB
+        working-directory: mobile-resident/android
+        env:
+          SIGNING_KEYSTORE_PATH: release.keystore
+          SIGNING_STORE_PASSWORD: ${{ secrets.RESIDENT_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.RESIDENT_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.RESIDENT_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: visitorpasses-resident-release-aab
+          path: mobile-resident/android/app/build/outputs/bundle/release/app-release.aab
+
+  build-guard-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        working-directory: mobile-guard
+        run: npm install
+
+      - name: Decode release keystore
+        working-directory: mobile-guard/android/app
+        run: echo "${{ secrets.GUARD_KEYSTORE_BASE64 }}" | base64 -d > release.keystore
+
+      - name: Build release AAB
+        working-directory: mobile-guard/android
+        env:
+          SIGNING_KEYSTORE_PATH: release.keystore
+          SIGNING_STORE_PASSWORD: ${{ secrets.GUARD_STORE_PASSWORD }}
+          SIGNING_KEY_ALIAS: ${{ secrets.GUARD_KEY_ALIAS }}
+          SIGNING_KEY_PASSWORD: ${{ secrets.GUARD_KEY_PASSWORD }}
+        run: |
+          chmod +x gradlew
+          ./gradlew bundleRelease
+
+      - name: Upload AAB
+        uses: actions/upload-artifact@v4
+        with:
+          name: visitorpasses-guard-release-aab
+          path: mobile-guard/android/app/build/outputs/bundle/release/app-release.aab
