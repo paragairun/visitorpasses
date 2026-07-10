@@ -1,0 +1,9 @@
+{
+	"appId": "in.visitorpasses.resident",
+	"appName": "VisitorPasses Resident",
+	"webDir": "www",
+	"server": {
+		"url": "https://visitorpasses.in/login?role=resident",
+		"cleartext": false
+	}
+}
