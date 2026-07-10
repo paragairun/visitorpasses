@@ -16,6 +16,7 @@ import AdminPanel from "./pages/AdminPanel";
 import Register from "./pages/Register";
 import SocietyRegister from "./pages/SocietyRegister";
 import LoginPortal from "./pages/LoginPortal";
+import SocietyPortal from "./pages/SocietyPortal";
 import SuperAdminDashboard from "./pages/SuperAdminDashboard";
 import SuperAdminLogin from "./pages/SuperAdminLogin";
 import ResetPassword from "./pages/ResetPassword";
@@ -61,8 +62,8 @@ const App = () => (
             <Route path="/register" element={<Register />} />
             <Route path="/register-society" element={<SocietyRegister />} />
             <Route path="/login" element={<LoginPortal />} />
+            <Route path="/login/society" element={<SocietyPortal />} />
             <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/login" element={<LoginPortal />} />
             <Route path="/article/digital-vs-paper-society-management" element={<Article />} />
 
             {/* Super admin */}
