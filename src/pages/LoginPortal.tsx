@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { Building2, ArrowRight, Shield, ScanLine, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,9 +23,16 @@ const ROLES = [
 
 const LoginPortal = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [societies, setSocieties] = useState<Society[]>([]);
   const [selectedSociety, setSelectedSociety] = useState<string>("");
-  const [selectedRole, setSelectedRole] = useState<string>("");
+  // Pre-selected when opened from a role-specific entry point (e.g. our
+  // native Android apps each link here with their own role baked in via
+  // ?role=resident / ?role=guard, since the app already knows what it's for).
+  const preselectedRole = searchParams.get("role");
+  const [selectedRole, setSelectedRole] = useState<string>(
+    ROLES.some((r) => r.key === preselectedRole) ? preselectedRole! : ""
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
