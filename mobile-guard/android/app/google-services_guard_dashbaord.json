@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "179899903887",
+    "project_id": "visitorpasses-6b0ac",
+    "storage_bucket": "visitorpasses-6b0ac.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179899903887:android:a42b4fc7629f497d8a25fa",
+        "android_client_info": {
+          "package_name": "in.visitorpasses.guard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlx5O6HabORRMcpptInfsAzvPyKnTq-IE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:179899903887:android:93b8d0de479d833b8a25fa",
+        "android_client_info": {
+          "package_name": "in.visitorpasses.resident"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDlx5O6HabORRMcpptInfsAzvPyKnTq-IE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
