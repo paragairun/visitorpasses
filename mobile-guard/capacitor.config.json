@@ -3,7 +3,7 @@
 	"appName": "VisitorPasses Guard",
 	"webDir": "www",
 	"server": {
-		"url": "https://visitorpasses.in/login?role=guard",
+		"url": "https://visitorpasses.in/login/society?role=guard",
 		"cleartext": false
 	}
 }
