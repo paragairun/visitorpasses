@@ -3,7 +3,7 @@
 	"appName": "VisitorPasses Resident",
 	"webDir": "www",
 	"server": {
-		"url": "https://visitorpasses.in/login?role=resident",
+		"url": "https://visitorpasses.in/login/society?role=resident",
 		"cleartext": false
 	}
 }
