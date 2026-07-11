@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Car, ClipboardList, QrCode, Plus, Trash2, ClipboardCheck, User, Home, Save, Users, Copy, Package, Wallet, Sparkles } from "lucide-react";
+import { Car, ClipboardList, QrCode, Plus, Trash2, ClipboardCheck, User, Home, Save, Users, Copy, Package, Wallet, Sparkles, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -99,6 +99,9 @@ const ResidentPortal = () => {
   const [addingChild, setAddingChild] = useState(false);
   const [issuedChildCred, setIssuedChildCred] = useState<{ email: string; password: string } | null>(null);
   const [removeChildTarget, setRemoveChildTarget] = useState<ChildAccount | null>(null);
+  const [deleteAccountOpen, setDeleteAccountOpen] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deletingAccount, setDeletingAccount] = useState(false);
   const [pendingDeliveries, setPendingDeliveries] = useState(0);
   const { toast } = useToast();
   const { signOut, user, societyId, societyName, societySlug } = useAuth();
@@ -278,6 +281,19 @@ const ResidentPortal = () => {
   };
 
   const handleSignOut = async () => { await signOut(); navigate(residentLoginPath, { replace: true }); };
+
+  const deleteOwnAccount = async () => {
+    setDeletingAccount(true);
+    const { data, error } = await supabase.functions.invoke("delete-own-account");
+    setDeletingAccount(false);
+    if (error || data?.error) {
+      toast({ title: "Could not delete account", description: data?.error ?? error?.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Account deleted" });
+    await signOut();
+    navigate("/login", { replace: true });
+  };
 
   const generateGuestPass = async () => {
     if (!form.visitor_name.trim() || !form.phone.trim() || !form.vehicle_number.trim()) {
@@ -707,6 +723,25 @@ const ResidentPortal = () => {
         </div>
         </>
         )}
+
+        <div className="pt-4 border-t border-destructive/30 space-y-3">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-4 w-4 text-destructive" />
+            <p className="text-sm font-medium text-destructive">Danger Zone</p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Deleting your account removes your profile and flat association permanently.
+            {!isChild && " If you have family/tenant accounts linked to your profile, remove them first."}
+            {" "}This cannot be undone.
+          </p>
+          <Button
+            variant="outline"
+            onClick={() => setDeleteAccountOpen(true)}
+            className="border-destructive/50 text-destructive hover:bg-destructive hover:text-destructive-foreground gap-2"
+          >
+            <Trash2 className="h-4 w-4" /> Delete My Account
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
@@ -776,6 +811,38 @@ const ResidentPortal = () => {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => removeChildTarget && void removeChild(removeChildTarget.user_id)}>Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={deleteAccountOpen} onOpenChange={(o) => { if (!o) { setDeleteAccountOpen(false); setDeleteConfirmText(""); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes your profile and flat association from {societyName ?? "this society"}.
+              Your past visitor/vehicle activity is kept for the society's records but is no longer linked to your name.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="delete-confirm" className="text-sm">Type <span className="font-mono font-semibold">DELETE</span> to confirm</Label>
+            <Input
+              id="delete-confirm"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              placeholder="DELETE"
+              className="touch-target"
+            />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmText("")}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => void deleteOwnAccount()}
+              disabled={deleteConfirmText !== "DELETE" || deletingAccount}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingAccount ? "Deleting..." : "Delete My Account"}
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
