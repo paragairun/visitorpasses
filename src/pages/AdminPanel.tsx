@@ -233,7 +233,11 @@ const AdminPanel = () => {
   };
 
   const allSelected = vehicles.length > 0 && selectedIds.size === vehicles.length;
-  const toggleSelect = (id: string) => setSelectedIds((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSelect = (id: string) => setSelectedIds((prev) => {
+    const n = new Set(prev);
+    if (n.has(id)) { n.delete(id); } else { n.add(id); }
+    return n;
+  });
   const toggleSelectAll = () => allSelected ? setSelectedIds(new Set()) : setSelectedIds(new Set(vehicles.map((v) => v.id)));
 
   const deleteSelected = async () => {

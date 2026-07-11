@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Building2, ArrowLeft, ArrowRight, FileText, AlertTriangle, CheckCircle,
-  QrCode, Car, Users, Shield, Package, ScanLine, BarChart3, Clock,
+  QrCode, Car, Users, Shield, Package, ScanLine, BarChart3,
   UserCheck, IndianRupee, CalendarDays,
 } from "lucide-react";
 
