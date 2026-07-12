@@ -27,9 +27,7 @@ interface AccessLog {
   } | null;
 }
 
-interface AccessLogsViewerProps {}
-
-const AccessLogsViewer = (_: AccessLogsViewerProps) => {
+const AccessLogsViewer = () => {
   const { societyId } = useAuth();
   const { formatFlat } = useSocietyStructure(societyId);
   const [logs, setLogs] = useState<AccessLog[]>([]);
