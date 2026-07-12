@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import type { Json } from "@/integrations/supabase/types";
-import SocietyStructureBuilder, { TowerStructure, emptyTower, normalizeStructure } from "@/components/SocietyStructureBuilder";
+import SocietyStructureBuilder from "@/components/SocietyStructureBuilder";
+import { TowerStructure, emptyTower, normalizeStructure } from "@/lib/societyStructure";
 
 const SocietyRegister = () => {
   const navigate = useNavigate();

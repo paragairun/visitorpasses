@@ -12,9 +12,10 @@ import type { Json } from "@/integrations/supabase/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import StatusBadge from "@/components/StatusBadge";
-import SocietyStructureBuilder, {
+import SocietyStructureBuilder from "@/components/SocietyStructureBuilder";
+import {
   TowerStructure, emptyTower, normalizeStructure, toEditableState, NormalizedStructure,
-} from "@/components/SocietyStructureBuilder";
+} from "@/lib/societyStructure";
 
 interface WingRange {
   wing: string;
