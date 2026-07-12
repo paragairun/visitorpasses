@@ -1,0 +1,188 @@
+import { describe, it, expect } from "vitest";
+import {
+  generateFlatNumbers, normalizeStructure, toEditableState, normalizeTowers,
+  emptyWing, emptyTower,
+  type NormalizedWing, type TowerStructure,
+} from "./SocietyStructureBuilder";
+
+describe("generateFlatNumbers", () => {
+  it("generates a simple range for non-floor-wise wings", () => {
+    const wing: NormalizedWing = { wing: "A", flat_from: 101, flat_to: 105, floor_wise: false };
+    expect(generateFlatNumbers(wing)).toEqual(["101", "102", "103", "104", "105"]);
+  });
+
+  it("returns a single flat when from === to", () => {
+    const wing: NormalizedWing = { wing: "A", flat_from: 101, flat_to: 101, floor_wise: false };
+    expect(generateFlatNumbers(wing)).toEqual(["101"]);
+  });
+
+  it("returns an empty array when the range is invalid (from > to)", () => {
+    const wing: NormalizedWing = { wing: "A", flat_from: 105, flat_to: 101, floor_wise: false };
+    expect(generateFlatNumbers(wing)).toEqual([]);
+  });
+
+  it("generates floor-wise numbers with a 3-digit prefix (101-104, 201-204 style)", () => {
+    const wing: NormalizedWing = { wing: "A", flat_from: 101, flat_to: 0, floor_wise: true, flats_per_floor: 4, total_floors: 3 };
+    expect(generateFlatNumbers(wing)).toEqual([
+      "101", "102", "103", "104",
+      "201", "202", "203", "204",
+      "301", "302", "303", "304",
+    ]);
+  });
+
+  it("generates floor-wise numbers with a 4-digit prefix (1001-1006, 2001-2006 style)", () => {
+    const wing: NormalizedWing = { wing: "A", flat_from: 1001, flat_to: 0, floor_wise: true, flats_per_floor: 6, total_floors: 2 };
+    expect(generateFlatNumbers(wing)).toEqual([
+      "1001", "1002", "1003", "1004", "1005", "1006",
+      "2001", "2002", "2003", "2004", "2005", "2006",
+    ]);
+  });
+
+  it("respects a non-zero starting unit within a floor (e.g. starting at 3rd flat)", () => {
+    const wing: NormalizedWing = { wing: "A", flat_from: 103, flat_to: 0, floor_wise: true, flats_per_floor: 2, total_floors: 2 };
+    // start unit = 03, so each floor produces 2 flats starting from unit 3
+    expect(generateFlatNumbers(wing)).toEqual(["103", "104", "203", "204"]);
+  });
+
+  it("falls back to a simple range if floor-wise fields are incomplete", () => {
+    const wing: NormalizedWing = { wing: "A", flat_from: 1, flat_to: 3, floor_wise: true }; // missing flats_per_floor/total_floors
+    expect(generateFlatNumbers(wing)).toEqual(["1", "2", "3"]);
+  });
+});
+
+describe("normalizeStructure", () => {
+  const validTower = (): TowerStructure => ({
+    tower_name: "Tower 1",
+    wings: [{ wing: "A", flat_from: "101", flat_to: "110", total_floors: "" }],
+  });
+
+  it("normalizes a valid non-floor-wise tower/wing", () => {
+    const result = normalizeStructure([validTower()], false, "");
+    expect("error" in result).toBe(false);
+    if ("structure" in result) {
+      expect(result.structure.towers).toEqual([
+        { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: 101, flat_to: 110, floor_wise: false }] },
+      ]);
+    }
+  });
+
+  it("uppercases wing names and trims tower names", () => {
+    const tower: TowerStructure = { tower_name: "  Tower 1  ", wings: [{ wing: "  a  ", flat_from: "1", flat_to: "2", total_floors: "" }] };
+    const result = normalizeStructure([tower], false, "");
+    if ("structure" in result) {
+      expect(result.structure.towers[0].tower_name).toBe("Tower 1");
+      expect(result.structure.towers[0].wings[0].wing).toBe("A");
+    } else {
+      expect.fail("expected a valid structure, got error: " + result.error);
+    }
+  });
+
+  it("silently skips a fully-empty tower row (e.g. an unused extra row in the form)", () => {
+    const emptyRow: TowerStructure = emptyTower();
+    const result = normalizeStructure([validTower(), emptyRow], false, "");
+    if ("structure" in result) {
+      expect(result.structure.towers.length).toBe(1);
+    } else {
+      expect.fail("expected a valid structure, got error: " + result.error);
+    }
+  });
+
+  it("errors when a tower has no name but has wing data", () => {
+    const tower: TowerStructure = { tower_name: "", wings: [{ wing: "A", flat_from: "1", flat_to: "2", total_floors: "" }] };
+    const result = normalizeStructure([tower], false, "");
+    expect("error" in result).toBe(true);
+  });
+
+  it("errors when starting flat number is missing or invalid", () => {
+    const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "", flat_to: "10", total_floors: "" }] };
+    const result = normalizeStructure([tower], false, "");
+    expect("error" in result).toBe(true);
+  });
+
+  it("errors when starting flat number exceeds ending flat number", () => {
+    const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "110", flat_to: "101", total_floors: "" }] };
+    const result = normalizeStructure([tower], false, "");
+    expect("error" in result).toBe(true);
+  });
+
+  it("errors when a tower ends up with zero wings after skipping empties", () => {
+    const tower: TowerStructure = { tower_name: "Tower 1", wings: [emptyWing()] };
+    const result = normalizeStructure([tower], false, "");
+    expect("error" in result).toBe(true);
+  });
+
+  describe("floor-wise mode", () => {
+    it("normalizes a valid floor-wise tower, computing the correct flat_to", () => {
+      const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "101", flat_to: "", total_floors: "3" }] };
+      const result = normalizeStructure([tower], true, "4");
+      if ("structure" in result) {
+        expect(result.structure.towers[0].wings[0]).toEqual({
+          wing: "A", flat_from: 101, flat_to: 304, floor_wise: true, flats_per_floor: 4, total_floors: 3,
+        });
+      } else {
+        expect.fail("expected a valid structure, got error: " + result.error);
+      }
+    });
+
+    it("errors when flats-per-floor is missing", () => {
+      const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "101", flat_to: "", total_floors: "3" }] };
+      const result = normalizeStructure([tower], true, "");
+      expect("error" in result).toBe(true);
+    });
+
+    it("errors when flats-per-floor exceeds 99 (can't fit in 2-digit unit)", () => {
+      const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "101", flat_to: "", total_floors: "3" }] };
+      const result = normalizeStructure([tower], true, "100");
+      expect("error" in result).toBe(true);
+    });
+
+    it("errors when starting unit + flats-per-floor would exceed 99 (overflow into next floor's numbering)", () => {
+      // starting at unit 95, 10 flats per floor -> would need units 95-104, overflowing 2-digit space
+      const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "195", flat_to: "", total_floors: "2" }] };
+      const result = normalizeStructure([tower], true, "10");
+      expect("error" in result).toBe(true);
+    });
+
+    it("errors when total_floors is missing", () => {
+      const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "101", flat_to: "", total_floors: "" }] };
+      const result = normalizeStructure([tower], true, "4");
+      expect("error" in result).toBe(true);
+    });
+  });
+});
+
+describe("toEditableState / normalizeStructure round-trip", () => {
+  it("round-trips a structure through normalize -> toEditableState -> normalize without data loss", () => {
+    const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "101", flat_to: "110", total_floors: "" }] };
+    const first = normalizeStructure([tower], false, "");
+    if (!("structure" in first)) return expect.fail("expected valid structure");
+
+    const editable = toEditableState(first.structure);
+    const second = normalizeStructure(editable.towers, editable.floorWise, editable.flatsPerFloor);
+    if (!("structure" in second)) return expect.fail("expected valid structure on second pass");
+
+    expect(second.structure).toEqual(first.structure);
+  });
+
+  it("returns a single empty tower/wing when given a structure with no towers", () => {
+    const editable = toEditableState({ floor_wise: false, towers: [] });
+    expect(editable.towers).toEqual([emptyTower()]);
+  });
+});
+
+describe("normalizeTowers (backward-compat shim)", () => {
+  it("normalizes non-floor-wise towers and returns just the towers array", () => {
+    const tower: TowerStructure = { tower_name: "Tower 1", wings: [{ wing: "A", flat_from: "1", flat_to: "5", total_floors: "" }] };
+    const result = normalizeTowers([tower]);
+    expect("error" in result).toBe(false);
+    if (!("error" in result)) {
+      expect(result.towers[0].tower_name).toBe("Tower 1");
+    }
+  });
+
+  it("propagates validation errors the same way normalizeStructure does", () => {
+    const tower: TowerStructure = { tower_name: "", wings: [{ wing: "A", flat_from: "1", flat_to: "5", total_floors: "" }] };
+    const result = normalizeTowers([tower]);
+    expect("error" in result).toBe(true);
+  });
+});
