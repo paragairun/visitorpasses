@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { parsePlate } from "@/lib/vehiclePlate";
 
 /** Official Indian state/UT RTO codes (stable, MoRTH-assigned -- safe to hardcode). */
 const INDIAN_STATE_CODES = [
@@ -9,33 +10,6 @@ const INDIAN_STATE_CODES = [
   "HR", "HP", "JH", "JK", "KA", "KL", "LA", "LD", "MH", "ML", "MN", "MP",
   "MZ", "NL", "OD", "PB", "PY", "RJ", "SK", "TN", "TG", "TR", "UK", "UP", "WB",
 ];
-
-/**
- * Parses a combined plate string into its segments, detecting BH-series
- * (Bharat series) plates -- format "YY BH NNNN X[X]", e.g. "23BH1234AB" --
- * which read in a different order to standard plates ("SS DD XX NNNN",
- * e.g. "MH02AB1234": number comes last, not right after the state/year).
- */
-function parsePlate(value: string) {
-  const clean = (value || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
-
-  // BH-series: 2 digits (year) followed by the literal "BH"
-  if (/^[0-9]{2}BH/.test(clean)) {
-    const year = clean.slice(0, 2);
-    const rest = clean.slice(4);
-    const number = rest.match(/^([0-9]{0,4})/)?.[1] ?? "";
-    const series = rest.slice(number.length).replace(/[^A-Z]/g, "").slice(0, 2);
-    return { isBH: true, state: "", district: "", series, number, year };
-  }
-
-  const state = clean.match(/^([A-Z]{0,2})/)?.[1] ?? "";
-  const rest1 = clean.slice(state.length);
-  const district = rest1.match(/^([0-9]{0,2})/)?.[1] ?? "";
-  const rest2 = rest1.slice(district.length);
-  const series = rest2.match(/^([A-Z]{0,3})/)?.[1] ?? "";
-  const number = rest2.slice(series.length).replace(/[^0-9]/g, "").slice(0, 4);
-  return { isBH: false, state, district, series, number, year: "" };
-}
 
 interface VehicleNumberInputProps {
   /** Combined plate string, e.g. "MH02AB1234" or "23BH1234AB" -- same format as before, no schema change needed. */
