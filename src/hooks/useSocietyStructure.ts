@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { NormalizedTower, NormalizedStructure, generateFlatNumbers } from "@/components/SocietyStructureBuilder";
+import { NormalizedTower, NormalizedStructure, generateFlatNumbers } from "@/lib/societyStructure";
 
 /**
  * Loads the approved structure (towers -> wings -> flat number ranges) for a society.
