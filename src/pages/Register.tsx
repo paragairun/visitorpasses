@@ -136,7 +136,7 @@ const Register = () => {
               You will receive access once approved.
             </p>
             <Button variant="outline" asChild className="mt-4">
-              <Link to="/login">Back to Login</Link>
+              <Link to={`/login/society?role=${validRole}`}>Back to Login</Link>
             </Button>
           </CardContent>
         </Card>
@@ -232,7 +232,7 @@ const Register = () => {
 
             <p className="text-center text-sm text-muted-foreground">
               Already have access?{" "}
-              <Link to="/login" className="text-primary hover:underline">Sign in</Link>
+              <Link to={`/login/society?role=${validRole}`} className="text-primary hover:underline">Sign in</Link>
             </p>
           </form>
         </CardContent>
