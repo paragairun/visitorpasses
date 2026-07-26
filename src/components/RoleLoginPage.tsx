@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navigate, Link, useParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,36 @@ interface RoleLoginPageProps {
   dashboardPath: string;
   description: string;
 }
+
+/**
+ * Shown when someone successfully authenticates on a role-specific login
+ * page (e.g. /guard) with an account that has a DIFFERENT role (e.g. a
+ * resident's credentials). Rather than silently re-rendering a blank login
+ * form with an unexplained active session, this signs them out immediately
+ * and sends them right back to the SAME login page they started on (same
+ * role, same society) so they can retry with the correct credentials --
+ * not all the way back to the generic role picker.
+ */
+const WrongRolePage = ({ roleName, returnPath, signOut }: { roleName: string; returnPath: string; signOut: () => Promise<void> }) => {
+  useEffect(() => {
+    void signOut();
+  }, [signOut]);
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-6 text-center">
+      <div className="space-y-3 max-w-sm">
+        <p className="text-2xl font-bold text-destructive">Wrong Account Type</p>
+        <p className="text-muted-foreground text-sm">
+          That account isn't registered as a {roleName.toLowerCase()}. You've been signed out --
+          please try again with the correct credentials.
+        </p>
+        <Link to={returnPath} className="text-sm text-primary underline inline-block">
+          Back to {roleName} Login
+        </Link>
+      </div>
+    </div>
+  );
+};
 
 const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPath, description }: RoleLoginPageProps) => {
   const [email, setEmail] = useState("");
@@ -73,6 +103,13 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
       );
     }
     return <Navigate to={resolvedDashboardPath} replace />;
+  }
+
+  // Authenticated, but with a role that doesn't match this specific login
+  // page (e.g. a resident's credentials entered on the guard login page).
+  if (user && !roles.includes(roleKey) && !roles.includes("super_admin")) {
+    const returnPath = urlSlug ? `/${urlSlug}/${roleKey}` : `/${roleKey}`;
+    return <WrongRolePage roleName={roleName} returnPath={returnPath} signOut={signOut} />;
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
