@@ -57,7 +57,7 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   const [showForgot, setShowForgot] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [sendingReset, setSendingReset] = useState(false);
-  const { signIn, signOut, user, roles, societySlug } = useAuth();
+  const { signIn, signOut, user, roles, societySlug, loading } = useAuth();
   const { societySlug: urlSlug } = useParams<{ societySlug?: string }>();
   const { toast } = useToast();
 
@@ -77,6 +77,20 @@ const RoleLoginPage = ({ roleName, roleKey, icon: Icon, accentClass, dashboardPa
   }
 
   const resolvedDashboardPath = societySlug ? `/${societySlug}/${roleKey}/dashboard` : dashboardPath;
+
+  // Right after a successful sign-in, `user` becomes truthy before `roles`
+  // has actually been fetched (roles starts as [] and loading stays true
+  // until the fetch resolves). Without this check, every fresh login --
+  // even with fully correct credentials -- would briefly look identical to
+  // a wrong-role login (roles.includes(anything) is false on an empty
+  // array) and get incorrectly signed back out by the check below.
+  if (user && loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="h-8 w-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   // Super-admin should never be on a society login page — redirect to their dashboard
   if (user && roles.includes("super_admin")) {
