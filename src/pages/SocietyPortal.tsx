@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
-import { Building2, ArrowRight, ArrowLeft, Shield, ScanLine, Users } from "lucide-react";
+import { Building2, ArrowRight, Shield, ScanLine, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -124,14 +124,6 @@ const SocietyPortal = () => {
                 <span className="font-mono text-foreground">visitorpasses.in/{society.slug}/{role}</span>
               </p>
             )}
-
-            <button
-              type="button"
-              onClick={() => navigate("/login")}
-              className="w-full flex items-center justify-center gap-1 text-xs text-muted-foreground hover:text-foreground pt-1"
-            >
-              <ArrowLeft className="h-3 w-3" /> Not {roleMeta.label.toLowerCase()}? Go back
-            </button>
           </CardContent>
         </Card>
       </div>
