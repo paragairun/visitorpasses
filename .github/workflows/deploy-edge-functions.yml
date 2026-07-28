@@ -1,0 +1,49 @@
+name: Deploy Supabase Edge Functions
+
+# Deploys every function under supabase/functions/ whenever one changes.
+# This is separate from deploy.yml (which only builds/deploys the frontend
+# to GitHub Pages) -- pushing to GitHub does NOT automatically deploy edge
+# functions, only this workflow (or the manual `supabase functions deploy`
+# command / the Supabase dashboard) actually does.
+#
+# One-time setup required before this works -- add these repo secrets
+# (Settings -> Secrets and variables -> Actions -> New repository secret):
+#
+#   SUPABASE_ACCESS_TOKEN   Generate at supabase.com/dashboard/account/tokens
+#   SUPABASE_PROJECT_REF    Your project ref, e.g. lfmwrdtzyuveyvkfbsjn
+#                           (the subdomain in your Supabase project URL)
+#
+# Deploys ALL functions every run (not just changed ones) -- simpler, and
+# means a brand new function folder gets picked up automatically with no
+# workflow changes needed. Individual functions are small and this is fast.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'supabase/functions/**'
+      - '.github/workflows/deploy-edge-functions.yml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Link project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_REF"
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+
+      - name: Deploy all functions
+        run: supabase functions deploy
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
