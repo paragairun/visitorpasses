@@ -32,10 +32,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Admin only" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
+    // Scope everything to the calling admin's own society. Without this,
+    // every query below returns EVERY user/profile/vehicle across the whole
+    // platform to any admin -- a cross-tenant data leak once there's more
+    // than one society, and the reason a super_admin (whose role row has no
+    // society_id) was showing up in a society's own User Registry: nothing
+    // was excluding rows outside the caller's society at all.
+    const { data: callerSocietyId } = await adminClient.rpc("get_user_society_id", { _user_id: callerId });
+    if (!callerSocietyId) {
+      return new Response(JSON.stringify({ error: "Admin has no society" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    }
+
     const [rolesRes, profilesRes, vehiclesRes, usersRes] = await Promise.all([
-      adminClient.from("user_roles").select("user_id, role"),
-      adminClient.from("profiles").select("user_id, display_name, wing, flat_number"),
-      adminClient.from("vehicles").select("vehicle_number, vehicle_type, wing, flat_number"),
+      adminClient.from("user_roles").select("user_id, role").eq("society_id", callerSocietyId),
+      adminClient.from("profiles").select("user_id, display_name, wing, flat_number").eq("society_id", callerSocietyId),
+      adminClient.from("vehicles").select("vehicle_number, vehicle_type, wing, flat_number").eq("society_id", callerSocietyId),
       adminClient.auth.admin.listUsers({ perPage: 1000 }),
     ]);
 
