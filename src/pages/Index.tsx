@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import {
   Shield, ScanLine, ClipboardList, Building2, QrCode, Users, ArrowRight,
-  Car, Package, Wallet, Sparkles, IdCard, FileText,
+  Car, Package, Wallet, Sparkles, IdCard, FileText, Activity, Radio,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -73,7 +73,7 @@ const DuesRing = () => (
 
 /** Mini browser-frame mockup of the actual resident Home dashboard, used as the hero visual. */
 const HeroMockup = () => (
-  <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden max-w-sm mx-auto lg:mx-0">
+  <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden max-w-sm mx-auto">
     <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-secondary/50">
       <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
       <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
@@ -118,6 +118,98 @@ const HeroMockup = () => (
           <span className="h-5 w-5 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[10px]">←</span>
           <div className="h-1.5 flex-1 rounded-full bg-secondary" />
         </div>
+      </div>
+    </div>
+  </div>
+);
+
+/** Compact guard-dashboard mockup: leads with the Scan QR action, matching
+ * the real GuardHome layout where scanning is the guard's #1 task. */
+const GuardMockup = () => (
+  <div className="rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
+    <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-secondary/50">
+      <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
+      <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
+      <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
+      <span className="ml-2 text-[10px] text-muted-foreground truncate" style={{ fontFamily: LABEL_FONT }}>
+        visitorpasses.in/triumph-towers-chsl/guard
+      </span>
+    </div>
+    <div className="p-4 space-y-3">
+      <div>
+        <p className="text-sm font-semibold text-foreground">Triumph Towers CHSL</p>
+        <p className="text-xs text-muted-foreground">Wednesday, 5 July</p>
+      </div>
+      <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 flex items-center justify-between">
+        <p className="text-xs font-semibold text-foreground">Tap to start scanning</p>
+        <span className="h-7 px-2 rounded-md bg-primary text-primary-foreground flex items-center gap-1 text-[10px] font-bold">
+          <ScanLine className="h-3 w-3" /> Scan QR
+        </span>
+      </div>
+      <div className="rounded-lg bg-success/10 border border-success/30 p-3 flex items-center justify-between">
+        <p className="text-xs font-semibold text-foreground">Register a delivery</p>
+        <span className="h-7 px-2 rounded-md border border-success/50 text-success flex items-center gap-1 text-[10px] font-bold">
+          <Package className="h-3 w-3" /> Register
+        </span>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
+          <p className="text-[9px] text-muted-foreground">Pending approvals</p>
+          <p className="text-base font-bold text-foreground">3</p>
+        </div>
+        <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
+          <p className="text-[9px] text-muted-foreground">Currently inside</p>
+          <p className="text-base font-bold text-foreground">14</p>
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
+/** Compact admin-dashboard mockup: leads with today's activity + dues
+ * collection, matching the real AdminHome layout. */
+const AdminMockup = () => (
+  <div className="rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
+    <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-secondary/50">
+      <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
+      <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
+      <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
+      <span className="ml-2 text-[10px] text-muted-foreground truncate" style={{ fontFamily: LABEL_FONT }}>
+        visitorpasses.in/triumph-towers-chsl/admin
+      </span>
+    </div>
+    <div className="p-4 space-y-3">
+      <div>
+        <p className="text-sm font-semibold text-foreground">Triumph Towers CHSL</p>
+        <p className="text-xs text-muted-foreground">Wednesday, 5 July</p>
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
+          <p className="text-[9px] text-muted-foreground flex items-center gap-1"><Activity className="h-2.5 w-2.5" /> Currently inside</p>
+          <p className="text-base font-bold text-foreground">14</p>
+        </div>
+        <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
+          <p className="text-[9px] text-muted-foreground">Dues outstanding</p>
+          <p className="text-base font-bold text-foreground">₹1.8L</p>
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { icon: Car, tint: "bg-primary/10 text-primary" },
+          { icon: Users, tint: "bg-accent/10 text-accent" },
+          { icon: FileText, tint: "bg-warning/10 text-warning" },
+          { icon: Radio, tint: "bg-success/10 text-success" },
+        ].map((t, i) => (
+          <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border">
+            <span className={`h-7 w-7 rounded-full flex items-center justify-center ${t.tint}`}>
+              <t.icon className="h-3.5 w-3.5" />
+            </span>
+          </div>
+        ))}
+      </div>
+      <div className="rounded-lg border border-border p-2 flex items-center justify-between">
+        <p className="text-[9px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>PENDING REQUESTS</p>
+        <span className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">5</span>
       </div>
     </div>
   </div>
@@ -241,40 +333,46 @@ const Index = () => (
 
     {/* Role portals */}
     <section className="max-w-5xl mx-auto px-4 py-16">
-      <h2 className="text-3xl font-bold text-foreground text-center mb-12" style={{ fontFamily: DISPLAY_FONT }}>
+      <h2 className="text-3xl font-bold text-foreground text-center mb-3" style={{ fontFamily: DISPLAY_FONT }}>
         Choose your portal
       </h2>
-      <div className="grid sm:grid-cols-3 gap-4">
-        <Link to="/login" className="group">
-          <Card className="h-full transition-all hover:border-warning/50 hover:shadow-lg hover:-translate-y-1">
-            <CardContent className="p-6 text-center">
-              <div className="mx-auto h-14 w-14 rounded-xl bg-warning/15 text-warning flex items-center justify-center mb-4">
-                <Shield className="h-7 w-7" />
+      <p className="text-muted-foreground text-center max-w-xl mx-auto mb-12">
+        A real look at what each role actually sees — not just an icon and a promise.
+      </p>
+      <div className="grid sm:grid-cols-3 gap-6">
+        <Link to="/login/society?role=admin" className="group block space-y-3">
+          <AdminMockup />
+          <Card className="transition-all group-hover:border-warning/50 group-hover:shadow-lg">
+            <CardContent className="p-4 text-center">
+              <div className="mx-auto h-10 w-10 rounded-xl bg-warning/15 text-warning flex items-center justify-center mb-2">
+                <Shield className="h-5 w-5" />
               </div>
-              <p className="font-bold text-foreground text-lg mb-2">Admin / Committee</p>
-              <p className="text-sm text-muted-foreground">Manage residents, vehicles, staff, and maintenance billing.</p>
+              <p className="font-bold text-foreground mb-1">Admin / Committee</p>
+              <p className="text-xs text-muted-foreground">Manage residents, vehicles, staff, and maintenance billing.</p>
             </CardContent>
           </Card>
         </Link>
-        <Link to="/login" className="group">
-          <Card className="h-full transition-all hover:border-primary/50 hover:shadow-lg hover:-translate-y-1">
-            <CardContent className="p-6 text-center">
-              <div className="mx-auto h-14 w-14 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-4">
-                <ScanLine className="h-7 w-7" />
+        <Link to="/login/society?role=guard" className="group block space-y-3">
+          <GuardMockup />
+          <Card className="transition-all group-hover:border-primary/50 group-hover:shadow-lg">
+            <CardContent className="p-4 text-center">
+              <div className="mx-auto h-10 w-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-2">
+                <ScanLine className="h-5 w-5" />
               </div>
-              <p className="font-bold text-foreground text-lg mb-2">Security Guard</p>
-              <p className="text-sm text-muted-foreground">Scan QRs for vehicles, guests, staff, and deliveries.</p>
+              <p className="font-bold text-foreground mb-1">Security Guard</p>
+              <p className="text-xs text-muted-foreground">Scan QRs for vehicles, guests, staff, and deliveries.</p>
             </CardContent>
           </Card>
         </Link>
-        <Link to="/login" className="group">
-          <Card className="h-full transition-all hover:border-success/50 hover:shadow-lg hover:-translate-y-1">
-            <CardContent className="p-6 text-center">
-              <div className="mx-auto h-14 w-14 rounded-xl bg-success/15 text-success flex items-center justify-center mb-4">
-                <ClipboardList className="h-7 w-7" />
+        <Link to="/login/society?role=resident" className="group block space-y-3">
+          <HeroMockup />
+          <Card className="transition-all group-hover:border-success/50 group-hover:shadow-lg">
+            <CardContent className="p-4 text-center">
+              <div className="mx-auto h-10 w-10 rounded-xl bg-success/15 text-success flex items-center justify-center mb-2">
+                <ClipboardList className="h-5 w-5" />
               </div>
-              <p className="font-bold text-foreground text-lg mb-2">Residents</p>
-              <p className="text-sm text-muted-foreground">Guest passes, dues, deliveries, and visit history — all in one place.</p>
+              <p className="font-bold text-foreground mb-1">Residents</p>
+              <p className="text-xs text-muted-foreground">Guest passes, dues, deliveries, and visit history — all in one place.</p>
             </CardContent>
           </Card>
         </Link>
