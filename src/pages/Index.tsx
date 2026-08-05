@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Shield, ScanLine, ClipboardList, Building2, QrCode, Users, ArrowRight,
   Car, Package, Wallet, Sparkles, IdCard, FileText, Activity, Radio,
+  CheckCircle2, CalendarCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -71,149 +73,291 @@ const DuesRing = () => (
   </svg>
 );
 
-/** Mini browser-frame mockup of the actual resident Home dashboard, used as the hero visual. */
-const HeroMockup = () => (
-  <div className="rounded-2xl border border-border bg-card shadow-xl overflow-hidden max-w-sm mx-auto">
-    <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-secondary/50">
-      <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
-      <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
-      <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-      <span className="ml-2 text-[10px] text-muted-foreground truncate" style={{ fontFamily: LABEL_FONT }}>
-        visitorpasses.in/triumph-towers-chsl
-      </span>
-    </div>
-    <div className="p-4 space-y-3">
-      <div>
-        <p className="text-sm font-semibold text-foreground">Good morning, Rahul</p>
-        <p className="text-xs text-muted-foreground">Shree Laxmi CHSL · A-101</p>
-      </div>
-      <div className="rounded-lg border-l-4 border-l-primary bg-secondary/40 p-3 flex items-center justify-between">
+// ─── Phone demo: one phone frame, auto-cycling through real screens ────────
+
+interface Slide { roleLabel: string; screenLabel: string; roleTint: string; content: React.ReactNode; }
+
+const SLIDES: Slide[] = [
+  // ── Admin ──────────────────────────────────────────────────────────────
+  {
+    roleLabel: "Admin", screenLabel: "Home", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-3">
         <div>
-          <p className="text-[10px] text-muted-foreground">Outstanding dues</p>
-          <p className="text-lg font-bold text-foreground">₹4,250</p>
+          <p className="text-sm font-semibold text-foreground">Shree Laxmi CHSL</p>
+          <p className="text-xs text-muted-foreground">Wednesday, 5 August</p>
         </div>
-        <ArrowRight className="h-4 w-4 text-primary" />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
+            <p className="text-[9px] text-muted-foreground flex items-center gap-1"><Activity className="h-2.5 w-2.5" /> Currently inside</p>
+            <p className="text-base font-bold text-foreground">14</p>
+          </div>
+          <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
+            <p className="text-[9px] text-muted-foreground">Dues outstanding</p>
+            <p className="text-base font-bold text-foreground">₹1.8L</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { icon: Car, tint: "bg-primary/10 text-primary" },
+            { icon: Users, tint: "bg-accent/10 text-accent" },
+            { icon: FileText, tint: "bg-warning/10 text-warning" },
+            { icon: Radio, tint: "bg-success/10 text-success" },
+          ].map((t, i) => (
+            <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border">
+              <span className={`h-7 w-7 rounded-full flex items-center justify-center ${t.tint}`}>
+                <t.icon className="h-3.5 w-3.5" />
+              </span>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-lg border border-border p-2 flex items-center justify-between">
+          <p className="text-[9px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>PENDING REQUESTS</p>
+          <span className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">5</span>
+        </div>
       </div>
-      <div className="grid grid-cols-4 gap-2">
+    ),
+  },
+  {
+    roleLabel: "Admin", screenLabel: "User Registry", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1">User Registry</p>
         {[
-          { icon: QrCode, tint: "bg-primary/10 text-primary" },
-          { icon: Car, tint: "bg-accent/10 text-accent" },
-          { icon: Package, tint: "bg-success/10 text-success" },
-          { icon: Users, tint: "bg-warning/10 text-warning" },
-        ].map((t, i) => (
-          <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border">
-            <span className={`h-7 w-7 rounded-full flex items-center justify-center ${t.tint}`}>
-              <t.icon className="h-3.5 w-3.5" />
-            </span>
+          { name: "Rahul", role: "resident", flat: "A-101" },
+          { name: "Mahaveer", role: "guard", flat: null },
+          { name: "Priya Shah", role: "resident", flat: "B-204" },
+        ].map((u, i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-foreground">{u.name}</p>
+              {u.flat && <p className="text-[9px] text-muted-foreground">{u.flat}</p>}
+            </div>
+            <span className={`text-[9px] font-medium px-2 py-0.5 rounded-full ${u.role === "guard" ? "bg-primary/15 text-primary" : "bg-success/15 text-success"}`}>{u.role}</span>
           </div>
         ))}
       </div>
-      <div className="rounded-lg border border-border p-3 space-y-2">
-        <p className="text-[10px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>RECENT ACTIVITY</p>
-        <div className="flex items-center gap-2">
-          <span className="h-5 w-5 rounded-full bg-success/10 text-success flex items-center justify-center text-[10px]">→</span>
-          <div className="h-1.5 flex-1 rounded-full bg-secondary" />
+    ),
+  },
+  {
+    roleLabel: "Admin", screenLabel: "Maintenance Billing", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1">Maintenance Billing</p>
+        <div className="rounded-lg border border-border p-3 flex items-center gap-3">
+          <DuesRing />
+          <div>
+            <p className="text-[10px] text-muted-foreground">Collected this month</p>
+            <p className="text-sm font-bold text-foreground">₹4.2L / ₹6.2L</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="h-5 w-5 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-[10px]">←</span>
-          <div className="h-1.5 flex-1 rounded-full bg-secondary" />
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-/** Compact guard-dashboard mockup: leads with the Scan QR action, matching
- * the real GuardHome layout where scanning is the guard's #1 task. */
-const GuardMockup = () => (
-  <div className="rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
-    <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-secondary/50">
-      <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
-      <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
-      <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-      <span className="ml-2 text-[10px] text-muted-foreground truncate" style={{ fontFamily: LABEL_FONT }}>
-        visitorpasses.in/triumph-towers-chsl/guard
-      </span>
-    </div>
-    <div className="p-4 space-y-3">
-      <div>
-        <p className="text-sm font-semibold text-foreground">Triumph Towers CHSL</p>
-        <p className="text-xs text-muted-foreground">Wednesday, 5 July</p>
-      </div>
-      <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 flex items-center justify-between">
-        <p className="text-xs font-semibold text-foreground">Tap to start scanning</p>
-        <span className="h-7 px-2 rounded-md bg-primary text-primary-foreground flex items-center gap-1 text-[10px] font-bold">
-          <ScanLine className="h-3 w-3" /> Scan QR
-        </span>
-      </div>
-      <div className="rounded-lg bg-success/10 border border-success/30 p-3 flex items-center justify-between">
-        <p className="text-xs font-semibold text-foreground">Register a delivery</p>
-        <span className="h-7 px-2 rounded-md border border-success/50 text-success flex items-center gap-1 text-[10px] font-bold">
-          <Package className="h-3 w-3" /> Register
-        </span>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
-          <p className="text-[9px] text-muted-foreground">Pending approvals</p>
-          <p className="text-base font-bold text-foreground">3</p>
-        </div>
-        <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
-          <p className="text-[9px] text-muted-foreground">Currently inside</p>
-          <p className="text-base font-bold text-foreground">14</p>
-        </div>
-      </div>
-    </div>
-  </div>
-);
-
-/** Compact admin-dashboard mockup: leads with today's activity + dues
- * collection, matching the real AdminHome layout. */
-const AdminMockup = () => (
-  <div className="rounded-2xl border border-border bg-card shadow-lg overflow-hidden">
-    <div className="flex items-center gap-1.5 px-3 py-2 border-b border-border bg-secondary/50">
-      <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
-      <span className="h-2.5 w-2.5 rounded-full bg-warning/60" />
-      <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
-      <span className="ml-2 text-[10px] text-muted-foreground truncate" style={{ fontFamily: LABEL_FONT }}>
-        visitorpasses.in/triumph-towers-chsl/admin
-      </span>
-    </div>
-    <div className="p-4 space-y-3">
-      <div>
-        <p className="text-sm font-semibold text-foreground">Triumph Towers CHSL</p>
-        <p className="text-xs text-muted-foreground">Wednesday, 5 July</p>
-      </div>
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
-          <p className="text-[9px] text-muted-foreground flex items-center gap-1"><Activity className="h-2.5 w-2.5" /> Currently inside</p>
-          <p className="text-base font-bold text-foreground">14</p>
-        </div>
-        <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
-          <p className="text-[9px] text-muted-foreground">Dues outstanding</p>
-          <p className="text-base font-bold text-foreground">₹1.8L</p>
-        </div>
-      </div>
-      <div className="grid grid-cols-4 gap-2">
-        {[
-          { icon: Car, tint: "bg-primary/10 text-primary" },
-          { icon: Users, tint: "bg-accent/10 text-accent" },
-          { icon: FileText, tint: "bg-warning/10 text-warning" },
-          { icon: Radio, tint: "bg-success/10 text-success" },
-        ].map((t, i) => (
-          <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border">
-            <span className={`h-7 w-7 rounded-full flex items-center justify-center ${t.tint}`}>
-              <t.icon className="h-3.5 w-3.5" />
-            </span>
+        {[["A-101", "₹2,450", true], ["B-204", "₹2,450", false]].map(([flat, amt, paid], i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between text-xs">
+            <span className="text-foreground">{flat}</span>
+            <span className="text-muted-foreground">{amt}</span>
+            <span className={paid ? "text-success" : "text-warning"}>{paid ? "Paid" : "Due"}</span>
           </div>
         ))}
       </div>
-      <div className="rounded-lg border border-border p-2 flex items-center justify-between">
-        <p className="text-[9px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>PENDING REQUESTS</p>
-        <span className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">5</span>
+    ),
+  },
+  // ── Guard ──────────────────────────────────────────────────────────────
+  {
+    roleLabel: "Mahaveer", screenLabel: "Home", roleTint: "bg-primary/15 text-primary",
+    content: (
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Shree Laxmi CHSL</p>
+          <p className="text-xs text-muted-foreground">Wednesday, 5 August</p>
+        </div>
+        <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 flex items-center justify-between">
+          <p className="text-xs font-semibold text-foreground">Tap to start scanning</p>
+          <span className="h-7 px-2 rounded-md bg-primary text-primary-foreground flex items-center gap-1 text-[10px] font-bold">
+            <ScanLine className="h-3 w-3" /> Scan QR
+          </span>
+        </div>
+        <div className="rounded-lg bg-success/10 border border-success/30 p-3 flex items-center justify-between">
+          <p className="text-xs font-semibold text-foreground">Register a delivery</p>
+          <span className="h-7 px-2 rounded-md border border-success/50 text-success flex items-center gap-1 text-[10px] font-bold">
+            <Package className="h-3 w-3" /> Register
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
+            <p className="text-[9px] text-muted-foreground">Pending approvals</p>
+            <p className="text-base font-bold text-foreground">3</p>
+          </div>
+          <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
+            <p className="text-[9px] text-muted-foreground">Currently inside</p>
+            <p className="text-base font-bold text-foreground">14</p>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Mahaveer", screenLabel: "Scan Result", roleTint: "bg-primary/15 text-primary",
+    content: (
+      <div className="space-y-3 flex flex-col items-center text-center pt-6">
+        <span className="h-14 w-14 rounded-full bg-success/15 text-success flex items-center justify-center">
+          <CheckCircle2 className="h-8 w-8" />
+        </span>
+        <div>
+          <p className="text-sm font-bold text-foreground">Entry Approved</p>
+          <p className="text-xs text-muted-foreground mt-1">MH-47-BK-1836 · Rahul (A-101)</p>
+        </div>
+        <div className="w-full rounded-lg border border-border p-2 text-[10px] text-muted-foreground">
+          Logged at 5:42 PM
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Mahaveer", screenLabel: "Live Inside", roleTint: "bg-primary/15 text-primary",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1">Currently Inside (14)</p>
+        {[
+          { name: "MH-47-BK-1836", flat: "A-101", type: "Resident" },
+          { name: "Swiggy Delivery", flat: "B-204", type: "Delivery" },
+          { name: "Guest — Anil", flat: "A-101", type: "Guest" },
+        ].map((v, i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-foreground">{v.name}</p>
+              <p className="text-[9px] text-muted-foreground">{v.flat}</p>
+            </div>
+            <span className="text-[9px] text-success">{v.type}</span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  // ── Resident ───────────────────────────────────────────────────────────
+  {
+    roleLabel: "Rahul", screenLabel: "Home", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Good morning, Rahul</p>
+          <p className="text-xs text-muted-foreground">Shree Laxmi CHSL · A-101</p>
+        </div>
+        <div className="rounded-lg border-l-4 border-l-primary bg-secondary/40 p-3 flex items-center justify-between">
+          <div>
+            <p className="text-[10px] text-muted-foreground">Outstanding dues</p>
+            <p className="text-lg font-bold text-foreground">₹2,450</p>
+          </div>
+          <ArrowRight className="h-4 w-4 text-primary" />
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { icon: QrCode, tint: "bg-primary/10 text-primary" },
+            { icon: Car, tint: "bg-accent/10 text-accent" },
+            { icon: Package, tint: "bg-success/10 text-success" },
+            { icon: Users, tint: "bg-warning/10 text-warning" },
+          ].map((t, i) => (
+            <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border">
+              <span className={`h-7 w-7 rounded-full flex items-center justify-center ${t.tint}`}>
+                <t.icon className="h-3.5 w-3.5" />
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Rahul", screenLabel: "Guest Pass", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-3 flex flex-col items-center text-center pt-2">
+        <p className="text-sm font-semibold text-foreground self-start">Guest Pass</p>
+        <div className="h-24 w-24 rounded-lg bg-foreground/90 flex items-center justify-center">
+          <QrCode className="h-14 w-14 text-background" />
+        </div>
+        <div>
+          <p className="text-xs font-medium text-foreground">Anil Kumar</p>
+          <p className="text-[10px] text-muted-foreground">Valid for one entry today</p>
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Rahul", screenLabel: "My Dues", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1">My Dues</p>
+        <div className="rounded-lg border border-border p-3 space-y-1.5">
+          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Maintenance</span><span className="text-foreground">₹2,000</span></div>
+          <div className="flex justify-between text-xs"><span className="text-muted-foreground">Sinking Fund</span><span className="text-foreground">₹450</span></div>
+          <div className="flex justify-between text-xs font-semibold pt-1 border-t border-border"><span>Total</span><span>₹2,450</span></div>
+        </div>
+        <span className="inline-block text-[9px] font-medium px-2 py-1 rounded-full bg-warning/15 text-warning">Due 10 August</span>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Rahul", screenLabel: "Amenities", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><CalendarCheck className="h-3.5 w-3.5" /> Book an Amenity</p>
+        <div className="rounded-lg border border-border p-3">
+          <p className="text-xs font-medium text-foreground">Clubhouse</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">Sat, 8 Aug · 6:00 – 8:00 PM</p>
+          <span className="inline-block mt-2 text-[9px] font-medium px-2 py-1 rounded-full bg-success/15 text-success">Confirmed</span>
+        </div>
+      </div>
+    ),
+  },
+];
+
+const SLIDE_DURATION_MS = 3200;
+
+const PhoneDemo = () => {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setIndex((i) => (i + 1) % SLIDES.length), SLIDE_DURATION_MS);
+    return () => clearInterval(timer);
+  }, []);
+
+  const slide = SLIDES[index];
+
+  return (
+    <div className="flex flex-col items-center gap-4 mx-auto">
+      {/* Phone bezel */}
+      <div className="relative w-[280px] h-[560px] rounded-[2.5rem] border-[10px] border-foreground/90 bg-foreground/90 shadow-2xl">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-foreground/90 rounded-b-xl z-10" />
+        <div className="relative h-full w-full rounded-[1.75rem] overflow-hidden bg-background">
+          {/* Status bar */}
+          <div className="h-8 flex items-center justify-between px-5 text-[10px] font-medium text-foreground" style={{ fontFamily: LABEL_FONT }}>
+            <span>9:41</span>
+            <span>●●●</span>
+          </div>
+          {/* Progress segments */}
+          <div className="flex gap-1 px-3 pb-2">
+            {SLIDES.map((_, i) => (
+              <div key={i} className="h-0.5 flex-1 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full bg-primary transition-all"
+                  style={{ width: i < index ? "100%" : i === index ? "100%" : "0%", transitionDuration: i === index ? `${SLIDE_DURATION_MS}ms` : "0ms" }}
+                />
+              </div>
+            ))}
+          </div>
+          {/* Screen content */}
+          <div key={index} className="px-4 pb-4 animate-in fade-in duration-300">
+            {slide.content}
+          </div>
+        </div>
+      </div>
+      {/* Role / screen label */}
+      <div className="flex items-center gap-2 text-sm">
+        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${slide.roleTint}`}>{slide.roleLabel}</span>
+        <span className="text-muted-foreground">{slide.screenLabel}</span>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const Index = () => (
   <div className="min-h-screen bg-background">
@@ -241,7 +385,7 @@ const Index = () => (
     {/* Hero */}
     <section className="relative overflow-hidden border-b border-border">
       <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
-      <div className="relative max-w-6xl mx-auto px-4 py-16 sm:py-24 grid lg:grid-cols-2 gap-12 items-center">
+      <div className="relative max-w-6xl mx-auto px-4 py-16 sm:py-20 grid lg:grid-cols-2 gap-12 items-center">
         <div className="text-center lg:text-left">
           <p className="text-xs font-semibold tracking-widest text-primary uppercase mb-3" style={{ fontFamily: LABEL_FONT }}>
             Complete Society Management
@@ -262,7 +406,7 @@ const Index = () => (
             </Button>
           </div>
         </div>
-        <HeroMockup />
+        <PhoneDemo />
       </div>
     </section>
 
@@ -333,46 +477,40 @@ const Index = () => (
 
     {/* Role portals */}
     <section className="max-w-5xl mx-auto px-4 py-16">
-      <h2 className="text-3xl font-bold text-foreground text-center mb-3" style={{ fontFamily: DISPLAY_FONT }}>
+      <h2 className="text-3xl font-bold text-foreground text-center mb-12" style={{ fontFamily: DISPLAY_FONT }}>
         Choose your portal
       </h2>
-      <p className="text-muted-foreground text-center max-w-xl mx-auto mb-12">
-        A real look at what each role actually sees — not just an icon and a promise.
-      </p>
-      <div className="grid sm:grid-cols-3 gap-6">
-        <Link to="/login/society?role=admin" className="group block space-y-3">
-          <AdminMockup />
-          <Card className="transition-all group-hover:border-warning/50 group-hover:shadow-lg">
-            <CardContent className="p-4 text-center">
-              <div className="mx-auto h-10 w-10 rounded-xl bg-warning/15 text-warning flex items-center justify-center mb-2">
-                <Shield className="h-5 w-5" />
+      <div className="grid sm:grid-cols-3 gap-4">
+        <Link to="/login/society?role=admin" className="group">
+          <Card className="h-full transition-all hover:border-warning/50 hover:shadow-lg hover:-translate-y-1">
+            <CardContent className="p-6 text-center">
+              <div className="mx-auto h-14 w-14 rounded-xl bg-warning/15 text-warning flex items-center justify-center mb-4">
+                <Shield className="h-7 w-7" />
               </div>
-              <p className="font-bold text-foreground mb-1">Admin / Committee</p>
-              <p className="text-xs text-muted-foreground">Manage residents, vehicles, staff, and maintenance billing.</p>
+              <p className="font-bold text-foreground text-lg mb-2">Admin / Committee</p>
+              <p className="text-sm text-muted-foreground">Manage residents, vehicles, staff, and maintenance billing.</p>
             </CardContent>
           </Card>
         </Link>
-        <Link to="/login/society?role=guard" className="group block space-y-3">
-          <GuardMockup />
-          <Card className="transition-all group-hover:border-primary/50 group-hover:shadow-lg">
-            <CardContent className="p-4 text-center">
-              <div className="mx-auto h-10 w-10 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-2">
-                <ScanLine className="h-5 w-5" />
+        <Link to="/login/society?role=guard" className="group">
+          <Card className="h-full transition-all hover:border-primary/50 hover:shadow-lg hover:-translate-y-1">
+            <CardContent className="p-6 text-center">
+              <div className="mx-auto h-14 w-14 rounded-xl bg-primary/15 text-primary flex items-center justify-center mb-4">
+                <ScanLine className="h-7 w-7" />
               </div>
-              <p className="font-bold text-foreground mb-1">Security Guard</p>
-              <p className="text-xs text-muted-foreground">Scan QRs for vehicles, guests, staff, and deliveries.</p>
+              <p className="font-bold text-foreground text-lg mb-2">Security Guard</p>
+              <p className="text-sm text-muted-foreground">Scan QRs for vehicles, guests, staff, and deliveries.</p>
             </CardContent>
           </Card>
         </Link>
-        <Link to="/login/society?role=resident" className="group block space-y-3">
-          <HeroMockup />
-          <Card className="transition-all group-hover:border-success/50 group-hover:shadow-lg">
-            <CardContent className="p-4 text-center">
-              <div className="mx-auto h-10 w-10 rounded-xl bg-success/15 text-success flex items-center justify-center mb-2">
-                <ClipboardList className="h-5 w-5" />
+        <Link to="/login/society?role=resident" className="group">
+          <Card className="h-full transition-all hover:border-success/50 hover:shadow-lg hover:-translate-y-1">
+            <CardContent className="p-6 text-center">
+              <div className="mx-auto h-14 w-14 rounded-xl bg-success/15 text-success flex items-center justify-center mb-4">
+                <ClipboardList className="h-7 w-7" />
               </div>
-              <p className="font-bold text-foreground mb-1">Residents</p>
-              <p className="text-xs text-muted-foreground">Guest passes, dues, deliveries, and visit history — all in one place.</p>
+              <p className="font-bold text-foreground text-lg mb-2">Residents</p>
+              <p className="text-sm text-muted-foreground">Guest passes, dues, deliveries, and visit history — all in one place.</p>
             </CardContent>
           </Card>
         </Link>
@@ -384,31 +522,31 @@ const Index = () => (
       </div>
     </section>
 
-<section className="max-w-5xl mx-auto px-4 py-16">
-  <h2 className="text-2xl font-bold text-foreground mb-2">From the desk of VisitorPasses</h2>
-  <p className="text-muted-foreground mb-8">Practical insights on society management and security.</p>
-  <Link to="/article/digital-vs-paper-society-management" className="group block rounded-2xl border border-border bg-card hover:border-primary/40 transition-colors p-6 sm:p-8">
-    <div className="flex items-start gap-4">
-      <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
-        <FileText className="h-6 w-6 text-primary" />
-      </div>
-      <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Society Management</p>
-        <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
-          Why Your Housing Society Needs to Move Beyond the Paper Register
-        </h3>
-        <p className="text-sm text-muted-foreground leading-relaxed">
-          What the paper register is actually costing your society in time, safety, and resident frustration —
-          and why going digital is simpler than you think.
-        </p>
-        <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
-          Read article <ArrowRight className="h-3 w-3" />
-        </p>
-      </div>
-    </div>
-  </Link>
-</section>
-    
+    <section className="max-w-5xl mx-auto px-4 py-16">
+      <h2 className="text-2xl font-bold text-foreground mb-2">From the desk of VisitorPasses</h2>
+      <p className="text-muted-foreground mb-8">Practical insights on society management and security.</p>
+      <Link to="/article/digital-vs-paper-society-management" className="group block rounded-2xl border border-border bg-card hover:border-primary/40 transition-colors p-6 sm:p-8">
+        <div className="flex items-start gap-4">
+          <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/20 transition-colors">
+            <FileText className="h-6 w-6 text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-widest text-primary mb-2">Society Management</p>
+            <h3 className="text-lg font-bold text-foreground group-hover:text-primary transition-colors leading-snug mb-2">
+              Why Your Housing Society Needs to Move Beyond the Paper Register
+            </h3>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              What the paper register is actually costing your society in time, safety, and resident frustration —
+              and why going digital is simpler than you think.
+            </p>
+            <p className="text-xs text-muted-foreground mt-3 flex items-center gap-1">
+              Read article <ArrowRight className="h-3 w-3" />
+            </p>
+          </div>
+        </div>
+      </Link>
+    </section>
+
     <footer className="border-t border-border py-8 text-center">
       <p className="text-xs text-muted-foreground">
         © {new Date().getFullYear()} VisitorPasses — made with love by parag.airun@gmail.com
