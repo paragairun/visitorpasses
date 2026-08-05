@@ -82,38 +82,58 @@ const SLIDES: Slide[] = [
   {
     roleLabel: "Admin", screenLabel: "Home", roleTint: "bg-warning/15 text-warning",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <div>
           <p className="text-sm font-semibold text-foreground">Shree Laxmi CHSL</p>
           <p className="text-xs text-muted-foreground">Wednesday, 5 August</p>
         </div>
         <div className="grid grid-cols-2 gap-2">
           <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
-            <p className="text-[9px] text-muted-foreground flex items-center gap-1"><Activity className="h-2.5 w-2.5" /> Currently inside</p>
+            <p className="text-[8px] text-muted-foreground flex items-center gap-1"><Activity className="h-2.5 w-2.5" /> Currently inside</p>
             <p className="text-base font-bold text-foreground">14</p>
           </div>
           <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
-            <p className="text-[9px] text-muted-foreground">Dues outstanding</p>
+            <p className="text-[8px] text-muted-foreground">Dues outstanding</p>
             <p className="text-base font-bold text-foreground">₹1.8L</p>
           </div>
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div>
+          <p className="text-[8px] text-muted-foreground mb-1" style={{ fontFamily: LABEL_FONT }}>QUICK ACTIONS</p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[
+              { icon: Plus, label: "Register Vehicle", tint: "bg-primary/10 text-primary" },
+              { icon: Car, label: "Vehicle Registry", tint: "bg-accent/10 text-accent" },
+              { icon: Users, label: "User Registry", tint: "bg-warning/10 text-warning" },
+              { icon: RefreshCw, label: "Vehicle Requests", tint: "bg-primary/10 text-primary" },
+              { icon: IdCard, label: "Staff", tint: "bg-success/10 text-success" },
+              { icon: Radio, label: "Boom Barriers", tint: "bg-accent/10 text-accent" },
+              { icon: Wallet, label: "Billing", tint: "bg-warning/10 text-warning" },
+              { icon: Sparkles, label: "Amenities", tint: "bg-muted text-muted-foreground", soon: true },
+            ].map((t, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className={`h-7 w-7 rounded-full flex items-center justify-center relative ${t.tint}`}>
+                  <t.icon className="h-3.5 w-3.5" />
+                  {t.soon && <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-muted border border-border" />}
+                </span>
+                <span className="text-[6px] leading-none text-center text-muted-foreground">{t.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border p-2 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-[8px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>RECENT ACTIVITY</p>
+            <span className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[8px] font-bold flex items-center justify-center">5</span>
+          </div>
           {[
-            { icon: Car, tint: "bg-primary/10 text-primary" },
-            { icon: Users, tint: "bg-accent/10 text-accent" },
-            { icon: FileText, tint: "bg-warning/10 text-warning" },
-            { icon: Radio, tint: "bg-success/10 text-success" },
-          ].map((t, i) => (
-            <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border">
-              <span className={`h-7 w-7 rounded-full flex items-center justify-center ${t.tint}`}>
-                <t.icon className="h-3.5 w-3.5" />
-              </span>
+            { icon: "→", text: "MH-47-BK-1836 entered", tint: "bg-success/10 text-success" },
+            { icon: "←", text: "Guest — Anil exited", tint: "bg-muted text-muted-foreground" },
+          ].map((a, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[8px] shrink-0 ${a.tint}`}>{a.icon}</span>
+              <p className="text-[8px] text-foreground truncate">{a.text}</p>
             </div>
           ))}
-        </div>
-        <div className="rounded-lg border border-border p-2 flex items-center justify-between">
-          <p className="text-[9px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>PENDING REQUESTS</p>
-          <span className="h-4 w-4 rounded-full bg-destructive text-destructive-foreground text-[9px] font-bold flex items-center justify-center">5</span>
         </div>
       </div>
     ),
@@ -251,32 +271,65 @@ const SLIDES: Slide[] = [
   {
     roleLabel: "Mahaveer", screenLabel: "Home", roleTint: "bg-primary/15 text-primary",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2">
         <div>
           <p className="text-sm font-semibold text-foreground">Shree Laxmi CHSL</p>
           <p className="text-xs text-muted-foreground">Wednesday, 5 August</p>
         </div>
-        <div className="rounded-lg bg-primary/10 border border-primary/30 p-3 flex items-center justify-between">
-          <p className="text-xs font-semibold text-foreground">Tap to start scanning</p>
-          <span className="h-7 px-2 rounded-md bg-primary text-primary-foreground flex items-center gap-1 text-[10px] font-bold">
-            <ScanLine className="h-3 w-3" /> Scan QR
+        <div className="rounded-lg bg-primary/10 border border-primary/30 p-2 flex items-center justify-between">
+          <p className="text-[10px] font-semibold text-foreground">Tap to start scanning</p>
+          <span className="h-6 px-2 rounded-md bg-primary text-primary-foreground flex items-center gap-1 text-[9px] font-bold">
+            <ScanLine className="h-2.5 w-2.5" /> Scan QR
           </span>
         </div>
-        <div className="rounded-lg bg-success/10 border border-success/30 p-3 flex items-center justify-between">
-          <p className="text-xs font-semibold text-foreground">Register a delivery</p>
-          <span className="h-7 px-2 rounded-md border border-success/50 text-success flex items-center gap-1 text-[10px] font-bold">
-            <Package className="h-3 w-3" /> Register
+        <div className="rounded-lg bg-success/10 border border-success/30 p-2 flex items-center justify-between">
+          <p className="text-[10px] font-semibold text-foreground">Register a delivery</p>
+          <span className="h-6 px-2 rounded-md border border-success/50 text-success flex items-center gap-1 text-[9px] font-bold">
+            <Package className="h-2.5 w-2.5" /> Register
           </span>
         </div>
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-2">
-            <p className="text-[9px] text-muted-foreground">Pending approvals</p>
-            <p className="text-base font-bold text-foreground">3</p>
+          <div className="rounded-lg border-l-4 border-l-warning bg-secondary/40 p-1.5">
+            <p className="text-[8px] text-muted-foreground">Pending approvals</p>
+            <p className="text-sm font-bold text-foreground">3</p>
           </div>
-          <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-2">
-            <p className="text-[9px] text-muted-foreground">Currently inside</p>
-            <p className="text-base font-bold text-foreground">14</p>
+          <div className="rounded-lg border-l-4 border-l-success bg-secondary/40 p-1.5">
+            <p className="text-[8px] text-muted-foreground">Currently inside</p>
+            <p className="text-sm font-bold text-foreground">14</p>
           </div>
+        </div>
+        <div>
+          <p className="text-[8px] text-muted-foreground mb-1" style={{ fontFamily: LABEL_FONT }}>QUICK ACTIONS</p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[
+              { icon: ScanLine, label: "Search & Scan", tint: "bg-primary/10 text-primary" },
+              { icon: Clock, label: "Pending Approvals", tint: "bg-warning/10 text-warning" },
+              { icon: Car, label: "Live Inside", tint: "bg-success/10 text-success" },
+              { icon: Radio, label: "Boom Barriers", tint: "bg-accent/10 text-accent" },
+              { icon: Package, label: "Deliveries", tint: "bg-success/10 text-success" },
+              { icon: Sparkles, label: "Amenities", tint: "bg-muted text-muted-foreground", soon: true },
+            ].map((t, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className={`h-7 w-7 rounded-full flex items-center justify-center relative ${t.tint}`}>
+                  <t.icon className="h-3.5 w-3.5" />
+                  {t.soon && <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-muted border border-border" />}
+                </span>
+                <span className="text-[6px] leading-none text-center text-muted-foreground">{t.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border p-2 space-y-1.5">
+          <p className="text-[8px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>RECENT ACTIVITY</p>
+          {[
+            { icon: "→", text: "MH-47-BK-1836 entered", tint: "bg-success/10 text-success" },
+            { icon: "←", text: "Swiggy Delivery exited", tint: "bg-muted text-muted-foreground" },
+          ].map((a, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[8px] shrink-0 ${a.tint}`}>{a.icon}</span>
+              <p className="text-[8px] text-foreground truncate">{a.text}</p>
+            </div>
+          ))}
         </div>
       </div>
     ),
@@ -367,7 +420,7 @@ const SLIDES: Slide[] = [
   {
     roleLabel: "Rahul", screenLabel: "Home", roleTint: "bg-success/15 text-success",
     content: (
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         <div>
           <p className="text-sm font-semibold text-foreground">Good morning, Rahul</p>
           <p className="text-xs text-muted-foreground">Shree Laxmi CHSL · A-101</p>
@@ -379,17 +432,37 @@ const SLIDES: Slide[] = [
           </div>
           <ArrowRight className="h-4 w-4 text-primary" />
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div>
+          <p className="text-[8px] text-muted-foreground mb-1" style={{ fontFamily: LABEL_FONT }}>QUICK ACTIONS</p>
+          <div className="grid grid-cols-4 gap-1.5">
+            {[
+              { icon: QrCode, label: "Guest Pass", tint: "bg-primary/10 text-primary" },
+              { icon: Car, label: "Vehicles", tint: "bg-accent/10 text-accent" },
+              { icon: Wallet, label: "Dues", tint: "bg-warning/10 text-warning" },
+              { icon: Package, label: "Deliveries", tint: "bg-success/10 text-success" },
+              { icon: Users, label: "House Helps", tint: "bg-accent/10 text-accent" },
+              { icon: ClipboardList, label: "History", tint: "bg-primary/10 text-primary" },
+              { icon: Sparkles, label: "Amenities", tint: "bg-muted text-muted-foreground", soon: true },
+            ].map((t, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <span className={`h-7 w-7 rounded-full flex items-center justify-center relative ${t.tint}`}>
+                  <t.icon className="h-3.5 w-3.5" />
+                  {t.soon && <span className="absolute -top-1 -right-1 h-2.5 w-2.5 rounded-full bg-muted border border-border" />}
+                </span>
+                <span className="text-[6px] leading-none text-center text-muted-foreground">{t.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="rounded-lg border border-border p-2 space-y-1.5">
+          <p className="text-[8px] text-muted-foreground" style={{ fontFamily: LABEL_FONT }}>RECENT ACTIVITY</p>
           {[
-            { icon: QrCode, tint: "bg-primary/10 text-primary" },
-            { icon: Car, tint: "bg-accent/10 text-accent" },
-            { icon: Package, tint: "bg-success/10 text-success" },
-            { icon: Users, tint: "bg-warning/10 text-warning" },
-          ].map((t, i) => (
-            <div key={i} className="flex flex-col items-center gap-1 p-2 rounded-lg border border-border">
-              <span className={`h-7 w-7 rounded-full flex items-center justify-center ${t.tint}`}>
-                <t.icon className="h-3.5 w-3.5" />
-              </span>
+            { icon: "→", text: "Guest — Anil entered", tint: "bg-success/10 text-success" },
+            { icon: "←", text: "Swiggy Delivery exited", tint: "bg-muted text-muted-foreground" },
+          ].map((a, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <span className={`h-4 w-4 rounded-full flex items-center justify-center text-[8px] shrink-0 ${a.tint}`}>{a.icon}</span>
+              <p className="text-[8px] text-foreground truncate">{a.text}</p>
             </div>
           ))}
         </div>
