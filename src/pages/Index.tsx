@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Shield, ScanLine, ClipboardList, Building2, QrCode, Users, ArrowRight,
   Car, Package, Wallet, Sparkles, IdCard, FileText, Activity, Radio,
-  CheckCircle2, CalendarCheck,
+  CheckCircle2, CalendarCheck, Plus, RefreshCw, Clock, X, Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -161,6 +161,92 @@ const SLIDES: Slide[] = [
       </div>
     ),
   },
+  {
+    roleLabel: "Admin", screenLabel: "Register Vehicle", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Plus className="h-3.5 w-3.5" /> Register Vehicle</p>
+        <div className="rounded-lg border border-border p-3 space-y-2">
+          <div>
+            <p className="text-[9px] text-muted-foreground">Vehicle Number</p>
+            <p className="text-xs font-medium text-foreground">MH-47-BK-1836</p>
+          </div>
+          <div>
+            <p className="text-[9px] text-muted-foreground">Owner</p>
+            <p className="text-xs font-medium text-foreground">Rahul · A-101</p>
+          </div>
+          <span className="inline-block text-[9px] font-medium px-2 py-1 rounded-full bg-primary/15 text-primary">Car</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Admin", screenLabel: "Vehicle Registry", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1">Vehicle Registry</p>
+        {[
+          { num: "MH-47-BK-1836", flat: "A-101", type: "Car" },
+          { num: "MH-47-BD-7714", flat: "A-101", type: "Bike" },
+          { num: "MH-02-XR-2201", flat: "B-204", type: "Car" },
+        ].map((v, i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between">
+            <div>
+              <p className="text-xs font-medium text-foreground">{v.num}</p>
+              <p className="text-[9px] text-muted-foreground">{v.flat}</p>
+            </div>
+            <span className="text-[9px] text-muted-foreground">{v.type}</span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Admin", screenLabel: "Vehicle Requests", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><RefreshCw className="h-3.5 w-3.5" /> Vehicle Requests</p>
+        <div className="rounded-lg border border-border p-3">
+          <p className="text-xs font-medium text-foreground">Add: MH-14-CD-9081</p>
+          <p className="text-[9px] text-muted-foreground mt-0.5">Requested by Priya · B-204</p>
+          <div className="flex gap-2 mt-2">
+            <span className="flex items-center gap-1 text-[9px] font-medium px-2 py-1 rounded-full bg-success/15 text-success"><Check className="h-2.5 w-2.5" /> Approve</span>
+            <span className="flex items-center gap-1 text-[9px] font-medium px-2 py-1 rounded-full bg-destructive/15 text-destructive"><X className="h-2.5 w-2.5" /> Reject</span>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Admin", screenLabel: "Boom Barriers", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Radio className="h-3.5 w-3.5" /> Boom Barriers</p>
+        {[["Main Gate", true], ["Service Gate", false]].map(([name, online], i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">{name as string}</span>
+            <span className={`text-[9px] font-medium px-2 py-0.5 rounded-full ${online ? "bg-success/15 text-success" : "bg-muted text-muted-foreground"}`}>
+              {online ? "Online" : "Offline"}
+            </span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Admin", screenLabel: "Amenities Setup", roleTint: "bg-warning/15 text-warning",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Sparkles className="h-3.5 w-3.5" /> Amenities Setup</p>
+        {[["Clubhouse", "Needs approval"], ["Gym", "Auto-confirm"]].map(([name, mode], i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">{name}</span>
+            <span className="text-[9px] text-muted-foreground">{mode}</span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
   // ── Guard ──────────────────────────────────────────────────────────────
   {
     roleLabel: "Mahaveer", screenLabel: "Home", roleTint: "bg-primary/15 text-primary",
@@ -230,6 +316,50 @@ const SLIDES: Slide[] = [
             <span className="text-[9px] text-success">{v.type}</span>
           </div>
         ))}
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Mahaveer", screenLabel: "Pending Approvals", roleTint: "bg-primary/15 text-primary",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Pending Approvals</p>
+        <div className="rounded-lg border border-border p-3">
+          <p className="text-xs font-medium text-foreground">Guest — Anil</p>
+          <p className="text-[9px] text-muted-foreground mt-0.5">Waiting on Rahul, A-101</p>
+          <span className="inline-block mt-2 text-[9px] font-medium px-2 py-1 rounded-full bg-warning/15 text-warning">Awaiting response</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Mahaveer", screenLabel: "Register Delivery", roleTint: "bg-primary/15 text-primary",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Package className="h-3.5 w-3.5" /> Register Delivery</p>
+        <div className="rounded-lg border border-border p-3 space-y-2">
+          <div>
+            <p className="text-[9px] text-muted-foreground">Delivery for</p>
+            <p className="text-xs font-medium text-foreground">A-101 · Rahul</p>
+          </div>
+          <div>
+            <p className="text-[9px] text-muted-foreground">Agent</p>
+            <p className="text-xs font-medium text-foreground">Amazon Delivery</p>
+          </div>
+          <span className="inline-block text-[9px] font-medium px-2 py-1 rounded-full bg-warning/15 text-warning">Notifying resident…</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Mahaveer", screenLabel: "Boom Barriers", roleTint: "bg-primary/15 text-primary",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Radio className="h-3.5 w-3.5" /> Boom Barriers</p>
+        <div className="rounded-lg border border-border p-3 flex items-center justify-between">
+          <span className="text-xs font-medium text-foreground">Main Gate</span>
+          <span className="h-7 px-3 rounded-md bg-primary text-primary-foreground flex items-center text-[10px] font-bold">Open</span>
+        </div>
       </div>
     ),
   },
@@ -305,6 +435,67 @@ const SLIDES: Slide[] = [
           <p className="text-[10px] text-muted-foreground mt-0.5">Sat, 8 Aug · 6:00 – 8:00 PM</p>
           <span className="inline-block mt-2 text-[9px] font-medium px-2 py-1 rounded-full bg-success/15 text-success">Confirmed</span>
         </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Rahul", screenLabel: "My Vehicles", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Car className="h-3.5 w-3.5" /> My Vehicles</p>
+        {[["MH-47-BK-1836", "Car"], ["MH-47-BD-7714", "Bike"]].map(([num, type], i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">{num}</span>
+            <span className="text-[9px] text-muted-foreground">{type}</span>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Rahul", screenLabel: "Deliveries", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Package className="h-3.5 w-3.5" /> Deliveries</p>
+        <div className="rounded-lg border border-border p-3">
+          <p className="text-xs font-medium text-foreground">Amazon Delivery</p>
+          <p className="text-[9px] text-muted-foreground mt-0.5">Waiting at the gate</p>
+          <div className="flex gap-2 mt-2">
+            <span className="flex items-center gap-1 text-[9px] font-medium px-2 py-1 rounded-full bg-success/15 text-success"><Check className="h-2.5 w-2.5" /> Approve</span>
+            <span className="flex items-center gap-1 text-[9px] font-medium px-2 py-1 rounded-full bg-destructive/15 text-destructive"><X className="h-2.5 w-2.5" /> Reject</span>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Rahul", screenLabel: "Visit History", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><ClipboardList className="h-3.5 w-3.5" /> Visit History</p>
+        {[
+          { name: "Anil (Guest)", time: "Today, 5:42 PM" },
+          { name: "Swiggy Delivery", time: "Today, 1:15 PM" },
+        ].map((v, i) => (
+          <div key={i} className="rounded-lg border border-border p-2">
+            <p className="text-xs font-medium text-foreground">{v.name}</p>
+            <p className="text-[9px] text-muted-foreground">{v.time}</p>
+          </div>
+        ))}
+      </div>
+    ),
+  },
+  {
+    roleLabel: "Rahul", screenLabel: "House Helps", roleTint: "bg-success/15 text-success",
+    content: (
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-foreground mb-1 flex items-center gap-1"><Users className="h-3.5 w-3.5" /> House Helps</p>
+        {[["Sunita (Maid)", "Checked in"], ["Ramesh (Driver)", "Not inside"]].map(([name, status], i) => (
+          <div key={i} className="rounded-lg border border-border p-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-foreground">{name}</span>
+            <span className="text-[9px] text-muted-foreground">{status}</span>
+          </div>
+        ))}
       </div>
     ),
   },
