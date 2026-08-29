@@ -23,7 +23,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
-import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import { useSocietyStructure } from "@/hooks/useSocietyStructure";
 import { createOpaqueVehicleQrCode } from "@/lib/qr-code";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
@@ -82,7 +81,6 @@ const AdminPanel = () => {
   const { signOut, societyId, societyName, societySlug } = useAuth();
   const navigate = useNavigate();
   const adminLoginPath = societySlug ? `/${societySlug}/admin` : "/admin";
-  useInactivityLogout(adminLoginPath);
   const handleSignOut = async () => { await signOut(); navigate(adminLoginPath, { replace: true }); };
   const { formatFlat } = useSocietyStructure(societyId);
 

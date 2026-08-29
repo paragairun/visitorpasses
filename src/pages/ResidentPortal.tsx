@@ -19,7 +19,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { useInactivityLogout } from "@/hooks/use-inactivity-logout";
 import DashboardShell, { NavItem } from "@/components/DashboardShell";
 import HouseHelpsManager from "@/components/HouseHelpsManager";
 import MyDues from "@/components/MyDues";
@@ -107,7 +106,6 @@ const ResidentPortal = () => {
   const { signOut, user, societyId, societyName, societySlug } = useAuth();
   const navigate = useNavigate();
   const residentLoginPath = societySlug ? `/${societySlug}/resident` : "/resident";
-  useInactivityLogout(residentLoginPath);
   const { formatFlat } = useSocietyStructure(societyId);
 
   const activeFlat = useMemo(() => flats.find((f) => f.id === activeFlatId) ?? flats[0], [flats, activeFlatId]);
