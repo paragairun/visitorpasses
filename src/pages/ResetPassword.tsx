@@ -52,7 +52,11 @@ const ResetPassword = () => {
     } else {
       toast({ title: "Password updated successfully" });
       await supabase.auth.signOut();
-      navigate("/guard", { replace: true });
+      // "/guard" is role-specific AND slug-gated (RoleLoginPage renders
+      // "Access Denied" without a :societySlug), so it is a dead end for
+      // residents, admins and guards alike. "/login" is the public role
+      // picker and works for every role.
+      navigate("/login", { replace: true });
     }
   };
 
