@@ -81,8 +81,7 @@ const ResetPassword = () => {
             <KeyRound className="h-8 w-8" />
           </div>
           <CardTitle className="text-xl">Set New Password</CardTitle>
-          <p className="text-muted-foreground text-sm">GatePass Pro</p>
-        </CardHeader>
+          </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="new-password">New Password</Label>
